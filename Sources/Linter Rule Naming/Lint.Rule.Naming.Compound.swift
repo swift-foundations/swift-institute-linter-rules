@@ -99,6 +99,14 @@ internal let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.Strin
     "compactMapKeys":                     "Swift.Dictionary.compactMapValues(_:) precedent (institute counterpart)",
     // swift-algorithms ecosystem precedent for deduplication.
     "uniqued":                            "swift-algorithms.uniqued() — Sequence/Collection deduplication",
+    // SE-0517 span accessors: stdlib added `var span: Span<Element>` and
+    // `var mutableSpan: MutableSpan<Element>` as canonical computed
+    // properties for non-copyable Span access on Array / ContiguousArray /
+    // friends. Institute types implementing the same protocol contract
+    // mirror the stdlib's spelling rather than introducing a parallel
+    // vocabulary.
+    "span":                               "SE-0517 Span / MutableSpan — Swift.Array.span (canonical span getter)",
+    "mutableSpan":                        "SE-0517 Span / MutableSpan — Swift.Array.mutableSpan (canonical mutable-span getter)",
 ]
 
 /// Method names that are protocol-required witnesses on a stdlib or

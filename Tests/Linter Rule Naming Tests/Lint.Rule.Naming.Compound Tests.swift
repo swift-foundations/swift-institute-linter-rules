@@ -121,6 +121,28 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     }
 
     @Test
+    func `SE-0517 mutableSpan computed property is NOT flagged`() {
+        let source = """
+        extension Buffer {
+            public var mutableSpan: MutableSpan<Value> { fatalError() }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `SE-0517 span computed property is NOT flagged`() {
+        let source = """
+        extension Buffer {
+            public var span: Span<Value> { fatalError() }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
     func `CustomStringConvertible description is NOT flagged`() {
         let source = """
         struct X: CustomStringConvertible {
