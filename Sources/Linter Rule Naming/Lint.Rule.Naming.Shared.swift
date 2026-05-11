@@ -146,3 +146,61 @@ private func namingInheritanceLeafNames(_ clause: InheritanceClauseSyntax?) -> [
     }
     return names
 }
+
+/// Returns true if `modifiers` includes a `fileprivate` or `private`
+/// access-level modifier. Direct check of the declaration's own
+/// modifier list — does not walk up the parent chain. Use
+/// `namingHasFileprivateOrPrivateEffectiveVisibility(_:)` when the
+/// caller needs effective visibility (which considers enclosing-type
+/// access).
+internal func namingHasFileprivateOrPrivateModifier(_ modifiers: DeclModifierListSyntax) -> Bool {
+    for modifier in modifiers {
+        let kind = modifier.name.tokenKind
+        if kind == .keyword(.fileprivate) || kind == .keyword(.private) {
+            return true
+        }
+    }
+    return false
+}
+
+/// Returns true if `node`'s *effective* visibility is `fileprivate`
+/// or `private` — either because the declaration itself carries the
+/// modifier, or because an enclosing type declaration (struct, class,
+/// enum, actor) carries it. Used by naming rules that exempt
+/// non-consumer-observable surface (decls invisible across the file
+/// boundary) per the [API-NAME-002] visibility-scope amendment.
+///
+/// Swift access semantics: a member's effective access is the
+/// minimum of its declared access and the enclosing type's access.
+/// A `let` field without modifiers inside a `fileprivate struct`
+/// is effectively `fileprivate`, even though `node.modifiers` is
+/// empty. Walking up the parent chain captures that case.
+///
+/// Walk-up stops at the first enclosing type / extension boundary
+/// that carries a `fileprivate` or `private` modifier. If none is
+/// found before the file root, returns the direct-modifier result
+/// on `node`.
+internal func namingHasFileprivateOrPrivateEffectiveVisibility(
+    _ node: Syntax,
+    modifiers: DeclModifierListSyntax
+) -> Bool {
+    if namingHasFileprivateOrPrivateModifier(modifiers) {
+        return true
+    }
+    var current: Syntax? = node.parent
+    while let candidate = current {
+        if let typeDecl = candidate.as(StructDeclSyntax.self) {
+            if namingHasFileprivateOrPrivateModifier(typeDecl.modifiers) { return true }
+        } else if let typeDecl = candidate.as(ClassDeclSyntax.self) {
+            if namingHasFileprivateOrPrivateModifier(typeDecl.modifiers) { return true }
+        } else if let typeDecl = candidate.as(EnumDeclSyntax.self) {
+            if namingHasFileprivateOrPrivateModifier(typeDecl.modifiers) { return true }
+        } else if let typeDecl = candidate.as(ActorDeclSyntax.self) {
+            if namingHasFileprivateOrPrivateModifier(typeDecl.modifiers) { return true }
+        } else if let ext = candidate.as(ExtensionDeclSyntax.self) {
+            if namingHasFileprivateOrPrivateModifier(ext.modifiers) { return true }
+        }
+        current = candidate.parent
+    }
+    return false
+}

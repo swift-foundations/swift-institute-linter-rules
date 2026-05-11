@@ -232,4 +232,170 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
         let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    // MARK: - Visibility scope ([API-NAME-002] amendment 2026-05-11)
+    //
+    // Per `Research/api-name-002-private-surface-applicability.md`
+    // (DECISION 2026-05-11, Option B): the rule fires on `public`,
+    // `package`, `internal`, and `open` decls but exempts `fileprivate`
+    // and `private` — including members whose *effective* visibility is
+    // reduced by an enclosing fileprivate / private type. Decls invisible
+    // across the file boundary have no consumer-observable surface even
+    // within the module.
+
+    @Test
+    func `fileprivate compound func is NOT flagged`() {
+        let source = "fileprivate func walkFiles() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `private compound func is NOT flagged`() {
+        let source = "private func walkFiles() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `fileprivate compound var is NOT flagged`() {
+        let source = "fileprivate var firstName: String = \"\""
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `private compound var is NOT flagged`() {
+        let source = "private var firstName: String = \"\""
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `internal compound func IS still flagged`() {
+        let source = "internal func walkFiles() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `public compound func IS still flagged`() {
+        let source = "public func walkFiles() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `unannotated compound func at file scope IS still flagged`() {
+        // No explicit access modifier — defaults to `internal`. Rule fires.
+        let source = "func walkFiles() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `compound field of fileprivate struct is NOT flagged`() {
+        // Reproduces the Ownership.Transfer.Erased.Outgoing.Header
+        // residual: fields with no explicit modifier inside a
+        // fileprivate struct. Effective visibility is fileprivate.
+        let source = """
+        fileprivate struct Header {
+            let destroyPayload: (Int) -> Void
+            let payloadOffset: Int
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `compound field of private struct is NOT flagged`() {
+        let source = """
+        private struct Header {
+            let destroyPayload: (Int) -> Void
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `compound method of fileprivate struct is NOT flagged`() {
+        let source = """
+        fileprivate struct Internal {
+            func walkFiles() {}
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `compound field of internal struct IS still flagged`() {
+        // Sanity: the enclosing-type walk-up must NOT short-circuit
+        // on an internal type. `internal` decls remain in scope.
+        let source = """
+        internal struct Header {
+            let destroyPayload: (Int) -> Void
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `compound field of public struct IS still flagged`() {
+        let source = """
+        public struct Header {
+            let destroyPayload: (Int) -> Void
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `compound member of private nested in public type is NOT flagged`() {
+        // Outer is public but the inner type is private — effective
+        // visibility of the field is private; rule must NOT fire.
+        let source = """
+        public struct Outer {
+            private struct Inner {
+                let destroyPayload: (Int) -> Void
+            }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `compound method in fileprivate extension is NOT flagged`() {
+        let source = """
+        fileprivate extension Existing {
+            func walkFiles() {}
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `Ownership-Transfer-Erased-Outgoing-Header residual closes`() {
+        // Verbatim reproduction of the Wave 2 leaf-triage residual
+        // closed by Wave 3 Thread 4: a fileprivate struct nested inside
+        // an extension, with let-bindings whose modifier list is empty
+        // but whose effective visibility is fileprivate.
+        let source = """
+        extension Ownership.Transfer.Erased.Outgoing {
+            @safe
+            fileprivate struct Header {
+                let destroyPayload: (UnsafeMutableRawPointer, Int) -> Void
+                let payloadOffset: Int
+            }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
 }

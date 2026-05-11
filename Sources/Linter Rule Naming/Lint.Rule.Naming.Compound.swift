@@ -44,7 +44,10 @@ internal let namingCompoundMessage: Swift.String =
     + "not `instance.openWrite { }`; `dir.walk.files()` not `dir.walkFiles()`). "
     + "Boolean prefixes (`is`, `has`, `should`, `will`, `did`, `can`, `must`) are "
     + "exempt; spec-mirroring identifiers are exempt; `package`-scope declarations "
-    + "are exempt per `feedback_compound_package_scope`."
+    + "are exempt per `feedback_compound_package_scope`; `fileprivate` / `private` "
+    + "declarations (including members whose effective visibility is reduced by an "
+    + "enclosing fileprivate / private type) are exempt per the visibility-scope "
+    + "amendment (Research/api-name-002-private-surface-applicability.md)."
 
 @usableFromInline
 internal let namingCompoundBooleanPrefixes: [Swift.String] = ["is", "has", "should", "will", "did", "can", "must"]
@@ -142,6 +145,16 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         guard !hasPackageModifier(node.modifiers) else {
             return .visitChildren
         }
+        // Visibility-scope exemption: fileprivate / private decls have
+        // no consumer-observable surface even within the module. The
+        // walk-up captures effective visibility (a member of a
+        // fileprivate type is effectively fileprivate even when its
+        // own modifier list is empty). See
+        // `Research/api-name-002-private-surface-applicability.md`
+        // (DECISION 2026-05-11, Option B).
+        if namingHasFileprivateOrPrivateEffectiveVisibility(Syntax(node), modifiers: node.modifiers) {
+            return .visitChildren
+        }
         let name = node.name.text
         guard isCompoundIdentifier(name) else {
             return .visitChildren
@@ -169,6 +182,16 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
 
     override func visit(_ node: VariableDeclSyntax) -> SyntaxVisitorContinueKind {
         guard !hasPackageModifier(node.modifiers) else {
+            return .visitChildren
+        }
+        // Visibility-scope exemption: fileprivate / private decls have
+        // no consumer-observable surface even within the module. The
+        // walk-up captures effective visibility (a member of a
+        // fileprivate type is effectively fileprivate even when its
+        // own modifier list is empty). See
+        // `Research/api-name-002-private-surface-applicability.md`
+        // (DECISION 2026-05-11, Option B).
+        if namingHasFileprivateOrPrivateEffectiveVisibility(Syntax(node), modifiers: node.modifiers) {
             return .visitChildren
         }
         // Skip local declarations inside function / closure / accessor
