@@ -76,6 +76,21 @@ internal final class NamingBoxClassVisitor: SyntaxVisitor {
         if !namingBoxClassIsFlaggedName(name) {
             return .visitChildren
         }
+        // Canonical internal-CoW-backing exemption: `final` + an
+        // `@usableFromInline` attribute on the class itself is the
+        // standard pattern for value-type COW backing inside ownership
+        // primitives and similar low-level types. The rule's
+        // recommended alternatives `Reference<T>` / `Owned<T>` are
+        // themselves built using this pattern — within their canonical
+        // home (swift-ownership-primitives) no recommended alternative
+        // exists for self-reference, and the `@usableFromInline`
+        // annotation serves elsewhere as an opt-in signal of "this is
+        // a known reference-wrapper backing for a value type, not an
+        // ad-hoc invention." Ad-hoc wrappers in consumer code (no
+        // `@usableFromInline`) continue to flag.
+        if namingBoxClassIsCanonicalCoWBacking(node) {
+            return .visitChildren
+        }
         let location = converter.location(
             for: node.name.positionAfterSkippingLeadingTrivia
         )
@@ -92,4 +107,24 @@ internal final class NamingBoxClassVisitor: SyntaxVisitor {
         ))
         return .visitChildren
     }
+}
+
+internal func namingBoxClassIsCanonicalCoWBacking(_ node: ClassDeclSyntax) -> Swift.Bool {
+    var isFinal = false
+    for modifier in node.modifiers {
+        if modifier.name.tokenKind == .keyword(.final) {
+            isFinal = true
+            break
+        }
+    }
+    if !isFinal { return false }
+    for element in node.attributes {
+        if let attribute = element.as(AttributeSyntax.self) {
+            let attributeName = attribute.attributeName.trimmedDescription
+            if attributeName == "usableFromInline" {
+                return true
+            }
+        }
+    }
+    return false
 }

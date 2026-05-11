@@ -79,4 +79,58 @@ extension Lint.Rule.`ad hoc box class Tests`.`Edge Case` {
         let findings = Lint.Rule.`ad hoc box class Tests`.findings(in: source)
         #expect(findings.isEmpty)
     }
+
+    @Test
+    func `usableFromInline final class Storage canonical CoW backing is NOT flagged`() {
+        let source = """
+        @usableFromInline
+        final class Storage {
+            @usableFromInline
+            var value: Int
+            @usableFromInline
+            init(_ value: Int) { self.value = value }
+        }
+        """
+        let findings = Lint.Rule.`ad hoc box class Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `usableFromInline final class _Box canonical backing is NOT flagged`() {
+        let source = """
+        @usableFromInline
+        final class _Box<T> {
+            @usableFromInline
+            var value: T
+            @usableFromInline
+            init(_ value: T) { self.value = value }
+        }
+        """
+        let findings = Lint.Rule.`ad hoc box class Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `Storage without usableFromInline IS still flagged`() {
+        let source = """
+        final class Storage {
+            var value: Int = 0
+        }
+        """
+        let findings = Lint.Rule.`ad hoc box class Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `non-final class with usableFromInline IS still flagged`() {
+        let source = """
+        @usableFromInline
+        class Storage {
+            @usableFromInline
+            var value: Int = 0
+        }
+        """
+        let findings = Lint.Rule.`ad hoc box class Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }
