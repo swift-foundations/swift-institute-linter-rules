@@ -32,20 +32,18 @@ extension Lint.Rule {
     )
 }
 
-@usableFromInline
-internal let namingBoxClassMessage: Swift.String =
+fileprivate let namingBoxClassMessage: Swift.String =
     "[ad hoc box class] [IMPL-107]: ad-hoc `_Box` / `_Storage` reference "
     + "wrapper duplicates ecosystem primitives. Prefer `Reference<T>` "
     + "(shared mutable indirection) or `Owned<T>` (unique-owner indirection) "
     + "from `swift-ownership-primitives` so the wrapper's ownership story "
     + "is checked by the type system, not ad-hoc."
 
-@usableFromInline
-internal let namingBoxClassFlaggedNames: Swift.Set<Swift.String> = [
+fileprivate let namingBoxClassFlaggedNames: Swift.Set<Swift.String> = [
     "Box", "Storage", "Wrap", "Wrapper", "Cell",
 ]
 
-internal func namingBoxClassIsFlaggedName(_ name: Swift.String) -> Swift.Bool {
+fileprivate func namingBoxClassIsFlaggedName(_ name: Swift.String) -> Swift.Bool {
     var trimmed = name
     if trimmed.hasPrefix("_") {
         trimmed.removeFirst()
@@ -109,7 +107,7 @@ internal final class NamingBoxClassVisitor: SyntaxVisitor {
     }
 }
 
-internal func namingBoxClassIsCanonicalCoWBacking(_ node: ClassDeclSyntax) -> Swift.Bool {
+fileprivate func namingBoxClassIsCanonicalCoWBacking(_ node: ClassDeclSyntax) -> Swift.Bool {
     var isFinal = false
     for modifier in node.modifiers {
         if modifier.name.tokenKind == .keyword(.final) {

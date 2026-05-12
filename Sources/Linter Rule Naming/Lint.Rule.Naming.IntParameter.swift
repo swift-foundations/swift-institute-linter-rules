@@ -32,8 +32,7 @@ extension Lint.Rule {
     )
 }
 
-@usableFromInline
-internal let namingIntParameterMessageParameter: Swift.String =
+fileprivate let namingIntParameterMessageParameter: Swift.String =
     "[int public parameter] [IMPL-010]: public function/initializer "
     + "signature has a bare `Int` parameter. Push the stdlib boundary "
     + "out — use a typed wrapper (`Index<T>`, `Ordinal`, `Cardinal`, "
@@ -41,14 +40,13 @@ internal let namingIntParameterMessageParameter: Swift.String =
     + "boundary overload internally. `Int(bitPattern:)` lives in one "
     + "place, once, forever (per [IMPL-010])."
 
-@usableFromInline
-internal let namingIntParameterMessageReturn: Swift.String =
+fileprivate let namingIntParameterMessageReturn: Swift.String =
     "[int public parameter] [IMPL-010]: public function returns a bare "
     + "`Int`. Push the stdlib boundary out — return a typed wrapper "
     + "(`Cardinal`, `Count<T>`, `Offset<T>`) so consumers see typed "
     + "intent rather than a raw machine integer."
 
-internal func namingIntParameterIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Bool {
+fileprivate func namingIntParameterIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Bool {
     for modifier in modifiers {
         switch modifier.name.tokenKind {
         case .keyword(.public), .keyword(.open):
@@ -62,7 +60,7 @@ internal func namingIntParameterIsPublicOrOpen(_ modifiers: DeclModifierListSynt
 
 /// Strips optionals + attributed type wrappers and asks: is the
 /// underlying type the bare `Int` or `Swift.Int`?
-internal func namingIntParameterIsBareInt(_ type: TypeSyntax) -> Bool {
+fileprivate func namingIntParameterIsBareInt(_ type: TypeSyntax) -> Bool {
     var current = type
     while let optional = current.as(OptionalTypeSyntax.self) {
         current = optional.wrappedType

@@ -33,8 +33,7 @@ extension Lint.Rule {
     )
 }
 
-@usableFromInline
-internal let namingNamespaceAdoptionMessage: Swift.String =
+fileprivate let namingNamespaceAdoptionMessage: Swift.String =
     "[namespace adoption typealias] [API-NAME-004a]: same-leaf typealias is "
     + "the namespace-adoption shape. Confirm the higher-layer namespace "
     + "declares ≥ 5 sibling types / extensions / methods on the adopted "

@@ -31,8 +31,7 @@ extension Lint.Rule {
     )
 }
 
-@usableFromInline
-internal let namingCompoundTypeMessage: Swift.String =
+fileprivate let namingCompoundTypeMessage: Swift.String =
     "[compound type name] [API-NAME-001]: types MUST use the `Nest.Name` "
     + "pattern. Compound type names like `FileDirectoryWalk` or "
     + "`DirectoryWalk` are forbidden — use the nested form "

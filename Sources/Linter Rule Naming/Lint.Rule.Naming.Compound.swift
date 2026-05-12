@@ -37,8 +37,7 @@ extension Lint.Rule {
     )
 }
 
-@usableFromInline
-internal let namingCompoundMessage: Swift.String =
+fileprivate let namingCompoundMessage: Swift.String =
     "[compound identifier] [API-NAME-002]: methods and properties MUST NOT use "
     + "compound names. Use nested accessors instead (e.g., `instance.open.write { }` "
     + "not `instance.openWrite { }`; `dir.walk.files()` not `dir.walkFiles()`). "
@@ -49,8 +48,7 @@ internal let namingCompoundMessage: Swift.String =
     + "enclosing fileprivate / private type) are exempt per the visibility-scope "
     + "amendment (Research/api-name-002-private-surface-applicability.md)."
 
-@usableFromInline
-internal let namingCompoundBooleanPrefixes: [Swift.String] = ["is", "has", "should", "will", "did", "can", "must"]
+fileprivate let namingCompoundBooleanPrefixes: [Swift.String] = ["is", "has", "should", "will", "did", "can", "must"]
 
 /// Identifiers exempt from the compound-name rule because they align with
 /// Swift-native vocabulary (the stdlib chose the compound spelling for
@@ -63,8 +61,7 @@ internal let namingCompoundBooleanPrefixes: [Swift.String] = ["is", "has", "shou
 /// chose `flatMap` (not `bind`) as the canonical monadic-bind name;
 /// institute types that implement the same operation align with that
 /// choice rather than introducing a parallel vocabulary.
-@usableFromInline
-internal let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.String] = [
+fileprivate let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.String] = [
     "rawValue":         "Swift.RawRepresentable.rawValue",
     "customMirror":     "Swift.CustomReflectable.customMirror",
     "description":      "Swift.CustomStringConvertible.description",
@@ -136,8 +133,7 @@ internal let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.Strin
 /// The conformance-context gate uses `namingConformanceProtocolNames`
 /// from `Lint.Rule.Naming.Shared.swift`. Each entry cites the specific
 /// protocol member whose contract dictates the name.
-@usableFromInline
-internal let namingCompoundProtocolWitnessMethodCitations: [Swift.String: Swift.String] = [
+fileprivate let namingCompoundProtocolWitnessMethodCitations: [Swift.String: Swift.String] = [
     "encodeAtomicRepresentation": "Swift.AtomicRepresentable.encodeAtomicRepresentation(_:)",
     "decodeAtomicRepresentation": "Swift.AtomicRepresentable.decodeAtomicRepresentation(_:)",
     "makeIterator":               "Swift.Sequence.makeIterator()",

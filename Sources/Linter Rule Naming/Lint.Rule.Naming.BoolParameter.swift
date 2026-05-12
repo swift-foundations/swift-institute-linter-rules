@@ -39,8 +39,7 @@ extension Lint.Rule {
     )
 }
 
-@usableFromInline
-internal let namingBoolParameterMessage: Swift.String =
+fileprivate let namingBoolParameterMessage: Swift.String =
     "[bool public parameter] [API-IMPL-003]: public function/initializer "
     + "signature has a `Bool` parameter. Use an enum (or named-options "
     + "struct) so additional states can be added without an API break "
@@ -49,7 +48,7 @@ internal let namingBoolParameterMessage: Swift.String =
     + "declarations are exempt; closure-typed parameters with internal "
     + "Bool arguments are exempt."
 
-internal func namingBoolParameterIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Bool {
+fileprivate func namingBoolParameterIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Bool {
     for modifier in modifiers {
         switch modifier.name.tokenKind {
         case .keyword(.public), .keyword(.open):
@@ -63,7 +62,7 @@ internal func namingBoolParameterIsPublicOrOpen(_ modifiers: DeclModifierListSyn
 
 /// Strips optionals + attributed type wrappers and asks: is the
 /// underlying type an identifier `Bool` or `Swift.Bool`?
-internal func namingBoolParameterIsBoolType(_ type: TypeSyntax) -> Bool {
+fileprivate func namingBoolParameterIsBoolType(_ type: TypeSyntax) -> Bool {
     var current = type
     while let optional = current.as(OptionalTypeSyntax.self) {
         current = optional.wrappedType

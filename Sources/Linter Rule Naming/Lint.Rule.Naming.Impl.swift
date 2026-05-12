@@ -31,8 +31,7 @@ extension Lint.Rule {
     )
 }
 
-@usableFromInline
-internal let namingImplMessage: Swift.String =
+fileprivate let namingImplMessage: Swift.String =
     "[variable named impl] feedback_no_impl_abbreviation: do not bind a local as `impl` "
     + "or `_impl` — it hides the type's identity. Use the type's own name lowercased "
     + "(e.g., `let actor = IO.Blocking.Actor(...)`, `let resolver = Manifest.Resolver(...)`) "

@@ -30,13 +30,12 @@ extension Lint.Rule {
     )
 }
 
-@usableFromInline
-internal let namingRedundantPrefixMessage: Swift.String =
+fileprivate let namingRedundantPrefixMessage: Swift.String =
     "[redundant prefix] [API-NAME-013]: nested declaration name has a "
     + "redundant prefix that matches the enclosing namespace. Drop the "
     + "prefix — the containing type already supplies the context."
 
-internal final class NamingRedundantPrefixVisitor: SyntaxVisitor {
+fileprivate final class NamingRedundantPrefixVisitor: SyntaxVisitor {
     let source: Source.File
     let severity: Diagnostic.Severity
     let converter: SourceLocationConverter
