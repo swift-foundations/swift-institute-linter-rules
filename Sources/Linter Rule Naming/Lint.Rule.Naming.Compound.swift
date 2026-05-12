@@ -159,9 +159,12 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         guard isCompoundIdentifier(name) else {
             return .visitChildren
         }
-        // Exempt result-builder protocol methods inside an `@resultBuilder`
-        // type — `buildExpression`, `buildPartialBlock`, etc. read as
-        // compound only because the protocol mandates camelCase names.
+        // Exempt per [RULE-EXEMPT-4] (@resultBuilder): protocol-required
+        // builder witness names (`buildExpression`, `buildPartialBlock`,
+        // `buildBlock`, etc.) declared inside a `@resultBuilder` type.
+        // The attribute IS the spec; the name is dictated by the
+        // `@resultBuilder` informal-protocol contract per SE-0289.
+        // Helpers live in `Lint.Rule.Naming.Shared.swift`.
         if namingResultBuilderProtocolMethods.contains(name),
            namingIsInsideResultBuilderType(Syntax(node)) {
             return .visitChildren
