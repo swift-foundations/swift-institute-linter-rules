@@ -16,32 +16,11 @@ internal import SwiftSyntax
 /// public-API signatures.
 ///
 /// Citation: `[IMPL-010]` (implementation skill — Push Int to the Edge).
-///
-/// ## Package-scoped admission (numerics rule-recognizer, 2026-05-12)
-///
-/// `Int.init(bitPattern: Brand)` integration overloads live in
-/// "one place, once, forever" (per [IMPL-010]) — the file inside the
-/// brand-newtype's own package. When the file's owning package
-/// declares any `brandTypes` via `.swift-linter.json`, the rule admits
-/// public `Int` parameters / return types inside that file. Same-
-/// package brand-integration overloads are silent; cross-package
-/// `Int`-in-public-API still fires.
-///
-/// See
-/// `swift-linter-rules/Research/numerics-rule-recognizer-2026-05-12.md`.
 extension Lint.Rule {
     public static let `int public parameter` = Lint.Rule(
         id: "int public parameter",
         defaultSeverity: .warning,
         findings: { source, severity in
-            // Package-scoped admission: if the file's owning package
-            // declares any brand-newtype names, every public `Int`
-            // parameter / return type in this file is structurally
-            // legitimate (the file is a brand-integration site by
-            // construction). Skip the whole visit; no findings.
-            if !source.brandTypes.isEmpty {
-                return []
-            }
             let visitor = NamingIntParameterVisitor(
                 source: source.file,
                 severity: severity,

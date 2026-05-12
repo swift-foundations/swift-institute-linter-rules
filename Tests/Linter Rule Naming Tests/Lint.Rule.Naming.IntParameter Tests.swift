@@ -21,25 +21,12 @@ extension Lint.Rule {
     struct `int public parameter Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
-        @Suite struct `Package Scope` {}
     }
 }
 
 extension Lint.Rule.`int public parameter Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`int public parameter`.findings(parsed, .warning)
-    }
-
-    /// Run with a simulated owning-package brand-types set. See
-    /// package-scoped admission notes on
-    /// `Lint.Rule.\`int public parameter\``.
-    static func findings(
-        in source: String,
-        file: String = "test.swift",
-        brandTypes: Set<Lint.Brand>
-    ) -> [Diagnostic.Record] {
-        let parsed = Lint.Source.parsed(from: source, file: file, brandTypes: brandTypes)
         return Lint.Rule.`int public parameter`.findings(parsed, .warning)
     }
 }
@@ -257,73 +244,3 @@ extension Lint.Rule.`int public parameter Tests`.`Edge Case` {
     }
 }
 
-// MARK: - Package-scoped admission (numerics rule-recognizer, 2026-05-12)
-//
-// `Int.init(bitPattern: Brand)` integration overloads live in the
-// brand's own package per [IMPL-010]. The rule admits public-`Int`
-// signatures inside files whose owning package declares any brand.
-
-extension Lint.Rule.`int public parameter Tests`.`Package Scope` {
-    @Test
-    func `public Int parameter is admitted inside a brand-declaring package`() {
-        // `public init(bitPattern: Int)` inside the brand's own
-        // integration overload file. The package declares
-        // ["Ordinal"]; the rule short-circuits and emits nothing.
-        let source = """
-        extension Int {
-            public init(bitPattern position: Ordinal) {}
-        }
-        extension Ordinal {
-            public init(_ rawValue: Int) {}
-        }
-        """
-        let findings = Lint.Rule.`int public parameter Tests`.findings(
-            in: source,
-            brandTypes: ["Ordinal"]
-        )
-        #expect(findings.isEmpty)
-    }
-
-    @Test
-    func `public Int return is admitted inside a brand-declaring package`() {
-        let source = "public func size() -> Int { 0 }"
-        let findings = Lint.Rule.`int public parameter Tests`.findings(
-            in: source,
-            brandTypes: ["Cardinal"]
-        )
-        #expect(findings.isEmpty)
-    }
-
-    @Test
-    func `package declaring different brand still fires for cross-package Int`() {
-        // The package declares ["Foo"] — irrelevant brand. The rule
-        // would normally short-circuit, but per Option (1)'s package-
-        // scope semantics, declaring any brand admits Int-in-public-
-        // API inside the file. This row pins the *current contract*:
-        // if a package declares ANY brand, the file admits Int in
-        // public API. (The opposite contract — pin to specific
-        // brand-types — is not available since IMPL-010 fires on the
-        // signature, not on a `.rawValue` access where the
-        // type-name extractor can examine the access target.)
-        //
-        // This is the deliberate trade-off in the implementation: a
-        // package author whose `.swift-linter.json` declares any
-        // brand is implicitly opting into a "this package is
-        // brand-integration territory" stance. The brand-name set
-        // gates which `.rawValue` accesses admit, but the IMPL-010
-        // gate is a coarser package-level toggle.
-        let source = "public func size() -> Int { 0 }"
-        let findings = Lint.Rule.`int public parameter Tests`.findings(
-            in: source,
-            brandTypes: ["Foo"]
-        )
-        #expect(findings.isEmpty)
-    }
-
-    @Test
-    func `no brand-types declared - IMPL-010 fires as today (back-compat)`() {
-        let source = "public func size() -> Int { 0 }"
-        let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
-        #expect(findings.count == 1)
-    }
-}
