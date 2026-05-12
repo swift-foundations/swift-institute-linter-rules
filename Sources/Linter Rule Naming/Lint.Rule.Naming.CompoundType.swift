@@ -60,6 +60,16 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
         return .visitChildren
     }
     override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+        // Exempt per [RULE-EXEMPT-7] (syntax-visitor-subclass): the
+        // SwiftSyntax convention names visitor subclasses
+        // `<Subject>Visitor` (e.g. `CardinalConstructorVisitor`,
+        // `CompoundVisitor`), which trips compound-name even though
+        // the suffix is dictated by the framework's idiom. Helper
+        // lives in `Lint.Rule.Naming.Shared.swift`. See
+        // `swift-institute/Skills/rule-exemptions/SKILL.md`.
+        if namingExtendsSyntaxVisitor(node.inheritanceClause) {
+            return .visitChildren
+        }
         check(name: node.name, modifiers: node.modifiers)
         return .visitChildren
     }
