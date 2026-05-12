@@ -37,7 +37,7 @@ extension Lint.Rule.`int public parameter Tests` {
     static func findings(
         in source: String,
         file: String = "test.swift",
-        brandTypes: Set<String>
+        brandTypes: Set<Lint.Brand>
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file, brandTypes: brandTypes)
         return Lint.Rule.`int public parameter`.findings(parsed, .warning)
