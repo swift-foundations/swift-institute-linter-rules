@@ -133,6 +133,26 @@ internal func namingConformanceProtocolNames(_ node: Syntax) -> [Swift.String] {
     return []
 }
 
+/// Returns true if `name` is the institute `Protocol` sentinel — a
+/// member name reserved for the hoisted-protocol pattern per
+/// [API-IMPL-009] / [PKG-NAME-001]. The sentinel can appear either
+/// raw (`Protocol`) or backtick-escaped (`` `Protocol` ``); both forms
+/// signal the same intent.
+///
+/// Citation: [RULE-EXEMPT-5] (Protocol-sentinel) in
+/// `swift-institute/Skills/rule-exemptions/SKILL.md`.
+///
+/// Used by name-shape rules that would otherwise flag the sentinel as
+/// a rename-bridge typealias (`UnificationTypealias`) or as a
+/// non-minimal type-body member (`MinimalTypeBody`). The institute
+/// pattern intentionally hoists the protocol witness through the
+/// nested-namespace alias `Carrier.Protocol`, `Ordering.Protocol`,
+/// `Equation.Protocol`, etc. — naming rules that target rename-bridge
+/// or extraction-from-body must skip this exact name.
+internal func namingIsProtocolSentinelName(_ name: Swift.String) -> Swift.Bool {
+    return name == "Protocol" || name == "`Protocol`"
+}
+
 private func namingInheritanceLeafNames(_ clause: InheritanceClauseSyntax?) -> [Swift.String] {
     guard let clause else { return [] }
     var names: [Swift.String] = []

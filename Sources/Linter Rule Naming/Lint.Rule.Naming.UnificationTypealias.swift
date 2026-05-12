@@ -78,15 +78,16 @@ internal final class NamingUnificationTypealiasVisitor: SyntaxVisitor {
         if namingIsInsideConformingContext(Syntax(node)) {
             return .visitChildren
         }
-        // Exempt the gerund-as-capability typealias pattern per
-        // [PKG-NAME-001]: `public typealias Carrying = Carrier.\`Protocol\``
+        // Exempt per [RULE-EXEMPT-5] (Protocol-sentinel): the
+        // gerund-as-capability typealias pattern per [PKG-NAME-001]
         // pairs a noun-form namespace (`Carrier`) with a gerund-form
         // capability alias (`Carrying`) so conformance sites read as
         // verb-form predicates (`extension Cardinal: Carrying`). The
         // structural signal is the RHS targeting a member named
         // `Protocol` — the institute sentinel for the [API-IMPL-009]
-        // hoisted-protocol pattern.
-        if rhsLeaf == "Protocol" || rhsLeaf == "`Protocol`" {
+        // hoisted-protocol pattern. Helper lives in
+        // `Lint.Rule.Naming.Shared.swift`.
+        if namingIsProtocolSentinelName(rhsLeaf) {
             return .visitChildren
         }
         let location = converter.location(
