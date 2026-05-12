@@ -181,7 +181,7 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         // `@resultBuilder` informal-protocol contract per SE-0289.
         // Helpers live in `Lint.Rule.Naming.Shared.swift`.
         if namingResultBuilderProtocolMethods.contains(name),
-           namingIsInsideResultBuilderType(Syntax(node)) {
+           namingIsInsideExtensionPatternType(Syntax(node)) {
             return .visitChildren
         }
         // Exempt per [RULE-EXEMPT-2] (protocol-witness-citation-dict):

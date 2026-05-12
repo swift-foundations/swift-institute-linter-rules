@@ -115,7 +115,7 @@ internal final class NamingBoolParameterVisitor: SyntaxVisitor {
         // builder accumulates Bool; the signature is dictated by the
         // builder protocol, not by an [API-IMPL-003] flag choice.
         if namingResultBuilderProtocolMethods.contains(node.name.text),
-           namingIsInsideResultBuilderType(Syntax(node)) {
+           namingIsInsideExtensionPatternType(Syntax(node)) {
             return .visitChildren
         }
         checkParameters(node.signature.parameterClause.parameters)

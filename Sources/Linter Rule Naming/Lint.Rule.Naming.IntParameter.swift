@@ -111,7 +111,7 @@ internal final class NamingIntParameterVisitor: SyntaxVisitor {
         // return whatever scalar the builder accumulates (often `Int`),
         // and the signature is dictated by the builder protocol.
         if namingResultBuilderProtocolMethods.contains(node.name.text),
-           namingIsInsideResultBuilderType(Syntax(node)) {
+           namingIsInsideExtensionPatternType(Syntax(node)) {
             return .visitChildren
         }
         checkParameters(node.signature.parameterClause.parameters)

@@ -30,37 +30,47 @@ internal let namingResultBuilderProtocolMethods: Swift.Set<Swift.String> = [
     "buildFinalResult",
 ]
 
-/// Returns true if any enclosing type declaration of `node` carries the
-/// `@resultBuilder` attribute. Walks up the `parent` chain and stops at
-/// the first `struct` / `class` / `enum` / `actor` declaration — those
-/// are the only decl kinds Swift permits `@resultBuilder` on. Nested
-/// extensions are crossed without consuming the search (a method inside
-/// `extension Builder` inside an outer `@resultBuilder enum Builder`
-/// still finds the attribute on the enum).
-internal func namingIsInsideResultBuilderType(_ node: Syntax) -> Bool {
+/// Returns true if any enclosing type declaration of `node` carries an
+/// extension-pattern attribute (`@resultBuilder` or `@Suite`). Walks up
+/// the `parent` chain and stops at the first `struct` / `class` / `enum`
+/// / `actor` declaration — those are the decl kinds Swift permits these
+/// attributes on. Nested extensions are crossed without consuming the
+/// search (a method inside `extension Builder` inside an outer
+/// `@resultBuilder enum Builder` still finds the attribute on the enum).
+///
+/// Implements [RULE-EXEMPT-4] (extension-pattern attribute) for naming
+/// rules whose firing on members must yield to the protocol-witness
+/// shape these attributes impose: SE-0289 builder method names for
+/// `@resultBuilder`, swift-testing's nested-suite shape for `@Suite`.
+internal func namingIsInsideExtensionPatternType(_ node: Syntax) -> Bool {
     var current: Syntax? = node.parent
     while let candidate = current {
         if let typeDecl = candidate.as(StructDeclSyntax.self) {
-            return namingHasResultBuilderAttribute(typeDecl.attributes)
+            return namingHasExtensionPatternAttribute(typeDecl.attributes)
         }
         if let typeDecl = candidate.as(EnumDeclSyntax.self) {
-            return namingHasResultBuilderAttribute(typeDecl.attributes)
+            return namingHasExtensionPatternAttribute(typeDecl.attributes)
         }
         if let typeDecl = candidate.as(ClassDeclSyntax.self) {
-            return namingHasResultBuilderAttribute(typeDecl.attributes)
+            return namingHasExtensionPatternAttribute(typeDecl.attributes)
         }
         if let typeDecl = candidate.as(ActorDeclSyntax.self) {
-            return namingHasResultBuilderAttribute(typeDecl.attributes)
+            return namingHasExtensionPatternAttribute(typeDecl.attributes)
         }
         current = candidate.parent
     }
     return false
 }
 
-internal func namingHasResultBuilderAttribute(_ attributes: AttributeListSyntax) -> Bool {
+/// Returns true if `attributes` includes either of the extension-pattern
+/// attributes — `@resultBuilder` (SE-0289 builder protocol) or `@Suite`
+/// (swift-testing's extension-pattern, which legitimately holds nested
+/// `@Suite` substructures as its body members). See [RULE-EXEMPT-4].
+internal func namingHasExtensionPatternAttribute(_ attributes: AttributeListSyntax) -> Bool {
     for attribute in attributes {
         guard let attr = attribute.as(AttributeSyntax.self) else { continue }
-        if attr.attributeName.trimmedDescription == "resultBuilder" {
+        let name = attr.attributeName.trimmedDescription
+        if name == "resultBuilder" || name == "Suite" {
             return true
         }
     }
