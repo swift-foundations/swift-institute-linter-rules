@@ -113,8 +113,8 @@ internal final class NamingBoolParameterVisitor: SyntaxVisitor {
         // `buildPartialBlock(first: Bool)`, etc. take `Bool` because the
         // builder accumulates Bool; the signature is dictated by the
         // builder protocol, not by an [API-IMPL-003] flag choice.
-        if namingResultBuilderProtocolMethods.contains(node.name.text),
-           namingIsInsideExtensionPatternType(Syntax(node)) {
+        if Naming.Build.methods.contains(node.name.text),
+           Naming.isInsideExtensionPattern(Syntax(node)) {
             return .visitChildren
         }
         checkParameters(node.signature.parameterClause.parameters)

@@ -130,7 +130,7 @@ fileprivate let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.St
 /// protocol — outside that conformance context, the same compound name
 /// has no structural justification and should still fire.
 ///
-/// The conformance-context gate uses `namingConformanceProtocolNames`
+/// The conformance-context gate uses `Naming.conformances`
 /// from `Lint.Rule.Naming.Shared.swift`. Each entry cites the specific
 /// protocol member whose contract dictates the name.
 fileprivate let namingCompoundProtocolWitnessMethodCitations: [Swift.String: Swift.String] = [
@@ -163,7 +163,7 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         // own modifier list is empty). See
         // `Research/api-name-002-private-surface-applicability.md`
         // (DECISION 2026-05-11, Option B).
-        if namingHasFileprivateOrPrivateEffectiveVisibility(Syntax(node), modifiers: node.modifiers) {
+        if Naming.hasFileprivateOrPrivateEffective(Syntax(node), modifiers: node.modifiers) {
             return .visitChildren
         }
         let name = node.name.text
@@ -176,8 +176,8 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         // The attribute IS the spec; the name is dictated by the
         // `@resultBuilder` informal-protocol contract per SE-0289.
         // Helpers live in `Lint.Rule.Naming.Shared.swift`.
-        if namingResultBuilderProtocolMethods.contains(name),
-           namingIsInsideExtensionPatternType(Syntax(node)) {
+        if Naming.Build.methods.contains(name),
+           Naming.isInsideExtensionPattern(Syntax(node)) {
             return .visitChildren
         }
         // Exempt per [RULE-EXEMPT-2] (protocol-witness-citation-dict):
@@ -188,9 +188,9 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         // the citation surface — each entry pairs a witness name with
         // its specific protocol. Composes with [RULE-EXEMPT-3]
         // (conformance-context) via `namingIsInsideConformingContext`'s
-        // lookup-form companion `namingConformanceProtocolNames`.
+        // lookup-form companion `Naming.conformances`.
         if namingCompoundProtocolWitnessMethodCitations[name] != nil {
-            let conformances = namingConformanceProtocolNames(Syntax(node))
+            let conformances = Naming.conformances(Syntax(node))
             if !conformances.isEmpty {
                 return .visitChildren
             }
@@ -210,7 +210,7 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         // own modifier list is empty). See
         // `Research/api-name-002-private-surface-applicability.md`
         // (DECISION 2026-05-11, Option B).
-        if namingHasFileprivateOrPrivateEffectiveVisibility(Syntax(node), modifiers: node.modifiers) {
+        if Naming.hasFileprivateOrPrivateEffective(Syntax(node), modifiers: node.modifiers) {
             return .visitChildren
         }
         // Skip local declarations inside function / closure / accessor

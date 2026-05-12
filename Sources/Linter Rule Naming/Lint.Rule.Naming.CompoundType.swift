@@ -66,7 +66,7 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
         // the suffix is dictated by the framework's idiom. Helper
         // lives in `Lint.Rule.Naming.Shared.swift`. See
         // `swift-institute/Skills/rule-exemptions/SKILL.md`.
-        if namingExtendsSyntaxVisitor(node.inheritanceClause) {
+        if Naming.Visitor.extends(node.inheritanceClause) {
             return .visitChildren
         }
         check(name: node.name, modifiers: node.modifiers)

@@ -67,7 +67,7 @@ internal final class NamingNamespaceAdoptionVisitor: SyntaxVisitor {
         // protocol, not a discretionary namespace-adoption choice. The
         // structural signal is a non-empty inheritance clause on the
         // enclosing extension or type declaration.
-        if namingIsInsideConformingContext(Syntax(node)) {
+        if Naming.isInsideConformingContext(Syntax(node)) {
             return .visitChildren
         }
         let location = converter.location(

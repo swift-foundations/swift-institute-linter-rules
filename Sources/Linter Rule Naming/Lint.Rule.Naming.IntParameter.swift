@@ -108,8 +108,8 @@ internal final class NamingIntParameterVisitor: SyntaxVisitor {
         // type — `buildExpression`, `buildPartialBlock`, etc. take and
         // return whatever scalar the builder accumulates (often `Int`),
         // and the signature is dictated by the builder protocol.
-        if namingResultBuilderProtocolMethods.contains(node.name.text),
-           namingIsInsideExtensionPatternType(Syntax(node)) {
+        if Naming.Build.methods.contains(node.name.text),
+           Naming.isInsideExtensionPattern(Syntax(node)) {
             return .visitChildren
         }
         checkParameters(node.signature.parameterClause.parameters)

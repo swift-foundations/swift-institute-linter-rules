@@ -74,7 +74,7 @@ internal final class NamingUnificationTypealiasVisitor: SyntaxVisitor {
         // is whatever satisfies it. Forced by the protocol shape, not
         // by a discretionary [API-NAME-004] rename-bridge choice.
         // Helper lives in `Lint.Rule.Naming.Shared.swift`.
-        if namingIsInsideConformingContext(Syntax(node)) {
+        if Naming.isInsideConformingContext(Syntax(node)) {
             return .visitChildren
         }
         // Exempt per [RULE-EXEMPT-5] (Protocol-sentinel): the
@@ -86,7 +86,7 @@ internal final class NamingUnificationTypealiasVisitor: SyntaxVisitor {
         // `Protocol` — the institute sentinel for the [API-IMPL-009]
         // hoisted-protocol pattern. Helper lives in
         // `Lint.Rule.Naming.Shared.swift`.
-        if namingIsProtocolSentinelName(rhsLeaf) {
+        if Naming.isProtocolSentinel(rhsLeaf) {
             return .visitChildren
         }
         let location = converter.location(
