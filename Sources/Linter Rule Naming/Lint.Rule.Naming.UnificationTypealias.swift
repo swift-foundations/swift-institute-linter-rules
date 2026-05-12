@@ -67,12 +67,14 @@ internal final class NamingUnificationTypealiasVisitor: SyntaxVisitor {
            baseIdentifier.name.text == "Swift" {
             return .visitChildren
         }
-        // Exempt typealiases that satisfy an associatedtype requirement of
-        // a protocol the enclosing context adopts — `extension X: Y {
-        // typealias Underlying = Unicode.Scalar }` declares conformance to
-        // `Y`; the LHS name is dictated by `Y`'s associatedtype, the RHS
-        // is whatever satisfies it. Forced by the protocol shape, not by
-        // a discretionary [API-NAME-004] rename-bridge choice.
+        // Exempt per [RULE-EXEMPT-3] (conformance-context): typealiases
+        // that satisfy an associatedtype requirement of a protocol the
+        // enclosing context adopts — `extension X: Y { typealias
+        // Underlying = Unicode.Scalar }` declares conformance to `Y`;
+        // the LHS name is dictated by `Y`'s associatedtype, the RHS
+        // is whatever satisfies it. Forced by the protocol shape, not
+        // by a discretionary [API-NAME-004] rename-bridge choice.
+        // Helper lives in `Lint.Rule.Naming.Shared.swift`.
         if namingIsInsideConformingContext(Syntax(node)) {
             return .visitChildren
         }
