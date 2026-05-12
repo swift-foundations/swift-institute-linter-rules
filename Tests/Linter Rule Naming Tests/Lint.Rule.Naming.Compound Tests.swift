@@ -154,6 +154,61 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     }
 
     @Test
+    func `SE-0253 callAsFunction is NOT flagged`() {
+        let source = """
+        extension Adder {
+            public func callAsFunction(_ x: Int) -> Int { x + 1 }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `stdlib swapAt overload is NOT flagged`() {
+        let source = """
+        extension OutputSpan {
+            public mutating func swapAt(_ a: Ordinal, _ b: Ordinal) {}
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `stdlib storeBytes overload is NOT flagged`() {
+        let source = """
+        extension UnsafeMutableRawPointer {
+            public func storeBytes<T>(of value: T, at offset: Ordinal, as type: T.Type) {}
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `stdlib moveInitialize overload is NOT flagged`() {
+        let source = """
+        extension UnsafeMutablePointer {
+            public func moveInitialize(from source: Self, count: Cardinal) {}
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `stdlib quotientAndRemainder is NOT flagged`() {
+        let source = """
+        extension Ratio {
+            public func quotientAndRemainder(dividingBy other: Self) -> (Self, Self) { fatalError() }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
     func `package-scoped compound is NOT flagged`() {
         let source = "package func walkFiles() {}"
         let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)

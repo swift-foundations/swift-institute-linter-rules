@@ -110,6 +110,21 @@ internal let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.Strin
     // vocabulary.
     "span":                               "SE-0517 Span / MutableSpan — Swift.Array.span (canonical span getter)",
     "mutableSpan":                        "SE-0517 Span / MutableSpan — Swift.Array.mutableSpan (canonical mutable-span getter)",
+    // SE-0253 callable values of user-defined nominal types: the compiler
+    // recognises a method literally named `callAsFunction` and synthesises
+    // `instance(args)` call-site syntax against it. The compound name is
+    // dictated by the language feature, not the author.
+    "callAsFunction":                     "SE-0253 — compiler-recognised callable-as-function informal protocol",
+    // Stdlib typed-index / pointer overload names: institute overloads
+    // on stdlib types (`UnsafeMutablePointer`, `UnsafeMutableRawPointer`,
+    // `OutputSpan`) that accept institute Ordinal/Cardinal indices in
+    // place of `Int` follow the stdlib spelling — the operation IS the
+    // stdlib operation with a typed index.
+    "swapAt":                             "Swift.MutableCollection.swapAt(_:_:)",
+    "storeBytes":                         "Swift.UnsafeMutableRawPointer.storeBytes(of:toByteOffset:as:)",
+    "moveInitialize":                     "Swift.UnsafeMutablePointer.moveInitialize(from:count:)",
+    // Stdlib integer division-with-remainder protocol method.
+    "quotientAndRemainder":               "Swift.BinaryInteger.quotientAndRemainder(dividingBy:)",
 ]
 
 /// Method names that are protocol-required witnesses on a stdlib or
