@@ -398,4 +398,43 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
         let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
         #expect(findings.isEmpty)
     }
+
+    // Exemption shape: [RULE-EXEMPT-2] (protocol-witness-citation-dict).
+    // Protocol-required witness method names declared inside an
+    // extension conforming to the corresponding protocol are exempt.
+    // The dict is the citation surface; the conformance-context gate
+    // ensures the same name outside the conformance still fires.
+
+    @Test
+    func `makeIterator inside Sequence conformance is exempt per RULE-EXEMPT-2`() {
+        let source = """
+        extension MyType: Sequence {
+            func makeIterator() -> MyIterator { fatalError() }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `encodeAtomicRepresentation inside AtomicRepresentable conformance is exempt per RULE-EXEMPT-2`() {
+        let source = """
+        extension Tagged: AtomicRepresentable {
+            static func encodeAtomicRepresentation(_ value: consuming Self) -> AtomicRepresentation { fatalError() }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `makeIterator outside conformance context is still flagged`() {
+        let source = """
+        extension MyType {
+            func makeIterator() -> MyIterator { fatalError() }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }

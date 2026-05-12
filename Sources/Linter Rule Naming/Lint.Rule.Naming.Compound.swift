@@ -166,10 +166,15 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
            namingIsInsideResultBuilderType(Syntax(node)) {
             return .visitChildren
         }
-        // Exempt protocol-required witness method names declared inside
-        // an extension whose inheritance clause names the corresponding
+        // Exempt per [RULE-EXEMPT-2] (protocol-witness-citation-dict):
+        // protocol-required witness method names declared inside an
+        // extension whose inheritance clause names the corresponding
         // protocol. `encodeAtomicRepresentation` outside an
-        // `AtomicRepresentable` conformance still fires.
+        // `AtomicRepresentable` conformance still fires. The dict is
+        // the citation surface — each entry pairs a witness name with
+        // its specific protocol. Composes with [RULE-EXEMPT-3]
+        // (conformance-context) via `namingIsInsideConformingContext`'s
+        // lookup-form companion `namingConformanceProtocolNames`.
         if namingCompoundProtocolWitnessMethodCitations[name] != nil {
             let conformances = namingConformanceProtocolNames(Syntax(node))
             if !conformances.isEmpty {
