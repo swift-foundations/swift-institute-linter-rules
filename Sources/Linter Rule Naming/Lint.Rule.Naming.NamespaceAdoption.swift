@@ -20,7 +20,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `namespace adoption typealias` = Lint.Rule(
         id: "namespace adoption typealias",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingNamespaceAdoptionVisitor(
                 source: source.file,

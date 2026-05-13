@@ -17,7 +17,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `single type namespace` = Lint.Rule(
         id: "single type namespace",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingSingleTypeNamespaceVisitor(
                 source: source.file,

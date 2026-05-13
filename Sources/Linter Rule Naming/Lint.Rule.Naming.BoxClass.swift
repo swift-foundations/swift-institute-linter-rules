@@ -19,7 +19,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `ad hoc box class` = Lint.Rule(
         id: "ad hoc box class",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingBoxClassVisitor(
                 source: source.file,

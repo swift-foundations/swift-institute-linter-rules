@@ -18,7 +18,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `variable named impl` = Lint.Rule(
         id: "variable named impl",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingImplVisitor(
                 source: source.file,

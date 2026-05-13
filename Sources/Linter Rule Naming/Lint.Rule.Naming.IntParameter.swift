@@ -19,7 +19,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `int public parameter` = Lint.Rule(
         id: "int public parameter",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingIntParameterVisitor(
                 source: source.file,

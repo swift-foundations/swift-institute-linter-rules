@@ -17,7 +17,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `tag suffix` = Lint.Rule(
         id: "tag suffix",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingTagVisitor(
                 source: source.file,

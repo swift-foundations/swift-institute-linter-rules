@@ -17,7 +17,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `redundant prefix` = Lint.Rule(
         id: "redundant prefix",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingRedundantPrefixVisitor(
                 source: source.file,

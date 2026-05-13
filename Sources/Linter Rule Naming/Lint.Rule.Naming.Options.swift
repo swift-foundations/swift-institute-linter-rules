@@ -16,7 +16,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `property named flags` = Lint.Rule(
         id: "property named flags",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingOptionsVisitor(
                 source: source.file,

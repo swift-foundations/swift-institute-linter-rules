@@ -26,7 +26,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `bool public parameter` = Lint.Rule(
         id: "bool public parameter",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingBoolParameterVisitor(
                 source: source.file,

@@ -17,7 +17,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
     public static let `unification typealias` = Lint.Rule(
         id: "unification typealias",
-        defaultSeverity: .warning,
+        default: .warning,
         findings: { source, severity in
             let visitor = NamingUnificationTypealiasVisitor(
                 source: source.file,
