@@ -266,18 +266,45 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     }
 
     @Test
-    func `buildExpression OUTSIDE @resultBuilder IS flagged`() {
+    func `buildExpression in plain extension is NOT flagged (name-only relaxation)`() {
+        // Documents the name-only relaxation per the 2026-05-15
+        // byte-extraction arc note. The earlier formulation required
+        // `@resultBuilder` on the enclosing type; the relaxed form
+        // exempts the 8 SE-0289 / SE-0348 builder method names
+        // unconditionally because they're unique spec vocabulary.
         let source = """
         public enum NotABuilder {
             public static func buildExpression(_ x: Int) -> [Int] { [x] }
         }
         """
         let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
-        #expect(findings.count == 1)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `buildExpression in cross-file extension on @resultBuilder type is NOT flagged`() {
+        // Simulates the byte-extraction arc's failure mode: the
+        // `@resultBuilder` attribute lives on the primary type decl
+        // in a different file; the extension here cannot see it via
+        // walker. Name-only relaxation handles this case correctly.
+        let source = """
+        extension Parser.Builder where Element: Equatable {
+            public static func buildExpression(_ x: Int) -> [Int] { [x] }
+            public static func buildBlock(_ components: [Int]...) -> [Int] {
+                components.flatMap { $0 }
+            }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
     }
 
     @Test
     func `non-protocol compound method inside @resultBuilder IS flagged`() {
+        // Regression guard: `openWrite` is NOT in the builder-method
+        // allowlist, so it still fires inside `@resultBuilder` enums.
+        // The name-only relaxation applies only to the 8 spec-defined
+        // builder method names.
         let source = """
         @resultBuilder
         public enum Builder {

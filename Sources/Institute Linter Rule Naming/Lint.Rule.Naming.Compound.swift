@@ -178,14 +178,28 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         guard isCompoundIdentifier(name) else {
             return .visitChildren
         }
-        // Exempt per [RULE-EXEMPT-4] (@resultBuilder): protocol-required
-        // builder witness names (`buildExpression`, `buildPartialBlock`,
-        // `buildBlock`, etc.) declared inside a `@resultBuilder` type.
-        // The attribute IS the spec; the name is dictated by the
-        // `@resultBuilder` informal-protocol contract per SE-0289.
-        // Helpers live in `Lint.Rule.Naming.Shared.swift`.
-        if Naming.Build.methods.contains(name),
-           Naming.isInsideExtensionPattern(Syntax(node)) {
+        // Exempt per [RULE-EXEMPT-4] (@resultBuilder): the canonical
+        // Result Builder method names — `buildExpression`, `buildBlock`,
+        // `buildPartialBlock`, `buildOptional`, `buildEither`,
+        // `buildArray`, `buildLimitedAvailability`, `buildFinalResult`
+        // — are dictated by the `@resultBuilder` informal-protocol
+        // contract per SE-0289 / SE-0348. The exemption is NAME-ONLY:
+        // we do NOT additionally require the enclosing type to carry
+        // `@resultBuilder`. The earlier formulation gated on
+        // `Naming.isInsideExtensionPattern` (a walk-up looking for
+        // `@resultBuilder` on the enclosing type decl), but that walk
+        // cannot cross file boundaries: when a builder's methods are
+        // declared in an `extension` whose primary type decl with the
+        // attribute lives in a different file, the walker stops at the
+        // extension and the exemption never fires. Surfaced 2026-05-15
+        // by the byte-extraction arc against
+        // `swift-parser-primitives/Sources/Parser Primitives Core/Parser.Builder.swift`
+        // (the extension lives in one file; the `@resultBuilder` decl in
+        // another). False-negative risk of name-only relaxation is
+        // negligible — the 8 builder method names are unique
+        // SE-0289 / SE-0348 spec vocabulary and aren't reused for
+        // non-builder semantics in practice.
+        if Naming.Build.methods.contains(name) {
             return .visitChildren
         }
         // Exempt per [RULE-EXEMPT-2] (protocol-witness-citation-dict):
