@@ -10,6 +10,9 @@
 // ===----------------------------------------------------------------------===//
 
 public import Linter_Primitives
+public import Linter_Rule_Conformance
+public import Linter_Rule_Foundation
+public import Linter_Rule_Framework
 public import Linter_Rule_Naming
 public import Linter_Rules
 
@@ -38,6 +41,7 @@ extension Lint.Rule.Bundle {
             .enable(.`bool public parameter`),
             .enable(.`ad hoc box class`),
             .enable(.`compound identifier`),
+            .enable(.`compound suite name`),
             .enable(.`compound type name`),
             .enable(.`variable named impl`),
             .enable(.`int public parameter`),
@@ -46,6 +50,14 @@ extension Lint.Rule.Bundle {
             .enable(.`redundant prefix`),
             .enable(.`single type namespace`),
             .enable(.`tag suffix`),
+            .enable(.`nested tag`),
             .enable(.`unification typealias`),
+            // Foundation pack
+            .enable(.`foundation import`),
+            // Framework pack
+            .enable(.`xctest import`),
+            .enable(.`suite categories`),
+            // Conformance pack
+            .enable(.`leaf body typealias missing`),
         ]
 }
