@@ -79,4 +79,29 @@ extension Lint.Rule.`test function naming Tests`.Unit {
         let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    @Test
+    func `single-word backticked Test func is permitted`() {
+        // Backtick-escape exemption (added 2026-05-15): single-word
+        // backticked names like `\`comparison\`` satisfy the rule's intent
+        // (descriptive, not CamelCase) even without a space. The author
+        // opted into the backtick form, which signals declarative naming
+        // even for single-concept tests.
+        let source = """
+        @Test
+        func `comparison`() {}
+        """
+        let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `single-word backticked Test func with @Test args is permitted`() {
+        let source = """
+        @Test(.tags(.fast))
+        func `equality`() {}
+        """
+        let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
 }

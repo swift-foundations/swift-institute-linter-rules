@@ -33,8 +33,13 @@ extension Lint.Rule {
 @usableFromInline
 internal let testingFunctionNamingMessage: Swift.String =
     "[test function naming] [SWIFT-TEST-005]: `@Test` functions MUST use a "
-    + "backticked descriptive sentence as the name. CamelCase names are the "
-    + "legacy XCTest pattern and don't read as documentation in test reports."
+    + "backticked name — either a multi-word descriptive sentence "
+    + "(`\\`construction from UInt\\``) or a single-word backticked term "
+    + "(`\\`comparison\\``). CamelCase names without backticks are the "
+    + "legacy XCTest pattern and don't read as documentation in test reports. "
+    + "Multi-word descriptive names are preferred when the test's scenario "
+    + "is non-trivial; single-word backticked names are acceptable when the "
+    + "test's subject is itself a single concept (`comparison`, `equality`)."
 
 private func functionNamingHasTestAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
     for attribute in attributes {
@@ -59,6 +64,23 @@ internal final class TestingFunctionNamingVisitor: SyntaxVisitor {
 
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         guard functionNamingHasTestAttribute(node.attributes) else { return .visitChildren }
+        // Backtick-escape exemption: `\`comparison\``, `\`equality\``, etc. —
+        // single-word backticked names satisfy the rule's intent (descriptive,
+        // not CamelCase). The author opted into the backtick form, which signals
+        // declarative-narrative naming even when the test's subject is a single
+        // concept. The predicate `name.contains(" ")` alone would force authors
+        // to invent multi-word names for single-concept tests (e.g., `comparison
+        // operators` instead of `comparison`), which hurts readability without
+        // semantic gain.
+        //
+        // Backtick-detection: `TokenSyntax.text` strips backticks from the
+        // unescaped identifier; `trimmedDescription` preserves them. Same
+        // technique as `Naming.isBackticked` in the institute Naming pack
+        // (Lint.Rule.Naming.Shared.swift) — inlined here to avoid cross-pack
+        // dependency for a 1-line check.
+        if node.name.trimmedDescription.hasPrefix("`") {
+            return .visitChildren
+        }
         let name = node.name.text
         if !name.contains(" ") {
             let location = converter.location(for: node.name.positionAfterSkippingLeadingTrivia)
