@@ -32,14 +32,22 @@ extension Lint.Rule {
 
 @usableFromInline
 internal let testingFunctionNamingMessage: Swift.String =
-    "[test function naming] [SWIFT-TEST-005]: `@Test` functions MUST use a "
-    + "backticked name — either a multi-word descriptive sentence "
-    + "(`\\`construction from UInt\\``) or a single-word backticked term "
-    + "(`\\`comparison\\``). CamelCase names without backticks are the "
-    + "legacy XCTest pattern and don't read as documentation in test reports. "
-    + "Multi-word descriptive names are preferred when the test's scenario "
-    + "is non-trivial; single-word backticked names are acceptable when the "
-    + "test's subject is itself a single concept (`comparison`, `equality`)."
+    "[test function naming] [SWIFT-TEST-005]: `@Test` function name is "
+    + "CamelCase (internal uppercase letters). CamelCase names are the "
+    + "legacy XCTest pattern (`testInitCreatesEmptyBuffer`) and don't read "
+    + "as documentation in test reports. "
+    + "**Acceptable forms**: "
+    + "(a) backticked descriptive multi-word — `\\`construction from UInt\\``, "
+    + "`\\`init creates empty buffer\\`` (preferred when the test scenario "
+    + "has compound subject); "
+    + "(b) backticked single-word — `\\`comparison\\``, `\\`equality\\`` (used "
+    + "when the test subject is itself a single concept AND backticks add "
+    + "documentation framing); "
+    + "(c) plain single-word identifier — `comparison`, `equality` (when "
+    + "backticks add no value because the identifier is already a valid "
+    + "Swift name without whitespace/special-char/keyword conflict). "
+    + "Rule fires ONLY on CamelCase non-backticked names; both backticked "
+    + "forms and plain non-CamelCase identifiers pass."
 
 private func functionNamingHasTestAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
     for attribute in attributes {
@@ -64,14 +72,9 @@ internal final class TestingFunctionNamingVisitor: SyntaxVisitor {
 
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         guard functionNamingHasTestAttribute(node.attributes) else { return .visitChildren }
-        // Backtick-escape exemption: `\`comparison\``, `\`equality\``, etc. —
-        // single-word backticked names satisfy the rule's intent (descriptive,
-        // not CamelCase). The author opted into the backtick form, which signals
-        // declarative-narrative naming even when the test's subject is a single
-        // concept. The predicate `name.contains(" ")` alone would force authors
-        // to invent multi-word names for single-concept tests (e.g., `comparison
-        // operators` instead of `comparison`), which hurts readability without
-        // semantic gain.
+        // Backtick-escape exemption: any backticked name (multi-word or
+        // single-word) passes. The author opted into backticks, which
+        // signals declarative-narrative naming regardless of word count.
         //
         // Backtick-detection: `TokenSyntax.text` strips backticks from the
         // unescaped identifier; `trimmedDescription` preserves them. Same
@@ -81,8 +84,21 @@ internal final class TestingFunctionNamingVisitor: SyntaxVisitor {
         if node.name.trimmedDescription.hasPrefix("`") {
             return .visitChildren
         }
+        // CamelCase detection: the rule's actual anti-pattern is CamelCase
+        // names (legacy XCTest pattern: `testInitCreatesEmptyBuffer`).
+        // Plain single-word identifiers like `comparison` or `equality` are
+        // valid Swift names that don't need backticks — backticks would add
+        // no value because the identifier is already a clean descriptive
+        // name without whitespace/special-char/keyword conflict. Rule fires
+        // ONLY when internal uppercase letters appear (CamelCase signature).
+        //
+        // First character's case is ignored: Swift convention is lowercase
+        // for func names but `Comparison` as a single capitalized word
+        // isn't camelCase. The rule's target is COMPOUND camelCase, not
+        // identifier-capitalization style.
         let name = node.name.text
-        if !name.contains(" ") {
+        let hasInternalUppercase = name.dropFirst().contains(where: { $0.isUppercase })
+        if hasInternalUppercase {
             let location = converter.location(for: node.name.positionAfterSkippingLeadingTrivia)
             matches.append(Diagnostic.Record(
                 location: Source.Location(

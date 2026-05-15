@@ -104,4 +104,32 @@ extension Lint.Rule.`test function naming Tests`.Unit {
         let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
         #expect(findings.isEmpty)
     }
+
+    @Test
+    func `plain single-word lowercase Test func is permitted (no backticks needed)`() {
+        // The rule's actual anti-pattern is CamelCase (legacy XCTest), not
+        // "lacks backticks". A plain single-word identifier like `comparison`
+        // is a valid Swift name — backticks add no value because the identifier
+        // has no whitespace/special-char/keyword conflict. Refined 2026-05-15:
+        // rule fires ONLY on CamelCase (internal uppercase letters); plain
+        // non-CamelCase single-word identifiers pass.
+        let source = """
+        @Test
+        func comparison() {}
+        """
+        let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `plain Test func with all-lowercase compound (no internal uppercase) is permitted`() {
+        // `equality` — single-word lowercase, no internal uppercase, no
+        // backticks. Identifier is clean Swift; backticks would add no value.
+        let source = """
+        @Test
+        func equality() {}
+        """
+        let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
 }
