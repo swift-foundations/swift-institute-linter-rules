@@ -492,4 +492,79 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
         let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    // MARK: - Backtick-escape exemption
+
+    @Test
+    func `narrative backticked test name with internal uppercase is NOT flagged`() {
+        // [SWIFT-TEST-005] canonical form for @Test functions. The
+        // narrative name contains a lowercase→uppercase transition
+        // (at `UInt`) that the predicate would otherwise see as
+        // compound — the backtick-escape exemption short-circuits
+        // before the predicate runs.
+        let source = """
+        @Test
+        func `construction from UInt`() {}
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `narrative backticked test name with embedded API reference is NOT flagged`() {
+        // Cohort precedent from swift-foundations/swift-json:
+        //   func `next emits objectStart and objectEnd for empty object`()
+        // The embedded `objectStart` / `objectEnd` API references carry
+        // internal uppercase that pre-exemption would fire the rule.
+        let source = """
+        @Test
+        func `next emits objectStart and objectEnd for empty object`() {}
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `backticked keyword-conflict-escape function name is NOT flagged`() {
+        // `default` is a Swift keyword; the backtick escape is the
+        // only way to name a function `default`. The exemption
+        // makes the semantic explicit even though the predicate
+        // would not have fired (no uppercase letters in `default`).
+        let source = "func `default`() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `backticked var with narrative name is NOT flagged`() {
+        // Parity with FunctionDecl exemption for variable bindings.
+        // A property authored as `let \`current Phase index\`: Int = 0`
+        // is narrative-identifier shape (per the same convention),
+        // not API surface CamelCase.
+        let source = "let `current Phase index`: Int = 0"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `redundant backtick on plain compound name is still exempt`() {
+        // Backticks are a syntactic opt-out from standard identifier
+        // conventions. If the author explicitly backtick-escapes a
+        // CamelCase compound name, respect the opt-out — they had
+        // a reason (the rule cannot infer intent from non-keyword,
+        // non-narrative backticks). Documented as part of the
+        // exemption semantics so reviewers don't get surprised.
+        let source = "func `openWrite`() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `plain (un-escaped) compound name remains flagged after backtick exemption`() {
+        // Regression guard: the backtick exemption MUST NOT
+        // short-circuit non-backticked CamelCase names.
+        let source = "func openWrite() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }
