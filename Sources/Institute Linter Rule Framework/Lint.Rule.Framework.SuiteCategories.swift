@@ -12,13 +12,21 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
-/// Top-level `@Suite struct X` declarations MUST contain all four
+/// Top-level `@Suite struct X` declarations MUST contain all three
 /// canonical sub-suites as nested `@Suite struct` members:
-/// `Unit`, `` `Edge Case` ``, `Integration`, `Performance`.
-/// Citation: `[TEST-005]`. Extension-form files (`extension Y.Test.Z`)
-/// are out of scope — they extend an existing Test namespace declared
-/// elsewhere; per-file checking only applies to files declaring a
-/// top-level `@Suite struct`.
+/// `Unit`, `` `Edge Case` ``, `Integration`. Citation: `[TEST-005]`.
+///
+/// Performance benchmarking is OUT of the test-framework scope — the
+/// institute performs performance work in separate benchmark packages
+/// per the `benchmark` skill. The `Performance` sub-suite that earlier
+/// versions of this rule required is therefore vestigial and was
+/// dropped 2026-05-15. A `Performance` sub-suite may still exist and
+/// passes the rule (3 required + arbitrary extras is fine), but it's
+/// no longer required.
+///
+/// Extension-form files (`extension Y.Test.Z`) are out of scope — they
+/// extend an existing Test namespace declared elsewhere; per-file
+/// checking only applies to files declaring a top-level `@Suite struct`.
 extension Lint.Rule {
     public static let `suite categories` = Lint.Rule(
         id: "suite categories",
@@ -38,9 +46,13 @@ extension Lint.Rule {
 @usableFromInline
 internal let frameworkSuiteCategoriesMessage: Swift.String =
     "[suite categories] [TEST-005]: top-level `@Suite struct` MUST contain "
-    + "all four canonical sub-suites declared via nested "
-    + "`@Suite struct (Unit | \\`Edge Case\\` | Integration | Performance)`. "
-    + "Fixed categories enable cross-package grep-ability per `[TEST-005]`."
+    + "all three canonical sub-suites declared via nested "
+    + "`@Suite struct (Unit | \\`Edge Case\\` | Integration)`. "
+    + "Fixed categories enable cross-package grep-ability per `[TEST-005]`. "
+    + "Performance benchmarking is OUT of the test-framework scope — done "
+    + "via separate benchmark packages per the `benchmark` skill. A "
+    + "`Performance` sub-suite may still exist (rule won't fire on extras) "
+    + "but is no longer required."
 
 internal final class FrameworkSuiteCategoriesVisitor: SyntaxVisitor {
     let source: Source.File
@@ -116,7 +128,7 @@ internal func suiteCategoriesIsTopLevel(_ node: Syntax) -> Swift.Bool {
 }
 
 private let suiteCategoriesCanonical: [Swift.String] = [
-    "Unit", "`Edge Case`", "Integration", "Performance",
+    "Unit", "`Edge Case`", "Integration",
 ]
 
 /// Returns the list of canonical category names that are NOT declared as
@@ -139,7 +151,6 @@ internal func suiteCategoriesMissingFromBody(_ memberBlock: MemberBlockSyntax) -
         case "Unit": declared.insert("Unit")
         case "Edge Case": declared.insert("`Edge Case`")
         case "Integration": declared.insert("Integration")
-        case "Performance": declared.insert("Performance")
         default: continue
         }
     }

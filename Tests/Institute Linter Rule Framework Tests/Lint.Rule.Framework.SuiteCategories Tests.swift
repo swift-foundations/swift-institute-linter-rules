@@ -33,7 +33,29 @@ extension Lint.Rule.`suite categories Tests` {
 
 extension Lint.Rule.`suite categories Tests`.Unit {
     @Test
-    func `canonical four-category structure passes`() {
+    func `canonical three-category structure passes`() {
+        // Canonical post-2026-05-15: three sub-suites required
+        // (Unit, `Edge Case`, Integration). Performance is OUT of the
+        // test-framework scope (separate benchmark packages per
+        // `benchmark` skill).
+        let source = """
+        @Suite
+        struct `Foo Buffer Tests` {
+            @Suite struct Unit {}
+            @Suite struct `Edge Case` {}
+            @Suite struct Integration {}
+        }
+        """
+        let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `four-category structure (legacy with Performance extra) still passes`() {
+        // Regression guard: pre-2026-05-15 test code carries the
+        // four-category structure with Performance. The rule still
+        // accepts this — extras are fine, the rule only fires on
+        // missing canonical categories.
         let source = """
         @Suite
         struct `Foo Buffer Tests` {
@@ -65,7 +87,10 @@ extension Lint.Rule.`suite categories Tests`.Unit {
     }
 
     @Test
-    func `partial conformance missing Performance is flagged`() {
+    func `Performance omitted is permitted (no longer required)`() {
+        // Post-2026-05-15: Performance is no longer required. The
+        // canonical 3-category structure (without Performance) passes.
+        // Performance benchmarking is OUT of the test-framework scope.
         let source = """
         @Suite
         struct `Foo Tests` {
@@ -75,7 +100,7 @@ extension Lint.Rule.`suite categories Tests`.Unit {
         }
         """
         let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
-        #expect(findings.count == 1)
+        #expect(findings.isEmpty)
     }
 
     @Test
@@ -159,14 +184,18 @@ extension Lint.Rule.`suite categories Tests`.`Edge Case` {
     }
 
     @Test
-    func `@Suite(.serialized) trait variant counts as @Suite for Performance`() {
+    func `@Suite(.serialized) trait variant counts as @Suite`() {
+        // Trait-variant detection regression guard: `@Suite(.serialized)`
+        // (or any other trait-argument form) is still recognized as a
+        // @Suite attribute. Demonstrated here on a category to confirm
+        // the trait-detection logic in `suiteCategoriesHasSuiteAttribute`
+        // continues to work across attribute variants.
         let source = """
         @Suite
         struct `Foo Tests` {
             @Suite struct Unit {}
-            @Suite struct `Edge Case` {}
+            @Suite(.serialized) struct `Edge Case` {}
             @Suite struct Integration {}
-            @Suite(.serialized) struct Performance {}
         }
         """
         let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
