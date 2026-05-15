@@ -200,4 +200,36 @@ extension Lint.Rule.`compound type name Tests`.`Edge Case` {
         let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
         #expect(findings.isEmpty)
     }
+
+    // MARK: - Backtick-escape exemption
+
+    @Test
+    func `backticked struct name with internal compound shape is NOT flagged`() {
+        // Hypothetical narrative @Suite scaffold name with internal
+        // CamelCase API reference. The `Naming.isBackticked` exemption
+        // short-circuits before the predicate scans for word boundaries.
+        let source = "struct `Sequence FlatMap Tests` {}"
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `backticked sub-suite category name is NOT flagged`() {
+        // Cohort precedent: backticked sub-suite category name like
+        // `Edge Case`. Title Case multi-word backticked form — even
+        // if word-boundary logic would normally split it, the
+        // backtick exemption applies.
+        let source = "struct `Edge Case` {}"
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `plain CamelCase struct name remains flagged after backtick exemption`() {
+        // Regression guard: the backtick exemption MUST NOT
+        // short-circuit non-backticked CamelCase type names.
+        let source = "struct FileDirectoryWalk {}"
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }

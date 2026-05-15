@@ -92,6 +92,13 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
 
     private func check(name token: TokenSyntax, modifiers: DeclModifierListSyntax) {
         guard !hasPackageModifier(modifiers) else { return }
+        // Backtick-escape exemption: see `Naming.isBackticked` for the
+        // full rationale. A backticked type-name token (e.g.,
+        // `` struct `compound identifier Tests` `` for a @Suite scaffold,
+        // or `` struct `Edge Case` ``) signals the author opted out of
+        // the Nest.Name convention this rule enforces — typically for
+        // narrative @Suite type names per [SWIFT-TEST-002].
+        if Naming.isBackticked(token) { return }
         let text = token.text
         guard isCompoundTypeIdentifier(text) else { return }
         let location = converter.location(for: token.positionAfterSkippingLeadingTrivia)

@@ -166,25 +166,12 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         if Naming.hasFileprivateOrPrivateEffective(Syntax(node), modifiers: node.modifiers) {
             return .visitChildren
         }
-        // Backtick-escape exemption: backtick-quoted identifiers signal
-        // the author has opted out of standard identifier conventions.
-        // Three legitimate uses ecosystem-wide:
-        //   1. Narrative test names per [SWIFT-TEST-005]
-        //      (e.g., `construction from UInt`, `next emits objectStart`)
-        //      — `node.name.text` strips backticks, so a space- and
-        //      internal-uppercase-bearing narrative would otherwise
-        //      trip the lowercase→uppercase scan in `isCompoundIdentifier`.
-        //   2. Enum cases or other identifiers using non-identifier
-        //      characters (`1`, `+`, `Self`) — handled by the
-        //      first-char-must-be-lowercase guard already, but the
-        //      backtick check makes the semantic explicit.
-        //   3. Keyword-conflict escapes (`func`, `class`, `default`)
-        //      — already pass via the lowercase-only-no-uppercase
-        //      paths, but the backtick check covers them too.
-        // The compound-identifier rule targets CamelCase API surface
-        // (`openWrite`, `walkFiles`); backtick-escaped identifiers are
-        // not CamelCase API surface by construction.
-        if node.name.trimmedDescription.hasPrefix("`") {
+        // Backtick-escape exemption: see `Naming.isBackticked` for the
+        // full rationale. Backticks signal the author opted out of
+        // standard identifier conventions (narrative, non-identifier-
+        // char content, or keyword escape) — the compound-identifier
+        // rule targets CamelCase API surface and does not apply.
+        if Naming.isBackticked(node.name) {
             return .visitChildren
         }
         let name = node.name.text
@@ -245,12 +232,8 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
             guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
                 continue
             }
-            // Backtick-escape exemption (see FunctionDeclSyntax visit
-            // for the full rationale). Variable bindings can use
-            // backticks for the same three reasons as functions —
-            // narrative identifiers, non-identifier-char content,
-            // keyword-conflict escapes.
-            if pattern.identifier.trimmedDescription.hasPrefix("`") {
+            // Backtick-escape exemption (see `Naming.isBackticked`).
+            if Naming.isBackticked(pattern.identifier) {
                 continue
             }
             let name = pattern.identifier.text

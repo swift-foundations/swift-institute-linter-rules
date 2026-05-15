@@ -316,3 +316,31 @@ extension Naming {
         return false
     }
 }
+
+extension Naming {
+    /// Returns true if `token`'s source-level text is backtick-escaped
+    /// (e.g., the identifier was written `` `construction from UInt` ``
+    /// or `` `1` `` rather than as a bare camelCase / digit-leading /
+    /// keyword token).
+    ///
+    /// Used by the compound-family rules (``Lint/Rule/compound identifier``,
+    /// ``Lint/Rule/compound type name``, and the relocated-to-institute
+    /// ``Lint/Rule/compound suite name``) to short-circuit before invoking
+    /// their respective compound-predicates. Backticks are a syntactic
+    /// opt-out from standard identifier conventions:
+    ///
+    /// - Narrative test names per [SWIFT-TEST-005]
+    ///   (e.g., `` `construction from UInt` ``, `` `next emits objectStart` ``).
+    /// - Non-identifier-character content (`` `1` `` for enum cases,
+    ///   `` `+` `` / `` `-` `` for operator-name escapes).
+    /// - Swift-keyword conflicts (`` `func` ``, `` `default` ``).
+    ///
+    /// `TokenSyntax.text` strips backticks from the unescaped identifier
+    /// before the rule's predicate sees them; this helper consults
+    /// `trimmedDescription` instead, which preserves the backticks but
+    /// strips surrounding trivia.
+    @inlinable
+    internal static func isBackticked(_ token: TokenSyntax) -> Swift.Bool {
+        token.trimmedDescription.hasPrefix("`")
+    }
+}
