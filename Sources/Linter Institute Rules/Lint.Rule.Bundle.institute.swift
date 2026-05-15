@@ -10,10 +10,19 @@
 // ===----------------------------------------------------------------------===//
 
 public import Linter_Primitives
-public import Linter_Rule_Conformance
-public import Linter_Rule_Foundation
-public import Linter_Rule_Framework
-public import Linter_Rule_Naming
+public import Institute_Linter_Rule_Closure
+public import Institute_Linter_Rule_Conformance
+public import Institute_Linter_Rule_Foundation
+public import Institute_Linter_Rule_Framework
+public import Institute_Linter_Rule_Idiom
+public import Institute_Linter_Rule_Memory
+public import Institute_Linter_Rule_Naming
+public import Institute_Linter_Rule_Platform
+public import Institute_Linter_Rule_Structure
+public import Institute_Linter_Rule_Testing
+public import Institute_Linter_Rule_Throws
+public import Institute_Linter_Rule_Try
+public import Institute_Linter_Rule_Unchecked
 public import Linter_Rules
 
 /// Institute-tier rule bundle.
@@ -59,5 +68,64 @@ extension Lint.Rule.Bundle {
             .enable(.`suite categories`),
             // Conformance pack
             .enable(.`leaf body typealias missing`),
+            // Closure pack (Wave 3 2026-05-15)
+            .enable(.`configuration before content`),
+            .enable(.`lifecycle order`),
+            .enable(.`unlabeled lifecycle closure`),
+            .enable(.`parameter position`),
+            // Idiom pack (Wave 3 2026-05-15)
+            .enable(.`bounded index static capacity`),
+            .enable(.`enumerated with subscript`),
+            .enable(.`intermediate binding then return`),
+            .enable(.`counter loop iteration`),
+            .enable(.`string utf8 scanning`),
+            // Memory pack (Wave 3 2026-05-15)
+            .enable(.`borrowing self short circuit`),
+            .enable(.`noncopyable error`),
+            .enable(.`extension noncopyable constraint`),
+            .enable(.`nonisolated unsafe without invariant`),
+            .enable(.`safe attribute undocumented`),
+            .enable(.`pointer advanced by`),
+            .enable(.`sendable struct with class member`),
+            .enable(.`unchecked sendable revalidation anchor`),
+            .enable(.`unsafe assignment granularity`),
+            // Platform pack (Wave 3 2026-05-15)
+            .enable(.`c type in public api`),
+            .enable(.`convention c representability`),
+            .enable(.`dead case per platform`),
+            .enable(.`compound platform namespace root`),
+            .enable(.`optionset shell pattern`),
+            .enable(.`canimport conditional`),
+            .enable(.`swift protocol qualification`),
+            .enable(.`system subdomain`),
+            .enable(.`typealiased namespace bridge`),
+            // Structure pack (Wave 3 2026-05-15)
+            .enable(.`hoisted protocol alias`),
+            .enable(.`minimal type body`),
+            .enable(.`raw value access`),
+            .enable(.`single type per file`),
+            .enable(.`throwing wrapper init`),
+            .enable(.`type transform placement`),
+            .enable(.`wrapper backing exposed`),
+            // Testing pack (Wave 3 2026-05-15)
+            .enable(.`benchmark timed required`),
+            .enable(.`test function naming`),
+            .enable(.`performance suite serialized`),
+            // Throws pack (Wave 3 2026-05-15)
+            .enable(.`closure typed throws annotation`),
+            .enable(.`do throws for typed catch`),
+            .enable(.`do throws for typed catch with throw`),
+            .enable(.`existential throws`),
+            .enable(.`generic throws missing never`),
+            .enable(.`hoisted error in public throws`),
+            .enable(.`lifecycle typealias review`),
+            .enable(.`callback result over throws thunk`),
+            .enable(.`result wrapper for rethrows shim`),
+            .enable(.`typed throws cannot use self error`),
+            .enable(.`untyped throws`),
+            // Try pack (Wave 3 2026-05-15)
+            .enable(.`try optional`),
+            // Unchecked pack (Wave 3 2026-05-15)
+            .enable(.`unchecked call site`),
         ]
 }
