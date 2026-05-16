@@ -232,4 +232,47 @@ extension Lint.Rule.`compound type name Tests`.`Edge Case` {
         let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    // MARK: - Visibility-scope exemption (private / fileprivate)
+
+    @Test
+    func `private enum UserCount is NOT flagged`() {
+        // Tagged phantom-type tag pattern (e.g.,
+        // `private enum UserCount {} let users: Tagged<UserCount, Cardinal>`).
+        // Private decls have no consumer-observable surface even within
+        // the module — symmetric with [API-NAME-002] (2026-05-11).
+        let source = "private enum UserCount {}"
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `fileprivate struct FooBar is NOT flagged`() {
+        let source = "fileprivate struct FooBar {}"
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `nested type inside private outer is NOT flagged`() {
+        // Effective-visibility walk-up: a nested type inside a
+        // fileprivate/private enclosing type is effectively
+        // fileprivate/private even when its own modifier list is empty.
+        let source = """
+        private enum Outer {
+            struct InnerType {}
+        }
+        """
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `public CamelCase remains flagged when private exemption does not apply`() {
+        // Regression guard: the visibility-scope exemption MUST NOT
+        // short-circuit non-private CamelCase type decls.
+        let source = "public struct FileDirectoryWalk {}"
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }

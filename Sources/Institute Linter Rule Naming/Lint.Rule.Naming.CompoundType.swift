@@ -39,7 +39,13 @@ fileprivate let namingCompoundTypeMessage: Swift.String =
     + "permitted as single-word names; spec-namespace forms with "
     + "underscores (`RFC_4122`, `ISO_9945`) are exempt per "
     + "`[API-NAME-003]`. `package`-scope declarations and macro decls "
-    + "are exempt."
+    + "are exempt; `fileprivate`/`private` type declarations including "
+    + "members whose effective visibility is reduced by an enclosing "
+    + "fileprivate/private type are exempt per "
+    + "`Research/api-name-002-private-surface-applicability.md` "
+    + "(symmetric extension of the 2026-05-11 [API-NAME-002] amendment "
+    + "— consumer-observable surface is the rule's intent and "
+    + "fileprivate/private types have none even within the module)."
 
 internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
     let source: Source.File
@@ -55,7 +61,7 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
     }
 
     override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(name: node.name, modifiers: node.modifiers)
+        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
         return .visitChildren
     }
     override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
@@ -69,19 +75,19 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
         if Naming.Visitor.extends(node.inheritanceClause) {
             return .visitChildren
         }
-        check(name: node.name, modifiers: node.modifiers)
+        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
         return .visitChildren
     }
     override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(name: node.name, modifiers: node.modifiers)
+        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
         return .visitChildren
     }
     override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(name: node.name, modifiers: node.modifiers)
+        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
         return .visitChildren
     }
     override func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(name: node.name, modifiers: node.modifiers)
+        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
         return .visitChildren
     }
 
@@ -90,8 +96,19 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
         .visitChildren
     }
 
-    private func check(name token: TokenSyntax, modifiers: DeclModifierListSyntax) {
+    private func check(name token: TokenSyntax, modifiers: DeclModifierListSyntax, syntax: Syntax) {
         guard !hasPackageModifier(modifiers) else { return }
+        // Visibility-scope exemption: fileprivate / private type decls
+        // have no consumer-observable surface even within the module.
+        // The walk-up captures effective visibility (a nested type
+        // inside a fileprivate enclosing type is effectively
+        // fileprivate even when its own modifier list is empty).
+        // Symmetric with the [API-NAME-002] visibility-scope amendment
+        // (2026-05-11, Option B) — see
+        // `Research/api-name-002-private-surface-applicability.md`.
+        if Naming.hasFileprivateOrPrivateEffective(syntax, modifiers: modifiers) {
+            return
+        }
         // Backtick-escape exemption: see `Naming.isBackticked` for the
         // full rationale. A backticked type-name token (e.g.,
         // `` struct `compound identifier Tests` `` for a @Suite scaffold,

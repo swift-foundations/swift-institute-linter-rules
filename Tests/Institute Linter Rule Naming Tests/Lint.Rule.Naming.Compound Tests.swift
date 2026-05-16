@@ -520,6 +520,51 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
         #expect(findings.count == 1)
     }
 
+    @Test
+    func `nextSpan inside Sequence Iterator Protocol conformance is exempt per RULE-EXEMPT-2`() {
+        // Institute `Sequence.Iterator.\`Protocol\`` sole protocol
+        // requirement — `mutating func nextSpan(maximumCount:) -> Span<Element>`.
+        // The exemption fires on the name when the enclosing decl has
+        // any conformance (gated via Naming.conformances). Outside a
+        // conformance context, nextSpan still fires.
+        let source = """
+        public struct MyIterator: Sequence.Iterator.`Protocol` {
+            public mutating func nextSpan(maximumCount: Cardinal) -> Swift.Span<Element> { fatalError() }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `nextSpan outside any conformance context is still flagged`() {
+        let source = """
+        extension MyType {
+            mutating func nextSpan(maximumCount: Int) -> [Int] { [] }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    // MARK: - Swift-native idiom citations (name-only exemption)
+
+    @Test
+    func `underestimatedCount property is NOT flagged`() {
+        // Swift.Sequence.underestimatedCount — protocol-required
+        // property surfaced on institute Sequence-conforming types
+        // whose iterator count is known at compile time. Name-only
+        // exemption (no conformance gate) since the stdlib protocol
+        // requirement is unique vocabulary.
+        let source = """
+        extension Cyclic.Group.Static: Sequence {
+            public var underestimatedCount: Int { Self.modulus }
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
     // MARK: - Backtick-escape exemption
 
     @Test

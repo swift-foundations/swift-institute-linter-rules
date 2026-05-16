@@ -140,6 +140,10 @@ fileprivate let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.St
     "moveInitialize":                     "Swift.UnsafeMutablePointer.moveInitialize(from:count:)",
     // Stdlib integer division-with-remainder protocol method.
     "quotientAndRemainder":               "Swift.BinaryInteger.quotientAndRemainder(dividingBy:)",
+    // Swift.Sequence underestimated-count protocol-required property.
+    // Surfaces on institute Sequence-conforming types whose iterator
+    // count is known at compile time (e.g., `Cyclic.Group.Static`).
+    "underestimatedCount":                "Swift.Sequence.underestimatedCount",
 ]
 
 /// Method names that are protocol-required witnesses on a stdlib or
@@ -155,6 +159,11 @@ fileprivate let namingCompoundProtocolWitnessMethodCitations: [Swift.String: Swi
     "encodeAtomicRepresentation": "Swift.AtomicRepresentable.encodeAtomicRepresentation(_:)",
     "decodeAtomicRepresentation": "Swift.AtomicRepresentable.decodeAtomicRepresentation(_:)",
     "makeIterator":               "Swift.Sequence.makeIterator()",
+    // Institute Sequence.Iterator.`Protocol` sole protocol requirement.
+    // Span-based primitive (`mutating func nextSpan(maximumCount:) -> Span<Element>`)
+    // is the institute counterpart to Swift.IteratorProtocol's `next()`;
+    // see `swift-primitives/swift-sequence-primitives/Sources/Sequence Primitives Core/Sequence.Iterator.Protocol.swift`.
+    "nextSpan":                   "Sequence.Iterator.`Protocol`.nextSpan(maximumCount:) — institute span-based iterator primitive",
 ]
 
 internal final class NamingCompoundVisitor: SyntaxVisitor {
