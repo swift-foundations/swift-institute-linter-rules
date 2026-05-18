@@ -108,7 +108,16 @@ extension Lint.Rule.Bundle {
             .enable(.`type transform placement`),
             .enable(.`wrapper backing exposed`),
             // Testing pack (Wave 3 2026-05-15)
-            .enable(.`benchmark timed required`),
+            // `benchmark timed required` ([BENCH-003]) deferred 2026-05-18:
+            // depends on swift-testing's `.timed()` trait which isn't
+            // production-ready; benchmarks are moving to separate
+            // /Benchmarks/ packages per the `benchmark` skill, so the rule's
+            // target audience (in-tree Performance @Suites) is going away.
+            // Re-enable when (a) swift-testing's `.timed()` ships stable OR
+            // (b) we readopt in-tree Performance @Suites with a different
+            // measurement primitive. The rule definition stays in the
+            // Institute_Linter_Rule_Testing module for re-enable convenience.
+            // .enable(.`benchmark timed required`),
             .enable(.`test function naming`),
             .enable(.`performance suite serialized`),
             // Throws pack (Wave 3 2026-05-15)
