@@ -275,4 +275,33 @@ extension Lint.Rule.`compound type name Tests`.`Edge Case` {
         let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    @Test
+    func `stdlib-method-mirror type names are exempt per API-NAME-003`() {
+        // `CompactMap`, `FlatMap`, `ForEach` are institute lazy-iteration
+        // adapter types whose name elevates the corresponding stdlib
+        // method (compactMap / flatMap / forEach) to a namespace.
+        // Inheriting stdlib's compound spelling preserves the spec-mirror
+        // correspondence; fragmenting into `Compact.Map` etc. would drift
+        // from Swift.Sequence vocabulary.
+        let source = """
+        extension Sequence {
+            public struct CompactMap<Base, Output> {}
+            public struct FlatMap<Base, Output> {}
+            public enum ForEach {}
+        }
+        """
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `compound type names NOT in stdlib-method-mirror dict are still flagged`() {
+        // Regression guard: the spec-mirror exemption is name-scoped to
+        // the citation dict. An arbitrary compound type name like
+        // `MapReduce` (not in dict) still fires.
+        let source = "public struct MapReduce {}"
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }

@@ -45,7 +45,32 @@ fileprivate let namingCompoundTypeMessage: Swift.String =
     + "`Research/api-name-002-private-surface-applicability.md` "
     + "(symmetric extension of the 2026-05-11 [API-NAME-002] amendment "
     + "— consumer-observable surface is the rule's intent and "
-    + "fileprivate/private types have none even within the module)."
+    + "fileprivate/private types have none even within the module). "
+    + "Stdlib-method-mirror type names that elevate a Swift.Sequence "
+    + "(or adjacent) method name to a namespace are exempt per "
+    + "`[API-NAME-003]` — see `namingCompoundTypeStdlibMethodMirrorCitations` "
+    + "in this rule's source for the citation set."
+
+/// Compound type names that mirror a Swift-stdlib method name and
+/// elevate it to a namespace at the institute's iteration / collection
+/// layer. The institute's lazy-iteration adapters (`Sequence.Map`,
+/// `Sequence.Filter`, `Sequence.Reduce`, `Sequence.Drop`, `Sequence.Prefix`)
+/// use single-word type names corresponding to stdlib's single-word
+/// methods. For stdlib's compound method names — `compactMap`,
+/// `flatMap`, `forEach` — the institute's matching adapter type
+/// inherits the compound spelling rather than fragmenting the spec-
+/// mirror correspondence into `Sequence.Compact.Map` etc.
+///
+/// Citation: `[API-NAME-003]` (spec-mirroring exemption).
+///
+/// Each entry cites the specific Swift.Sequence (or adjacent) method
+/// whose name the type elevates. Adding an entry without a citation
+/// makes the exemption indefensible at review time.
+fileprivate let namingCompoundTypeStdlibMethodMirrorCitations: [Swift.String: Swift.String] = [
+    "CompactMap": "Swift.Sequence.compactMap(_:) / Swift.Optional.compactMap(_:)",
+    "FlatMap":    "Swift.Sequence.flatMap(_:) / Swift.Optional.flatMap(_:)",
+    "ForEach":    "Swift.Sequence.forEach(_:)",
+]
 
 internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
     let source: Source.File
@@ -142,6 +167,12 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
     }
 
     private func isCompoundTypeIdentifier(_ name: Swift.String) -> Bool {
+        // Stdlib-method-mirror exemption per [API-NAME-003]: type names
+        // that elevate a Swift.Sequence (or adjacent) compound method
+        // name to a namespace inherit the compound spelling.
+        if namingCompoundTypeStdlibMethodMirrorCitations[name] != nil {
+            return false
+        }
         // Spec-namespace forms (`RFC_4122`, `ISO_9945`) — exempt.
         if name.contains("_") { return false }
         // Empty / single-char names — degenerate, not compound.
