@@ -71,7 +71,7 @@ extension Lint.Rule.`leaf body typealias missing Tests`.Unit {
     func `Coder leaf conformer without typealias is flagged`() {
         let source = """
         extension Binary.Coder: Coder.`Protocol` {
-            public typealias Input = Binary.Bytes.Input
+            public typealias Input = Byte.Input
             public typealias Output = Foo
             public typealias Buffer = [UInt8]
             public typealias Failure = Never
