@@ -169,6 +169,12 @@ fileprivate let namingCompoundProtocolWitnessMethodCitations: [Swift.String: Swi
     // Swift.Sequence/RangeReplaceableCollection vocabulary aligned, plus
     // institute Sequence.`Clearable` requirement (`mutating func removeAll()`).
     "removeAll":                  "Swift.RangeReplaceableCollection.removeAll() / Swift.Sequence.removeAll(where:) / Sequence.`Clearable`.removeAll()",
+    // Institute Collection.Remove.Last requirement (`static func removeLast(_:)`),
+    // preserving drop-in vocabulary alignment with Swift.Array.removeLast() and
+    // Swift.RangeReplaceableCollection.removeLast(). Institute syntax is additive
+    // on top: `.remove.last()` is the fluent View accessor; consumers may also
+    // expose `removeLast()` instance form for stdlib-compatibility.
+    "removeLast":                 "Swift.RangeReplaceableCollection.removeLast() / Swift.Array.removeLast() / Collection.Remove.Last.removeLast(_:) — drop-in stdlib replacement vocabulary",
 ]
 
 internal final class NamingCompoundVisitor: SyntaxVisitor {
