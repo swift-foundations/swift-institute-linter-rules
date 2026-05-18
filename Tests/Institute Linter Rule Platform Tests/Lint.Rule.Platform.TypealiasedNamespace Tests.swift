@@ -157,4 +157,70 @@ extension Lint.Rule.`typealiased namespace bridge Tests`.`Edge Case` {
         let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    // Case (c): the conformance is on the original type declaration
+    // nested inside another extension; the typealias lives in a sibling
+    // extension at file scope. The conformance walk-up MUST cross the
+    // extension boundary and find the conformance on the sibling decl.
+
+    @Test
+    func `typealias in sibling extension is exempt when conformance is on nested struct in another extension`() {
+        // Pattern surfaced by the Phase 1B [API-IMPL-008] migration:
+        // the conformance is declared on the original struct decl
+        // `struct Iterator: Sequence.Iterator.\`Protocol\`` inside
+        // `extension Sequence.Drop.First`; the protocol-witness
+        // typealias was extracted to a sibling methods extension on
+        // `Sequence.Drop.First.Iterator`. The cross-file walk must
+        // resolve `Sequence.Drop.First.Iterator` back to the original
+        // struct decl carrying the conformance.
+        let source = """
+        extension Sequence.Drop.First {
+            public struct Iterator: Sequence.Iterator.`Protocol` {
+                let _base: Int
+            }
+        }
+
+        extension Sequence.Drop.First.Iterator {
+            public typealias Element = Base.Element
+        }
+        """
+        let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `typealias in sibling extension is exempt when conformance is on sibling extension`() {
+        // Mirror of the above where the conformance lives on a sibling
+        // `extension Foo: Bar` rather than on the original struct decl.
+        let source = """
+        struct Container {
+            let value: Int
+        }
+
+        extension Container: Sequence {
+            // ... conformance witnesses
+        }
+
+        extension Container {
+            typealias Element = Underlying.Element
+        }
+        """
+        let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `typealias in protocol body is exempt as associatedtype default`() {
+        // A `typealias` declared inside a protocol body is the default
+        // value for an associatedtype — definitively a conformance-
+        // context shape.
+        let source = """
+        public protocol Container {
+            associatedtype Element
+            typealias Default = Array.Element
+        }
+        """
+        let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
 }
