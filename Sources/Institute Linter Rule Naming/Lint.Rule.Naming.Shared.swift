@@ -207,17 +207,39 @@ extension Naming {
     /// rule visitors that need to gate on which protocol the enclosing
     /// extension adopts (e.g., "is this `init(integerLiteral:)`
     /// declared inside an `extension Tagged: ExpressibleByIntegerLiteral`?").
-    /// Returns an empty array if the enclosing context has no
-    /// inheritance clause or if no enclosing decl exists.
     ///
     /// Leaf-name semantics: `Swift.Sequence` and `Sequence` both yield
     /// `"Sequence"`. Citation-dict consumers key on the leaf name so
     /// they don't need to enumerate every possible qualification.
+    ///
+    /// Recognised contexts:
+    ///
+    /// - Extension / type declaration with a non-empty inheritance
+    ///   clause: returns the inherited protocol leaves.
+    /// - **Protocol body**: returns the protocol's own name as a
+    ///   single-element sentinel. A method declared inside `protocol P
+    ///   { func foo() }` IS the protocol's own requirement; the
+    ///   protocol-witness exemption should fire for stdlib-vocabulary
+    ///   names whose semantics belong to the protocol's contract.
+    /// - **Sibling extension / nested type with conformance** (case (c)):
+    ///   when the immediate enclosing extension has no inheritance
+    ///   clause, walk the source file for declarations of the same
+    ///   extended type carrying a conformance. The conformance may
+    ///   live on the original `struct X: P { … }` nested inside another
+    ///   extension (`extension Outer { struct X: P { … } }`), or on a
+    ///   sibling `extension X: P { … }` at file scope. This recovers
+    ///   the cross-decl protocol-witness shape that Phase 1B
+    ///   [API-IMPL-008] extractions introduced — methods moved out of
+    ///   the conforming struct body into sibling methods extensions.
+    ///
+    /// Returns an empty array only when no relevant context exists.
     internal static func conformances(_ node: Syntax) -> [Swift.String] {
         var current: Syntax? = node.parent
+        var immediateExtension: ExtensionDeclSyntax? = nil
         while let candidate = current {
             if let ext = candidate.as(ExtensionDeclSyntax.self) {
-                return Visitor.inheritanceLeaves(ext.inheritanceClause)
+                immediateExtension = ext
+                break
             }
             if let typeDecl = candidate.as(StructDeclSyntax.self) {
                 return Visitor.inheritanceLeaves(typeDecl.inheritanceClause)
@@ -231,9 +253,204 @@ extension Naming {
             if let typeDecl = candidate.as(ActorDeclSyntax.self) {
                 return Visitor.inheritanceLeaves(typeDecl.inheritanceClause)
             }
+            if let protocolDecl = candidate.as(ProtocolDeclSyntax.self) {
+                // Method/typealias inside a protocol body — the decl IS
+                // a requirement of this protocol. Return the protocol's
+                // own name as a single-element sentinel so the
+                // exemption gate evaluates non-empty.
+                return [protocolDecl.name.text]
+            }
+            current = candidate.parent
+        }
+        guard let ext = immediateExtension else { return [] }
+        let leaves = Visitor.inheritanceLeaves(ext.inheritanceClause)
+        if !leaves.isEmpty {
+            return leaves
+        }
+        // Case (c): file-scope walk for cross-decl conformance.
+        return Self.fileScopeConformances(
+            for: ext.extendedType.trimmedDescription,
+            origin: node
+        )
+    }
+
+    /// Walks the enclosing source file for declarations of `targetPath`
+    /// that carry an inheritance clause; returns the union of inherited
+    /// protocol leaves. Used by ``conformances(_:)`` to recover
+    /// cross-decl protocol-witness context.
+    fileprivate static func fileScopeConformances(
+        for targetPath: Swift.String,
+        origin: Syntax
+    ) -> [Swift.String] {
+        var current: Syntax? = origin
+        while let candidate = current {
+            if let file = candidate.as(SourceFileSyntax.self) {
+                var collected: [Swift.String] = []
+                for statement in file.statements {
+                    Self.collectConformances(
+                        from: statement.item,
+                        targetPath: targetPath,
+                        currentPrefix: "",
+                        into: &collected
+                    )
+                }
+                return collected
+            }
             current = candidate.parent
         }
         return []
+    }
+
+    /// Recursive collection: matches `targetPath` against the composed
+    /// type path while descending through nested extensions and type
+    /// declarations. Appends inherited protocol leaves into `collected`
+    /// for every matching decl that carries an inheritance clause.
+    fileprivate static func collectConformances(
+        from item: CodeBlockItemSyntax.Item,
+        targetPath: Swift.String,
+        currentPrefix: Swift.String,
+        into collected: inout [Swift.String]
+    ) {
+        if let ext = item.as(ExtensionDeclSyntax.self) {
+            let extendedType = ext.extendedType.trimmedDescription
+            let fullPath = currentPrefix.isEmpty
+                ? extendedType
+                : currentPrefix + "." + extendedType
+            if fullPath == targetPath {
+                collected.append(contentsOf: Visitor.inheritanceLeaves(ext.inheritanceClause))
+            }
+            for member in ext.memberBlock.members {
+                Self.collectConformancesFromDecl(
+                    member.decl,
+                    targetPath: targetPath,
+                    currentPrefix: fullPath,
+                    into: &collected
+                )
+            }
+            return
+        }
+        if let structDecl = item.as(StructDeclSyntax.self) {
+            Self.collectFromTypeDecl(
+                name: structDecl.name.text,
+                inheritanceClause: structDecl.inheritanceClause,
+                memberBlock: structDecl.memberBlock,
+                targetPath: targetPath,
+                currentPrefix: currentPrefix,
+                into: &collected
+            )
+            return
+        }
+        if let classDecl = item.as(ClassDeclSyntax.self) {
+            Self.collectFromTypeDecl(
+                name: classDecl.name.text,
+                inheritanceClause: classDecl.inheritanceClause,
+                memberBlock: classDecl.memberBlock,
+                targetPath: targetPath,
+                currentPrefix: currentPrefix,
+                into: &collected
+            )
+            return
+        }
+        if let enumDecl = item.as(EnumDeclSyntax.self) {
+            Self.collectFromTypeDecl(
+                name: enumDecl.name.text,
+                inheritanceClause: enumDecl.inheritanceClause,
+                memberBlock: enumDecl.memberBlock,
+                targetPath: targetPath,
+                currentPrefix: currentPrefix,
+                into: &collected
+            )
+            return
+        }
+        if let actorDecl = item.as(ActorDeclSyntax.self) {
+            Self.collectFromTypeDecl(
+                name: actorDecl.name.text,
+                inheritanceClause: actorDecl.inheritanceClause,
+                memberBlock: actorDecl.memberBlock,
+                targetPath: targetPath,
+                currentPrefix: currentPrefix,
+                into: &collected
+            )
+            return
+        }
+    }
+
+    /// Member-level variant of ``collectConformances(from:targetPath:currentPrefix:into:)``
+    /// operating on `DeclSyntax` (the shape inside a `MemberBlockSyntax`).
+    fileprivate static func collectConformancesFromDecl(
+        _ decl: DeclSyntax,
+        targetPath: Swift.String,
+        currentPrefix: Swift.String,
+        into collected: inout [Swift.String]
+    ) {
+        if let structDecl = decl.as(StructDeclSyntax.self) {
+            Self.collectFromTypeDecl(
+                name: structDecl.name.text,
+                inheritanceClause: structDecl.inheritanceClause,
+                memberBlock: structDecl.memberBlock,
+                targetPath: targetPath,
+                currentPrefix: currentPrefix,
+                into: &collected
+            )
+            return
+        }
+        if let classDecl = decl.as(ClassDeclSyntax.self) {
+            Self.collectFromTypeDecl(
+                name: classDecl.name.text,
+                inheritanceClause: classDecl.inheritanceClause,
+                memberBlock: classDecl.memberBlock,
+                targetPath: targetPath,
+                currentPrefix: currentPrefix,
+                into: &collected
+            )
+            return
+        }
+        if let enumDecl = decl.as(EnumDeclSyntax.self) {
+            Self.collectFromTypeDecl(
+                name: enumDecl.name.text,
+                inheritanceClause: enumDecl.inheritanceClause,
+                memberBlock: enumDecl.memberBlock,
+                targetPath: targetPath,
+                currentPrefix: currentPrefix,
+                into: &collected
+            )
+            return
+        }
+        if let actorDecl = decl.as(ActorDeclSyntax.self) {
+            Self.collectFromTypeDecl(
+                name: actorDecl.name.text,
+                inheritanceClause: actorDecl.inheritanceClause,
+                memberBlock: actorDecl.memberBlock,
+                targetPath: targetPath,
+                currentPrefix: currentPrefix,
+                into: &collected
+            )
+            return
+        }
+    }
+
+    fileprivate static func collectFromTypeDecl(
+        name: Swift.String,
+        inheritanceClause: InheritanceClauseSyntax?,
+        memberBlock: MemberBlockSyntax,
+        targetPath: Swift.String,
+        currentPrefix: Swift.String,
+        into collected: inout [Swift.String]
+    ) {
+        let fullPath = currentPrefix.isEmpty
+            ? name
+            : currentPrefix + "." + name
+        if fullPath == targetPath {
+            collected.append(contentsOf: Visitor.inheritanceLeaves(inheritanceClause))
+        }
+        for member in memberBlock.members {
+            Self.collectConformancesFromDecl(
+                member.decl,
+                targetPath: targetPath,
+                currentPrefix: fullPath,
+                into: &collected
+            )
+        }
     }
 
     /// Returns true if `name` is the institute `Protocol` sentinel — a

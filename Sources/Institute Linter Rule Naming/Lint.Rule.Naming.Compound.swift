@@ -89,6 +89,8 @@ fileprivate let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.St
     "startIndex":       "Swift.Collection.startIndex",
     "endIndex":         "Swift.Collection.endIndex",
     "flatMap":          "Swift.Optional.flatMap — canonical monadic-bind name",
+    "compactMap":       "Swift.Sequence.compactMap(_:) / Swift.Optional.compactMap(_:)",
+    "forEach":          "Swift.Sequence.forEach(_:)",
     // Stdlib with-helper functions: scoped-resource patterns the stdlib
     // ships as compound names (`withX` accumulates the scoped-action
     // operand into the name). Following the stdlib precedent rather
@@ -163,7 +165,10 @@ fileprivate let namingCompoundProtocolWitnessMethodCitations: [Swift.String: Swi
     // Span-based primitive (`mutating func nextSpan(maximumCount:) -> Span<Element>`)
     // is the institute counterpart to Swift.IteratorProtocol's `next()`;
     // see `swift-primitives/swift-sequence-primitives/Sources/Sequence Primitives Core/Sequence.Iterator.Protocol.swift`.
-    "nextSpan":                   "Sequence.Iterator.`Protocol`.nextSpan(maximumCount:) — institute span-based iterator primitive",
+    "nextSpan":                   "Sequence.Iterator.`Protocol`.nextSpan(maximumCount:) — institute span-based iterator primitive aligned with Swift.IteratorProtocol vocabulary",
+    // Swift.Sequence/RangeReplaceableCollection vocabulary aligned, plus
+    // institute Sequence.`Clearable` requirement (`mutating func removeAll()`).
+    "removeAll":                  "Swift.RangeReplaceableCollection.removeAll() / Swift.Sequence.removeAll(where:) / Sequence.`Clearable`.removeAll()",
 ]
 
 internal final class NamingCompoundVisitor: SyntaxVisitor {
