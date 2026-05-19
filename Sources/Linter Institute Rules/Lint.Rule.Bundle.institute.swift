@@ -10,6 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 public import Linter_Primitives
+public import Institute_Linter_Rule_Byte
 public import Institute_Linter_Rule_Closure
 public import Institute_Linter_Rule_Conformance
 public import Institute_Linter_Rule_Foundation
@@ -66,6 +67,15 @@ extension Lint.Rule.Bundle {
             // Framework pack
             .enable(.`xctest import`),
             .enable(.`suite categories`),
+            // Byte pack (Wave 1 of Post-W2 swift-linter arc, 2026-05-19)
+            // — encodes the W2 UInt8/Byte discrimination rubric per
+            // broader-l2-l3-byte-typing-gap-plan.md § Wave 2.
+            .enable(.`uint8 conforms to byte protocol`),
+            .enable(.`byte conforms to arithmetic protocol`),
+            .enable(.`binary serializable uint8 witness`),
+            .enable(.`binary serializable rawvalue uint8`),
+            .enable(.`uint8 ascii extension`),
+            .enable(.`uint8 forwarder missing disfavored`),
             // Conformance pack
             .enable(.`leaf body typealias missing`),
             // Closure pack (Wave 3 2026-05-15)
