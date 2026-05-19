@@ -14,6 +14,24 @@ internal import SwiftSyntax
 
 /// Public generic APIs throwing a generic-parameter-typed error should
 /// consider a non-throwing specialization. Citation: `[IMPL-042]`.
+///
+/// The rule fires as a REVIEW PROMPT, not a hard violation. Per
+/// `[IMPL-042]`'s "When to apply" criteria the duplication is justified
+/// only when the callback is invoked in a tight loop / per-token,
+/// benchmarks attribute measurable cost, AND the body is stable enough
+/// for duplication — if any of those conditions fails the duplication
+/// is principled-absent.
+///
+/// The recognizer skips two well-defined cases where the rule's CODEGEN
+/// premise ("the generic outer type hides the binding from codegen")
+/// does not hold:
+///
+/// 1. `@inlinable` / `@_alwaysEmitIntoClient` declarations — the
+///    developer has opted into cross-module inlining; the compiler can
+///    specialize at call sites without a duplicated body.
+/// 2. In-extension Never-companion already present — the recommendation
+///    has been addressed; firing again is a recognizer defect, not a
+///    review prompt.
 extension Lint.Rule {
     public static let `generic throws missing never` = Lint.Rule(
         id: "generic throws missing never",
@@ -33,10 +51,18 @@ extension Lint.Rule {
 @usableFromInline
 internal let throwsGenericNeverSpecializationMessage: Swift.String =
     "[generic throws missing never] [IMPL-042]: public "
-    + "generic API throws a generic-parameter-typed error. Even when "
-    + "callers bind the parameter to `Never`, the generic outer type "
-    + "hides the binding from codegen. Consider adding a non-throwing "
-    + "specialization under `extension Owner where G.Sub == Never { … }`."
+    + "generic API throws a generic-parameter-typed error. The rule fires "
+    + "as a REVIEW PROMPT — per [IMPL-042]'s 'When to apply' criteria the "
+    + "duplication is justified only when the callback is invoked in a "
+    + "tight loop / per-token, benchmarks attribute measurable cost, and "
+    + "the body is stable for duplication. Dispositions: (a) add a non-"
+    + "throwing `where <G>.<Sub> == Never` companion with a duplicated body "
+    + "in the same extension — the recognizer detects in-extension "
+    + "companions and won't re-fire; or (b) per-line suppress with "
+    + "`// REASON:` if the 'When to apply' criteria don't hold. The rule "
+    + "does not fire on `@inlinable` / `@_alwaysEmitIntoClient` "
+    + "declarations because the compiler can specialize at consumer call "
+    + "sites without a duplicated body."
 
 private func gnsIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift.Bool {
     for modifier in modifiers {
@@ -80,12 +106,80 @@ private func gnsCollectExtendedGenericNames(_ type: TypeSyntax) -> Swift.Set<Swi
     return names
 }
 
+/// Refinement A. `@inlinable` and `@_alwaysEmitIntoClient` opt the
+/// declaration into cross-module inlining; the compiler can specialize
+/// at consumer call sites without a duplicated body, so the rule's
+/// codegen-scaffolding premise does not apply.
+private func gnsIsInlinable(_ attributes: AttributeListSyntax) -> Swift.Bool {
+    for element in attributes {
+        guard let attr = element.as(AttributeSyntax.self) else { continue }
+        guard let ident = attr.attributeName.as(IdentifierTypeSyntax.self) else { continue }
+        switch ident.name.text {
+        case "inlinable", "_alwaysEmitIntoClient": return true
+        default: continue
+        }
+    }
+    return false
+}
+
+/// Refinement B. Pre-scan the extension's members for functions /
+/// initializers whose generic-where clause contains a `... == Never`
+/// requirement. Their baseNames are the in-extension "companion-present"
+/// set — the rule does not fire on a throwing declaration whose baseName
+/// is in this set.
+private func gnsCollectNeverCompanionNames(
+    in extensionDecl: ExtensionDeclSyntax
+) -> Swift.Set<Swift.String> {
+    var names: Swift.Set<Swift.String> = []
+    for memberItem in extensionDecl.memberBlock.members {
+        if let funcDecl = memberItem.decl.as(FunctionDeclSyntax.self),
+           gnsHasNeverFailureWhereClause(funcDecl.genericWhereClause)
+        {
+            names.insert(funcDecl.name.text)
+        }
+        if let initDecl = memberItem.decl.as(InitializerDeclSyntax.self),
+           gnsHasNeverFailureWhereClause(initDecl.genericWhereClause)
+        {
+            names.insert("init")
+        }
+    }
+    return names
+}
+
+/// Heuristic: any same-type requirement with `Never` on either side
+/// counts as a Never companion. We don't precisely verify the LHS is
+/// `<G>.<Sub>` because the companion baseName match (per
+/// `gnsCollectNeverCompanionNames`) is empirically sufficient — a
+/// sibling with the same baseName carrying `... == Never` is the
+/// in-extension specialization the rule's recommendation calls for.
+///
+/// Implementation note: uses `.trimmedDescription` per the ecosystem
+/// pattern in `Lint.Rule.RawValue.TaggedExtensionPublicInit` — avoids
+/// the `SameTypeRequirementSyntax.LeftType` vs `TypeSyntax` typed-
+/// subtype conversion needed in newer SwiftSyntax versions.
+private func gnsHasNeverFailureWhereClause(_ clause: GenericWhereClauseSyntax?) -> Swift.Bool {
+    guard let clause else { return false }
+    for requirement in clause.requirements {
+        guard let sameType = requirement.requirement.as(SameTypeRequirementSyntax.self) else { continue }
+        let left = sameType.leftType.trimmedDescription
+        let right = sameType.rightType.trimmedDescription
+        if left == "Never" || left == "Swift.Never" { return true }
+        if right == "Never" || right == "Swift.Never" { return true }
+    }
+    return false
+}
+
 internal final class ThrowsGenericNeverSpecializationVisitor: SyntaxVisitor {
     let source: Source.File
     let severity: Diagnostic.Severity
     let converter: SourceLocationConverter
     var matches: [Diagnostic.Record] = []
     var genericsStack: [Swift.Set<Swift.String>] = []
+    /// Per-extension companion-present baseNames. Companions are
+    /// detected at extension-enter time via a single pre-scan of
+    /// memberBlock; the stack accumulates the union across enclosing
+    /// extensions for nested-extension cases.
+    var companionsStack: [Swift.Set<Swift.String>] = []
 
     init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
         self.source = source
@@ -115,6 +209,13 @@ internal final class ThrowsGenericNeverSpecializationVisitor: SyntaxVisitor {
         return result
     }
 
+    private func hasCompanion(_ baseName: Swift.String) -> Swift.Bool {
+        for set in companionsStack {
+            if set.contains(baseName) { return true }
+        }
+        return false
+    }
+
     override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
         genericsStack.append(gnsCollectGenericParamNames(node.genericParameterClause))
         return .visitChildren
@@ -141,12 +242,21 @@ internal final class ThrowsGenericNeverSpecializationVisitor: SyntaxVisitor {
 
     override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
         genericsStack.append(gnsCollectExtendedGenericNames(node.extendedType))
+        companionsStack.append(gnsCollectNeverCompanionNames(in: node))
         return .visitChildren
     }
-    override func visitPost(_: ExtensionDeclSyntax) { genericsStack.removeLast() }
+    override func visitPost(_: ExtensionDeclSyntax) {
+        genericsStack.removeLast()
+        companionsStack.removeLast()
+    }
 
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         guard gnsIsPublicOrOpen(node.modifiers) else { return .visitChildren }
+        // Refinement A: skip @inlinable / @_alwaysEmitIntoClient.
+        if gnsIsInlinable(node.attributes) { return .visitChildren }
+        // Refinement B: skip if an in-extension Never companion exists
+        // with the same baseName.
+        if hasCompanion(node.name.text) { return .visitChildren }
         let funcGenerics = gnsCollectGenericParamNames(node.genericParameterClause)
         let available = currentAvailable(funcGenerics)
         if let position = gnsGenericFailureTypePosition(
@@ -160,6 +270,8 @@ internal final class ThrowsGenericNeverSpecializationVisitor: SyntaxVisitor {
 
     override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
         guard gnsIsPublicOrOpen(node.modifiers) else { return .visitChildren }
+        if gnsIsInlinable(node.attributes) { return .visitChildren }
+        if hasCompanion("init") { return .visitChildren }
         let funcGenerics = gnsCollectGenericParamNames(node.genericParameterClause)
         let available = currentAvailable(funcGenerics)
         if let position = gnsGenericFailureTypePosition(
