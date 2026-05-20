@@ -76,6 +76,7 @@ extension Lint.Rule.Bundle {
             .enable(.`binary serializable rawvalue uint8`),
             .enable(.`uint8 ascii extension`),
             .enable(.`uint8 forwarder missing disfavored`),
+            .enable(.`stdlib forwarder outside sli`),
             // Conformance pack
             .enable(.`leaf body typealias missing`),
             // Closure pack (Wave 3 2026-05-15)
