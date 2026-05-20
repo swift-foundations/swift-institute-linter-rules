@@ -667,3 +667,241 @@ extension Lint.Rule.`uint8 forwarder missing disfavored Tests`.Performance {
         #expect(result.isEmpty)
     }
 }
+
+// MARK: - Rule 7: stdlib forwarder outside sli
+
+extension Lint.Rule {
+    @Suite
+    struct `stdlib forwarder outside sli Tests` {
+        @Suite struct Unit {}
+        @Suite struct `Edge Case` {}
+        @Suite struct Integration {}
+        @Suite(.serialized) struct Performance {}
+    }
+}
+
+extension Lint.Rule.`stdlib forwarder outside sli Tests`.Unit {
+    @Test
+    func `disfavored function with UInt8 param in primary module is flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public func bar(_ value: UInt8) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 1)
+        if result.count == 1 {
+            #expect(result[0].identifier == "stdlib forwarder outside sli")
+        }
+    }
+
+    @Test
+    func `disfavored function returning UInt8 array in primary module is flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public func bytes() -> [UInt8] { [] }
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 1)
+    }
+
+    @Test
+    func `disfavored init with UInt8 array param in primary module is flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public init(_ data: [UInt8]) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 1)
+    }
+
+    @Test
+    func `disfavored function with where Buffer Element equals UInt8 in primary module is flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public func serialize<Buffer: RangeReplaceableCollection>(
+                into buffer: inout Buffer
+            ) where Buffer.Element == UInt8 {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 1)
+    }
+}
+
+extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
+    @Test
+    func `disfavored function with UInt8 in Standard Library Integration module is NOT flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public func bar(_ value: UInt8) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo Standard Library Integration/Bar.swift"
+        )
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `function without disfavoredOverload taking UInt8 is NOT flagged`() {
+        let source = """
+        extension Foo {
+            public func bar(_ value: UInt8) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `disfavored function without UInt8 surface is NOT flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public func bar(_ value: Byte) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `disfavored function with Optional UInt8 param in primary module is flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public func bar(_ value: UInt8?) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 1)
+    }
+
+    @Test
+    func `disfavored function with inout Array UInt8 param in primary module is flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public func bar(_ value: inout [UInt8]) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 1)
+    }
+
+    @Test
+    func `disfavored function with ContiguousArray UInt8 param in primary module is flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public func bar(_ value: ContiguousArray<UInt8>) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 1)
+    }
+}
+
+extension Lint.Rule.`stdlib forwarder outside sli Tests`.Integration {
+    @Test
+    func `multiple disfavored UInt8 forwarders in primary are all flagged`() {
+        let source = """
+        extension Foo {
+            @_disfavoredOverload
+            public init(_ data: [UInt8]) {}
+            @_disfavoredOverload
+            public func bytes() -> [UInt8] { [] }
+            public func unrelated() {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 2)
+    }
+
+    @Test
+    func `mixed primary and SLI fixtures separate independently`() {
+        // Each `findings(...)` call is independent — this test confirms the
+        // module-detection logic doesn't leak between calls.
+        let primarySource = """
+        extension Foo {
+            @_disfavoredOverload
+            public func bar(_ value: UInt8) {}
+        }
+        """
+        let primary = findings(
+            in: primarySource,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        let sli = findings(
+            in: primarySource,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo Standard Library Integration/Bar.swift"
+        )
+        #expect(primary.count == 1)
+        #expect(sli.isEmpty)
+    }
+}
+
+extension Lint.Rule.`stdlib forwarder outside sli Tests`.Performance {
+    @Test
+    func `large file with no disfavored UInt8 surfaces runs quickly`() {
+        let source = String(repeating: "extension Foo { func bar() {} }\n", count: 200)
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.isEmpty)
+    }
+}
