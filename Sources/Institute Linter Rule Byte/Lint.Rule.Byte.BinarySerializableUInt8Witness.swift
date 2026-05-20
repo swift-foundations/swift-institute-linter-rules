@@ -137,15 +137,36 @@ internal let byteWitnessFunctionNames: Swift.Set<Swift.String> = [
     "init",
 ]
 
-/// Returns true when the extension's inheritance clause names any of
-/// `byteSerializableLikeProtocolPairs`. Matching tolerates leaf-segment-
-/// only via `MemberTypeSyntax`.
+/// Returns true when the extension hosts witness implementations for a
+/// Binary serializable-like protocol — either via the **conformer-extension
+/// shape** (inheritance clause names `Binary.Serializable` /
+/// `Binary.Parseable`, e.g. `extension Foo: Binary.Serializable { ... }`)
+/// OR via the **default-impl-extension shape** (extended type IS the
+/// protocol, e.g. `extension Binary.Serializable { ... }` or
+/// `extension Binary.Serializable where Self: ... { ... }`).
+///
+/// Both shapes host witness implementations: per-conformer impls in the
+/// first shape, default impls (for any conformer without an override) in
+/// the second. The skill's `[API-BYTE-003]` Statement covers both —
+/// "witness implementations MUST use `Buffer.Element == Byte`"; the gate
+/// accepts either path. Matching tolerates leaf-segment-only via
+/// `MemberTypeSyntax`.
+///
+/// Coverage extension landed 2026-05-20 (Arc G Phase 7 addendum) per
+/// `swift-institute/Research/broader-l2-l3-byte-typing-gap-plan.md`
+/// § "Post-W2 Arc G".
 internal func extensionConformsToSerializableLike(_ node: ExtensionDeclSyntax) -> Swift.Bool {
-    guard let inheritance = node.inheritanceClause else { return false }
-    for inherited in inheritance.inheritedTypes {
-        if byteTypeMatchesSerializableLike(inherited.type) {
-            return true
+    // Path 1 — conformer-extension shape: inheritance clause names the protocol.
+    if let inheritance = node.inheritanceClause {
+        for inherited in inheritance.inheritedTypes {
+            if byteTypeMatchesSerializableLike(inherited.type) {
+                return true
+            }
         }
+    }
+    // Path 2 — default-impl-extension shape: extended type IS the protocol.
+    if byteTypeMatchesSerializableLike(node.extendedType) {
+        return true
     }
     return false
 }

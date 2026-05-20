@@ -276,6 +276,50 @@ extension Lint.Rule.`binary serializable uint8 witness Tests`.Unit {
         let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
         #expect(result.count == 1)
     }
+
+    // Arc G Phase 7 addendum (2026-05-20): default-impl-extension shape.
+    // Default impls on `Binary.Serializable` / `Binary.Parseable` are witness
+    // implementations too — for any conformer without an override. The rule's
+    // gate covers BOTH the conformer-extension shape (above) AND this shape.
+
+    @Test
+    func `default-impl on Binary Serializable where Buffer Element equals UInt8 is flagged`() {
+        let source = """
+        extension Binary.Serializable {
+            public func serialize<Buffer: RangeReplaceableCollection>(
+                into buffer: inout Buffer
+            ) where Buffer.Element == UInt8 {}
+        }
+        """
+        let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+        #expect(result.count == 1)
+    }
+
+    @Test
+    func `default-impl on Binary Parseable where Source Element equals UInt8 is flagged`() {
+        let source = """
+        extension Binary.Parseable {
+            public static func parse<Source: Collection>(
+                _ source: Source
+            ) -> Self where Source.Element == UInt8 { fatalError() }
+        }
+        """
+        let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+        #expect(result.count == 1)
+    }
+
+    @Test
+    func `conditional default-impl on Binary Serializable where Buffer Element equals UInt8 is flagged`() {
+        let source = """
+        extension Binary.Serializable where Self: RawRepresentable {
+            public func serialize<Buffer: RangeReplaceableCollection>(
+                into buffer: inout Buffer
+            ) where Buffer.Element == UInt8 {}
+        }
+        """
+        let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+        #expect(result.count == 1)
+    }
 }
 
 extension Lint.Rule.`binary serializable uint8 witness Tests`.`Edge Case` {
@@ -311,6 +355,48 @@ extension Lint.Rule.`binary serializable uint8 witness Tests`.`Edge Case` {
         let source = """
         extension Array where Element == UInt8 {
             public static func serialize(_ x: Self) where Buffer.Element == UInt8 {}
+        }
+        """
+        let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+        #expect(result.isEmpty)
+    }
+
+    // Arc G Phase 7 addendum (2026-05-20): default-impl-extension shape — negative cases.
+
+    @Test
+    func `default-impl on Binary Serializable with Byte where-clause is NOT flagged`() {
+        let source = """
+        extension Binary.Serializable {
+            public func serialize<Buffer: RangeReplaceableCollection>(
+                into buffer: inout Buffer
+            ) where Buffer.Element == Byte {}
+        }
+        """
+        let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `disfavored UInt8 default-impl forwarder on Binary Serializable is NOT flagged`() {
+        let source = """
+        extension Binary.Serializable {
+            @_disfavoredOverload
+            public func serialize<Buffer: RangeReplaceableCollection>(
+                into buffer: inout Buffer
+            ) where Buffer.Element == UInt8 {}
+        }
+        """
+        let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `default-impl on Binary Parseable with Byte where-clause is NOT flagged`() {
+        let source = """
+        extension Binary.Parseable {
+            public static func parse<Source: Collection>(
+                _ source: Source
+            ) -> Self where Source.Element == Byte { fatalError() }
         }
         """
         let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
