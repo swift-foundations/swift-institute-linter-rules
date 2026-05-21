@@ -33,7 +33,7 @@ extension Lint.Rule {
 }
 
 fileprivate let namingIntParameterMessageParameter: Swift.String =
-    "[int public parameter] [IMPL-010]: public function/initializer "
+    "[int public parameter] [IMPL-010]: public function/initializer/subscript "
     + "signature has a bare `Int` parameter. Push the stdlib boundary "
     + "out — use a typed wrapper (`Index<T>`, `Ordinal`, `Cardinal`, "
     + "`Count<T>`, `Offset<T>`) at the public surface; convert via a "
@@ -41,8 +41,8 @@ fileprivate let namingIntParameterMessageParameter: Swift.String =
     + "place, once, forever (per [IMPL-010])."
 
 fileprivate let namingIntParameterMessageReturn: Swift.String =
-    "[int public parameter] [IMPL-010]: public function returns a bare "
-    + "`Int`. Push the stdlib boundary out — return a typed wrapper "
+    "[int public parameter] [IMPL-010]: public function/subscript returns a "
+    + "bare `Int`. Push the stdlib boundary out — return a typed wrapper "
     + "(`Cardinal`, `Count<T>`, `Offset<T>`) so consumers see typed "
     + "intent rather than a raw machine integer."
 
@@ -126,6 +126,17 @@ internal final class NamingIntParameterVisitor: SyntaxVisitor {
             return .visitChildren
         }
         checkParameters(node.signature.parameterClause.parameters)
+        return .visitChildren
+    }
+
+    override func visit(_ node: SubscriptDeclSyntax) -> SyntaxVisitorContinueKind {
+        guard namingIntParameterIsPublicOrOpen(node.modifiers) else {
+            return .visitChildren
+        }
+        checkParameters(node.parameterClause.parameters)
+        if namingIntParameterIsBareInt(node.returnClause.type) {
+            emit(at: node.returnClause.type.positionAfterSkippingLeadingTrivia, message: namingIntParameterMessageReturn)
+        }
         return .visitChildren
     }
 

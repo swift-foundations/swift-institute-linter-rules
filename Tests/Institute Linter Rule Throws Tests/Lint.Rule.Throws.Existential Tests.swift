@@ -168,4 +168,65 @@ extension Lint.Rule.`existential throws Tests`.`Edge Case` {
         let findings = Lint.Rule.`existential throws Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    // MARK: - #require macro carve-out
+
+    @Test
+    func `function using require macro is NOT flagged for throws any Error`() {
+        // Carve-out: swift-testing's `#require` macro expands to
+        // `try Testing.__check(...).__required()` which throws
+        // `any Error` by macro contract. No concrete public error
+        // type is exposed for the throws clause; the existential is
+        // structurally required.
+        let source = """
+        func `unwraps optional`() throws(any Error) {
+            let value = try #require(maybeValue)
+            #expect(value == 42)
+        }
+        """
+        let findings = Lint.Rule.`existential throws Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `init using require macro is NOT flagged for throws any Error`() {
+        let source = """
+        struct S {
+            init() throws(any Error) {
+                let value = try #require(possibly)
+                self.value = value
+            }
+        }
+        """
+        let findings = Lint.Rule.`existential throws Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `function without require macro is still flagged for throws any Error`() {
+        // Regression guard: the carve-out is gated on the macro's
+        // actual presence in the function body. A function that uses
+        // some OTHER api but declares throws(any Error) still fires.
+        let source = """
+        func `does not use require`() throws(any Error) {
+            try otherCall()
+        }
+        """
+        let findings = Lint.Rule.`existential throws Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `function calling a different macro is still flagged`() {
+        // Regression guard: only `#require` triggers the carve-out.
+        // Other macros (like `#expect`) don't force the existential
+        // (their throws contract is different).
+        let source = """
+        func `uses expect`() throws(any Error) {
+            #expect(value == 42)
+        }
+        """
+        let findings = Lint.Rule.`existential throws Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }

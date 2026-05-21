@@ -85,6 +85,18 @@ internal final class ThrowsExistentialVisitor: SyntaxVisitor {
         if isStdlibProtocolWitnessThrows(Syntax(node)) {
             return .visitChildren
         }
+        // Carve-out: enclosing function/init body invokes the
+        // swift-testing `#require(_:)` macro. The macro's expansion is
+        // `try Testing.__check(...).__required()` which throws
+        // `any Error`; the enclosing function MUST be `throws(any Error)`
+        // (or untyped `throws`) to propagate. No concrete public error
+        // type is exposed by swift-testing for the `throws(E)` form;
+        // the existential is structurally required by the macro contract.
+        // See `throwsBodyContainsRequireMacro` for full rationale and
+        // citation.
+        if isInsideRequireMacroFunction(Syntax(node)) {
+            return .visitChildren
+        }
         let location = converter.location(for: typed.positionAfterSkippingLeadingTrivia)
         matches.append(Diagnostic.Record(
             location: Source.Location(
@@ -98,6 +110,50 @@ internal final class ThrowsExistentialVisitor: SyntaxVisitor {
             message: throwsExistentialMessage
         ))
         return .visitChildren
+    }
+
+    /// Returns true if the throws clause is on a function / init /
+    /// accessor whose body invokes swift-testing's `#require(_:)` macro.
+    /// The `#require` macro's expansion (`try Testing.__check(...).__required()`)
+    /// throws `any Error` by macro contract — swift-testing exposes no
+    /// concrete public error type for the throws clause. The enclosing
+    /// function is structurally forced to `throws(any Error)` or untyped
+    /// `throws` to propagate; the existential is mandated by the macro
+    /// contract, not chosen by the author.
+    ///
+    /// Citation: feedback_no_existential_throws (rule's primary statement);
+    /// 2026-05-21 binary-primitives lint remediation — dead-end documented
+    /// in HANDOFF.md (typed-throws form `throws(ExpectationFailedError)`
+    /// doesn't compile against swift-testing's public surface).
+    private func isInsideRequireMacroFunction(_ node: Syntax) -> Swift.Bool {
+        var current: Syntax? = node.parent
+        while let candidate = current {
+            if let fn = candidate.as(FunctionDeclSyntax.self) {
+                return throwsBodyContainsRequireMacro(fn.body)
+            }
+            if let initDecl = candidate.as(InitializerDeclSyntax.self) {
+                return throwsBodyContainsRequireMacro(initDecl.body)
+            }
+            if let accessor = candidate.as(AccessorDeclSyntax.self) {
+                return throwsBodyContainsRequireMacro(accessor.body)
+            }
+            if candidate.is(StructDeclSyntax.self)
+                || candidate.is(ClassDeclSyntax.self)
+                || candidate.is(EnumDeclSyntax.self)
+                || candidate.is(ActorDeclSyntax.self)
+                || candidate.is(ExtensionDeclSyntax.self) {
+                return false
+            }
+            current = candidate.parent
+        }
+        return false
+    }
+
+    private func throwsBodyContainsRequireMacro(_ body: CodeBlockSyntax?) -> Swift.Bool {
+        guard let body else { return false }
+        let finder = ThrowsExistentialRequireMacroFinder(viewMode: .sourceAccurate)
+        finder.walk(body)
+        return finder.found
     }
 
     private func isStdlibProtocolWitnessThrows(_ node: Syntax) -> Swift.Bool {
@@ -175,5 +231,19 @@ internal final class ThrowsExistentialVisitor: SyntaxVisitor {
            base.name.text == "Swift"
         { return true }
         return false
+    }
+}
+
+/// Walks a function body looking for any `#require(_:)` macro invocation.
+/// Used by `Lint.Rule.Throws.Existential`'s `#require` carve-out.
+internal final class ThrowsExistentialRequireMacroFinder: SyntaxVisitor {
+    var found: Swift.Bool = false
+
+    override func visit(_ node: MacroExpansionExprSyntax) -> SyntaxVisitorContinueKind {
+        if node.macroName.text == "require" {
+            found = true
+            return .skipChildren
+        }
+        return .visitChildren
     }
 }

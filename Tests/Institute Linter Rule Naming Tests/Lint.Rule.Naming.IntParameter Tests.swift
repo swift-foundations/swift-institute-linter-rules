@@ -104,6 +104,45 @@ extension Lint.Rule.`int public parameter Tests`.Unit {
         let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
         #expect(findings.count == 2)
     }
+
+    @Test
+    func `public subscript with Int parameter is flagged`() {
+        let source = """
+        public struct Cursor {
+            public subscript(offset offset: Int) -> Byte {
+                Byte(0)
+            }
+        }
+        """
+        let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `public subscript with Int return type is flagged`() {
+        let source = """
+        public struct Counter {
+            public subscript(key: String) -> Int {
+                0
+            }
+        }
+        """
+        let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `public subscript with Int param and Int return has two findings`() {
+        let source = """
+        public struct Table {
+            public subscript(_ i: Int) -> Int {
+                i
+            }
+        }
+        """
+        let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
+        #expect(findings.count == 2)
+    }
 }
 
 extension Lint.Rule.`int public parameter Tests`.`Edge Case` {
@@ -241,6 +280,43 @@ extension Lint.Rule.`int public parameter Tests`.`Edge Case` {
         """
         let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
         #expect(findings.count == 2)
+    }
+
+    @Test
+    func `internal subscript with Int parameter is NOT flagged`() {
+        let source = """
+        struct Cursor {
+            subscript(offset offset: Int) -> Byte {
+                Byte(0)
+            }
+        }
+        """
+        let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `private subscript with Int return is NOT flagged`() {
+        let source = """
+        struct Counter {
+            private subscript(key: String) -> Int { 0 }
+        }
+        """
+        let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `public subscript with Cardinal parameter is NOT flagged`() {
+        let source = """
+        public struct Cursor {
+            public subscript(offset offset: Cardinal) -> Byte {
+                Byte(0)
+            }
+        }
+        """
+        let findings = Lint.Rule.`int public parameter Tests`.findings(in: source)
+        #expect(findings.isEmpty)
     }
 }
 
