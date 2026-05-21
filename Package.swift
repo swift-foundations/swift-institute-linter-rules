@@ -90,6 +90,7 @@ let package = Package(
     dependencies: [
         .package(path: "../../swift-primitives/swift-linter-primitives"),
         .package(path: "../../swift-primitives/swift-cardinal-primitives"),
+        .package(path: "../../swift-primitives/swift-byte-primitives"),
         .package(path: "../swift-linter-rules"),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
     ],
@@ -314,6 +315,7 @@ let package = Package(
             name: "Institute Linter Rule Try Tests",
             dependencies: [
                 "Institute Linter Rule Try",
+                .product(name: "Byte Primitives", package: "swift-byte-primitives"),
                 .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
             ]

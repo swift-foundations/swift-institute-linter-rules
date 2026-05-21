@@ -12,6 +12,7 @@
 import Testing
 import SwiftSyntax
 import SwiftParser
+import Byte_Primitives
 import Linter_Primitives
 @testable import Institute_Linter_Rule_Try
 
@@ -28,7 +29,7 @@ extension Lint.Rule.`try optional Tests` {
         let tree = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: file, tree: tree)
         var manager = Source.Manager()
-        let id = manager.register(fileID: file, filePath: file, content: Array(source.utf8))
+        let id = manager.register(fileID: file, filePath: file, content: source.utf8.map(Byte.init))
         let parsed = Lint.Source.Parsed(
             file: manager.file(for: id),
             path: Lint.Source.Path(file),
@@ -95,7 +96,7 @@ extension Lint.Rule.`try optional Tests`.Unit {
         let tree = Parser.parse(source: source)
         let converter = SourceLocationConverter(fileName: "test.swift", tree: tree)
         var manager = Source.Manager()
-        let id = manager.register(fileID: "test.swift", filePath: "test.swift", content: Array(source.utf8))
+        let id = manager.register(fileID: "test.swift", filePath: "test.swift", content: source.utf8.map(Byte.init))
         let parsed = Lint.Source.Parsed(
             file: manager.file(for: id),
             path: "test.swift",
