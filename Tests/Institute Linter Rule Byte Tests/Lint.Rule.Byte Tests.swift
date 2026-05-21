@@ -768,11 +768,13 @@ extension Lint.Rule {
 
 extension Lint.Rule.`stdlib forwarder outside sli Tests`.Unit {
     @Test
-    func `disfavored function with UInt8 param in primary module is flagged`() {
+    func `disfavored Array UInt8 init in primary module is flagged`() {
         let source = """
-        extension Foo {
+        extension Array where Element == UInt8 {
             @_disfavoredOverload
-            public func bar(_ value: UInt8) {}
+            public init<S: Binary.Serializable>(_ s: S) {
+                self = []
+            }
         }
         """
         let result = findings(
@@ -787,11 +789,13 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.Unit {
     }
 
     @Test
-    func `disfavored function returning UInt8 array in primary module is flagged`() {
+    func `disfavored ContiguousArray UInt8 init in primary module is flagged`() {
         let source = """
-        extension Foo {
+        extension ContiguousArray where Element == UInt8 {
             @_disfavoredOverload
-            public func bytes() -> [UInt8] { [] }
+            public init<S: Binary.Serializable>(_ s: S) {
+                self = []
+            }
         }
         """
         let result = findings(
@@ -803,11 +807,13 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.Unit {
     }
 
     @Test
-    func `disfavored init with UInt8 array param in primary module is flagged`() {
+    func `disfavored Swift Array explicit qualifier UInt8 init in primary module is flagged`() {
         let source = """
-        extension Foo {
+        extension Swift.Array where Element == UInt8 {
             @_disfavoredOverload
-            public init(_ data: [UInt8]) {}
+            public init<S: Binary.Serializable>(_ s: S) {
+                self = []
+            }
         }
         """
         let result = findings(
@@ -819,13 +825,11 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.Unit {
     }
 
     @Test
-    func `disfavored function with where Buffer Element equals UInt8 in primary module is flagged`() {
+    func `disfavored RangeReplaceableCollection UInt8 append in primary module is flagged`() {
         let source = """
-        extension Foo {
+        extension RangeReplaceableCollection where Element == UInt8 {
             @_disfavoredOverload
-            public func serialize<Buffer: RangeReplaceableCollection>(
-                into buffer: inout Buffer
-            ) where Buffer.Element == UInt8 {}
+            public mutating func append<S: Binary.Serializable>(_ s: S) {}
         }
         """
         let result = findings(
@@ -839,11 +843,13 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.Unit {
 
 extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
     @Test
-    func `disfavored function with UInt8 in Standard Library Integration module is NOT flagged`() {
+    func `disfavored Array UInt8 in Standard Library Integration module is NOT flagged`() {
         let source = """
-        extension Foo {
+        extension Array where Element == UInt8 {
             @_disfavoredOverload
-            public func bar(_ value: UInt8) {}
+            public init<S: Binary.Serializable>(_ s: S) {
+                self = []
+            }
         }
         """
         let result = findings(
@@ -855,10 +861,12 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
     }
 
     @Test
-    func `function without disfavoredOverload taking UInt8 is NOT flagged`() {
+    func `Array UInt8 init without disfavoredOverload is NOT flagged`() {
         let source = """
-        extension Foo {
-            public func bar(_ value: UInt8) {}
+        extension Array where Element == UInt8 {
+            public init<S: Binary.Serializable>(_ s: S) {
+                self = []
+            }
         }
         """
         let result = findings(
@@ -870,9 +878,9 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
     }
 
     @Test
-    func `disfavored function without UInt8 surface is NOT flagged`() {
+    func `disfavored Array Byte function without UInt8 surface is NOT flagged`() {
         let source = """
-        extension Foo {
+        extension Array where Element == Byte {
             @_disfavoredOverload
             public func bar(_ value: Byte) {}
         }
@@ -886,11 +894,66 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
     }
 
     @Test
-    func `disfavored function with Optional UInt8 param in primary module is flagged`() {
+    func `extension on institute type Byte Input with disfavored UInt8 init is NOT flagged`() {
+        // [API-BYTE-007] scope: only extensions on STDLIB types belong in SLI.
+        // Extensions on institute types (Byte.Input here) that take UInt8 as
+        // a stdlib-bridge convenience legitimately live in the primary module.
+        let source = """
+        extension Byte.Input {
+            @_disfavoredOverload
+            public init<Bytes: Swift.Collection>(_ bytes: Bytes) where Bytes.Element == UInt8 {
+                self.init(Swift.Array(bytes))
+            }
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `extension on institute type Foo with disfavored UInt8 ArraySlice init is NOT flagged`() {
         let source = """
         extension Foo {
             @_disfavoredOverload
-            public func bar(_ value: UInt8?) {}
+            public init(_ bytes: ArraySlice<UInt8>) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `extension on RFC namespaced type with disfavored UInt8 init is NOT flagged`() {
+        let source = """
+        extension RFC_4122.UUID {
+            @_disfavoredOverload
+            public init(_ data: [UInt8]) {}
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `disfavored Array UInt8 init with Optional in primary module is flagged`() {
+        let source = """
+        extension Array where Element == UInt8? {
+            @_disfavoredOverload
+            public init<S: Binary.Serializable>(_ s: S) {
+                self = []
+            }
         }
         """
         let result = findings(
@@ -902,45 +965,28 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
     }
 
     @Test
-    func `disfavored function with inout Array UInt8 param in primary module is flagged`() {
+    func `top-level disfavored UInt8 function is NOT flagged`() {
+        // Not inside an extension at all — rule scope is extensions only.
         let source = """
-        extension Foo {
-            @_disfavoredOverload
-            public func bar(_ value: inout [UInt8]) {}
-        }
+        @_disfavoredOverload
+        public func bar(_ value: UInt8) {}
         """
         let result = findings(
             in: source,
             rule: Lint.Rule.`stdlib forwarder outside sli`,
             file: "/pkg/Sources/Foo/Bar.swift"
         )
-        #expect(result.count == 1)
-    }
-
-    @Test
-    func `disfavored function with ContiguousArray UInt8 param in primary module is flagged`() {
-        let source = """
-        extension Foo {
-            @_disfavoredOverload
-            public func bar(_ value: ContiguousArray<UInt8>) {}
-        }
-        """
-        let result = findings(
-            in: source,
-            rule: Lint.Rule.`stdlib forwarder outside sli`,
-            file: "/pkg/Sources/Foo/Bar.swift"
-        )
-        #expect(result.count == 1)
+        #expect(result.isEmpty)
     }
 }
 
 extension Lint.Rule.`stdlib forwarder outside sli Tests`.Integration {
     @Test
-    func `multiple disfavored UInt8 forwarders in primary are all flagged`() {
+    func `multiple disfavored UInt8 forwarders in stdlib type extension are all flagged`() {
         let source = """
-        extension Foo {
+        extension Array where Element == UInt8 {
             @_disfavoredOverload
-            public init(_ data: [UInt8]) {}
+            public init<S: Binary.Serializable>(_ s: S) { self = [] }
             @_disfavoredOverload
             public func bytes() -> [UInt8] { [] }
             public func unrelated() {}
@@ -959,9 +1005,9 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.Integration {
         // Each `findings(...)` call is independent — this test confirms the
         // module-detection logic doesn't leak between calls.
         let primarySource = """
-        extension Foo {
+        extension Array where Element == UInt8 {
             @_disfavoredOverload
-            public func bar(_ value: UInt8) {}
+            public init<S: Binary.Serializable>(_ s: S) { self = [] }
         }
         """
         let primary = findings(
@@ -976,6 +1022,27 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.Integration {
         )
         #expect(primary.count == 1)
         #expect(sli.isEmpty)
+    }
+
+    @Test
+    func `mixed institute and stdlib extensions in same file fire selectively`() {
+        // [API-BYTE-007] scope discrimination: only the stdlib-type extension fires.
+        let source = """
+        extension Byte.Input {
+            @_disfavoredOverload
+            public init(_ bytes: ArraySlice<UInt8>) {}
+        }
+        extension Array where Element == UInt8 {
+            @_disfavoredOverload
+            public init<S: Binary.Serializable>(_ s: S) { self = [] }
+        }
+        """
+        let result = findings(
+            in: source,
+            rule: Lint.Rule.`stdlib forwarder outside sli`,
+            file: "/pkg/Sources/Foo/Bar.swift"
+        )
+        #expect(result.count == 1)
     }
 }
 

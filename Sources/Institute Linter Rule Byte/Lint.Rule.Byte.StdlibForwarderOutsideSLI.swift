@@ -12,10 +12,13 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
-/// Stdlib-interop `@_disfavoredOverload` UInt8 forwarders MUST live in
-/// `* Standard Library Integration` modules, NOT in byte-domain primary
-/// modules. The forwarder bridges `[Byte]`-typed primary API to stdlib
-/// `[UInt8]` callers; its host module belongs to SLI.
+/// Stdlib-interop `@_disfavoredOverload` UInt8 forwarders DECLARED AS
+/// extensions ON stdlib types (Array, ContiguousArray, ArraySlice, Span,
+/// UnsafeBufferPointer, …) MUST live in `* Standard Library Integration`
+/// modules, NOT in byte-domain primary modules. Extensions on INSTITUTE
+/// types (Byte.Input, RFC_*.*, …) that happen to take UInt8 as a
+/// stdlib-bridge convenience belong in the primary module and DO NOT
+/// fire this rule.
 /// Citation: `[API-BYTE-007]`.
 extension Lint.Rule {
     public static let `stdlib forwarder outside sli` = Lint.Rule(
@@ -35,14 +38,18 @@ extension Lint.Rule {
 
 @usableFromInline
 internal let byteStdlibForwarderOutsideSLIMessage: Swift.String =
-    "[stdlib forwarder outside sli] [API-BYTE-007]: function or initializer "
-    + "carries `@_disfavoredOverload` and references `UInt8` in its surface "
-    + "(parameter, return, or generic constraint), but lives in a byte-domain "
+    "[stdlib forwarder outside sli] [API-BYTE-007]: declaration extends "
+    + "a stdlib type (Array, ContiguousArray, ArraySlice, Span, "
+    + "UnsafeBufferPointer, …), carries `@_disfavoredOverload`, and "
+    + "references `UInt8` in its surface, but lives in a byte-domain "
     + "primary module. Stdlib-interop UInt8 forwarders MUST live in the "
     + "package's `* Standard Library Integration` target (the forwarder "
     + "delegates to the `[Byte]`-typed primary via `.lazy.map(Byte.init)` "
     + "or `[Byte](uint8s)`). Move this declaration to a sibling target "
-    + "named `<Package> Standard Library Integration`."
+    + "named `<Package> Standard Library Integration`. "
+    + "(Extensions on INSTITUTE types with UInt8-accepting "
+    + "`@_disfavoredOverload` convenience inits/methods are legitimate "
+    + "primary-module surface and do NOT fire this rule.)"
 
 internal final class ByteStdlibForwarderOutsideSLIVisitor: SyntaxVisitor {
     let source: Source.File
@@ -65,7 +72,13 @@ internal final class ByteStdlibForwarderOutsideSLIVisitor: SyntaxVisitor {
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         guard !hostIsSLI else { return .visitChildren }
         guard byteStdlibForwarderHasDisfavoredOverload(node.attributes) else { return .visitChildren }
-        if byteStdlibForwarderFunctionMentionsUInt8(node) {
+        let enclosing = byteStdlibForwarderEnclosingExtension(Syntax(node))
+        guard let enclosing else { return .visitChildren }
+        guard byteStdlibForwarderTypeIsStdlibType(enclosing.extendedType) else {
+            return .visitChildren
+        }
+        if byteStdlibForwarderFunctionMentionsUInt8(node)
+            || byteStdlibForwarderExtensionConstraintMentionsUInt8(enclosing) {
             emit(at: node.funcKeyword.positionAfterSkippingLeadingTrivia)
         }
         return .visitChildren
@@ -74,7 +87,13 @@ internal final class ByteStdlibForwarderOutsideSLIVisitor: SyntaxVisitor {
     override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
         guard !hostIsSLI else { return .visitChildren }
         guard byteStdlibForwarderHasDisfavoredOverload(node.attributes) else { return .visitChildren }
-        if byteStdlibForwarderInitializerMentionsUInt8(node) {
+        let enclosing = byteStdlibForwarderEnclosingExtension(Syntax(node))
+        guard let enclosing else { return .visitChildren }
+        guard byteStdlibForwarderTypeIsStdlibType(enclosing.extendedType) else {
+            return .visitChildren
+        }
+        if byteStdlibForwarderInitializerMentionsUInt8(node)
+            || byteStdlibForwarderExtensionConstraintMentionsUInt8(enclosing) {
             emit(at: node.initKeyword.positionAfterSkippingLeadingTrivia)
         }
         return .visitChildren
@@ -155,12 +174,17 @@ private func byteStdlibForwarderInitializerMentionsUInt8(_ node: InitializerDecl
 private func byteStdlibForwarderWhereClauseMentionsUInt8(_ whereClause: GenericWhereClauseSyntax) -> Swift.Bool {
     for requirement in whereClause.requirements {
         if let sameType = requirement.requirement.as(SameTypeRequirementSyntax.self) {
-            let right = byteStdlibForwarderStripBackticks(sameType.rightType.trimmedDescription)
-            if right == "UInt8" || right == "Swift.UInt8" {
+            // leftType and rightType are specialized `SameTypeRequirementSyntax.LeftType` /
+            // `.RightType` (not bare `TypeSyntax`) in current SwiftSyntax. Wrap via
+            // `Syntax(_:).as(TypeSyntax.self)` so we can re-use the recursive
+            // type-mention detector that handles Optional / Array / generic
+            // nesting (e.g., `Element == UInt8?`, `Element == [UInt8]`).
+            if let rightTS = Syntax(sameType.rightType).as(TypeSyntax.self),
+               byteStdlibForwarderTypeMentionsUInt8(rightTS) {
                 return true
             }
-            let left = byteStdlibForwarderStripBackticks(sameType.leftType.trimmedDescription)
-            if left == "UInt8" || left == "Swift.UInt8" {
+            if let leftTS = Syntax(sameType.leftType).as(TypeSyntax.self),
+               byteStdlibForwarderTypeMentionsUInt8(leftTS) {
                 return true
             }
         }
@@ -211,4 +235,100 @@ private func byteStdlibForwarderStripBackticks(_ name: Swift.String) -> Swift.St
     if s.hasPrefix("`") { s.removeFirst() }
     if s.hasSuffix("`") { s.removeLast() }
     return s
+}
+
+/// Curated set of stdlib type leaf-names whose extensions are the
+/// canonical home for `@_disfavoredOverload` UInt8 forwarders. The rule
+/// fires only when the enclosing extension's extended type's leaf-name
+/// matches one of these (or the extended type is explicitly
+/// `Swift.<X>`).
+///
+/// Note on `Array`: included even though `Array_Primitives.Array` shadows
+/// `Swift.Array` in the institute. The institute convention is to write
+/// `extension Swift.Array` when the stdlib type is intended; bare
+/// `extension Array` in a file that resolves `Array` to institute is
+/// arguably misnamed and the rule will fire — that is acceptable, since
+/// the in-file shadow ambiguity is itself a hygiene issue independently
+/// flagged at the qualification level.
+private let byteStdlibForwarderStdlibTypeLeafNames: Swift.Set<Swift.String> = [
+    "Array",
+    "ContiguousArray",
+    "ArraySlice",
+    "Sequence",
+    "Collection",
+    "RangeReplaceableCollection",
+    "BidirectionalCollection",
+    "RandomAccessCollection",
+    "MutableCollection",
+    "Span",
+    "MutableSpan",
+    "RawSpan",
+    "OutputSpan",
+    "OutputRawSpan",
+    "UnsafeBufferPointer",
+    "UnsafeMutableBufferPointer",
+    "UnsafeRawBufferPointer",
+    "UnsafeMutableRawBufferPointer",
+    "UnsafePointer",
+    "UnsafeMutablePointer",
+    "UnsafeRawPointer",
+    "UnsafeMutableRawPointer",
+    "String",
+    "Substring",
+    "StringProtocol",
+    "Dictionary",
+    "Set",
+    "Range",
+    "ClosedRange",
+    "Optional",
+    "Result",
+]
+
+/// Walks parent nodes from `node` up to the nearest `ExtensionDeclSyntax`
+/// and returns it. Returns `nil` when the declaration is not inside an
+/// extension (top-level / inside a struct or class body).
+private func byteStdlibForwarderEnclosingExtension(_ node: Syntax) -> ExtensionDeclSyntax? {
+    var current: Syntax? = node.parent
+    while let parent = current {
+        if let extensionDecl = parent.as(ExtensionDeclSyntax.self) {
+            return extensionDecl
+        }
+        current = parent.parent
+    }
+    return nil
+}
+
+/// Returns true when the extension carries a `where`-clause constraint
+/// mentioning `UInt8` (e.g., `extension Array where Element == UInt8`).
+/// This is how [API-BYTE-003]'s canonical 6-forwarder allowlist
+/// expresses byte-interop constraints on stdlib-collection extensions.
+private func byteStdlibForwarderExtensionConstraintMentionsUInt8(_ ext: ExtensionDeclSyntax) -> Swift.Bool {
+    if let whereClause = ext.genericWhereClause,
+       byteStdlibForwarderWhereClauseMentionsUInt8(whereClause) {
+        return true
+    }
+    // Also check generic arguments on the extendedType itself, e.g.
+    // `extension ContiguousArray<UInt8> { ... }`.
+    return byteStdlibForwarderTypeMentionsUInt8(ext.extendedType)
+}
+
+/// `Swift.<X>` is always stdlib. Otherwise check the type's leaf-name
+/// against the curated allowlist. Strips backticks before comparison.
+private func byteStdlibForwarderTypeIsStdlibType(_ type: TypeSyntax) -> Swift.Bool {
+    // `Swift.<X>` — explicit module qualifier means stdlib.
+    if let memberType = type.as(MemberTypeSyntax.self) {
+        if let baseIdentifier = memberType.baseType.as(IdentifierTypeSyntax.self),
+           byteStdlibForwarderStripBackticks(baseIdentifier.name.text) == "Swift" {
+            return true
+        }
+        // Multi-segment nested type (e.g., `Byte.Input`, `RFC_4122.UUID`):
+        // an institute / domain-nested type. Not stdlib.
+        return false
+    }
+    // Bare identifier — check leaf-name against the allowlist.
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+        let leaf = byteStdlibForwarderStripBackticks(identifier.name.text)
+        return byteStdlibForwarderStdlibTypeLeafNames.contains(leaf)
+    }
+    return false
 }
