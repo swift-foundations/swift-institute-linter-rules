@@ -163,4 +163,73 @@ extension Lint.Rule.`closure typed throws annotation Tests`.`Edge Case` {
         // Outer typed-throws depth is still 1 when visiting the inner closure.
         #expect(findings.count == 1)
     }
+
+    // MARK: - #expect(throws:) macro carve-out
+
+    @Test
+    func `expect throws trailing closure with try is NOT flagged`() {
+        // Carve-out: `#expect(throws:)` macro carries the expected
+        // error type in its labeled argument. The trailing closure's
+        // job is to throw; annotating it with `() throws(E) in` is
+        // semantically meaningless and additionally triggers a Swift
+        // 6.3.2 SIL crash with ~Copyable bodies.
+        let source = """
+        func f() throws(MyError) {
+            #expect(throws: MyError.self) {
+                try work()
+            }
+        }
+        """
+        let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `expect throws with specific error value still exempts the closure`() {
+        // `#expect(throws: TestError.expected) { ... }` — the throws:
+        // argument carries a specific error value rather than `.self`.
+        // Carve-out still applies (the argument label is what matters).
+        let source = """
+        func f() throws(MyError) {
+            #expect(throws: TestError.expected) {
+                try producer.produce()
+            }
+        }
+        """
+        let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `expect without throws: label still flags trailing closure with try`() {
+        // Regression guard: `#expect { try ... }` (no throws: argument)
+        // is the basic assertion form, NOT the throws-asserting macro.
+        // The carve-out is gated on the `throws:` argument label;
+        // without it, the rule still fires.
+        let source = """
+        func f() throws(MyError) {
+            #expect {
+                try predicate()
+            }
+        }
+        """
+        let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `non-expect macro with throws: label does NOT exempt`() {
+        // Regression guard: the carve-out is gated on the macro name
+        // being `expect`. A different macro using a `throws:` label
+        // is not the swift-testing macro and gets no exemption.
+        let source = """
+        func f() throws(MyError) {
+            #customMacro(throws: MyError.self) {
+                try work()
+            }
+        }
+        """
+        let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }

@@ -42,6 +42,38 @@ internal func throwsIsTypedThrows(_ clause: ThrowsClauseSyntax?) -> Swift.Bool {
     return clause.type != nil
 }
 
+/// Returns true if `node` is the trailing closure of a `#expect(throws:)`
+/// macro expansion. The macro's `throws:` argument signature carries the
+/// expected error; the closure body's job is to throw — Swift Testing
+/// then asserts that the body threw the expected error. The macro's
+/// contract takes `any Error` by design, so annotating the closure with
+/// `() throws(E) in` is semantically meaningless: the macro already knows
+/// which `E` to assert against from its labeled argument.
+///
+/// Additionally, on Swift 6.3.2 the annotation triggers a SIL crash in
+/// `LifetimeDependenceDiagnostics` when the closure body holds
+/// `~Copyable` lifetime-dependent types (e.g., `Binary.Cursor`). The
+/// carve-out preserves correct typed-throws coverage at the macro
+/// boundary without forcing source through a compiler-blocked corner.
+///
+/// Citation: [API-ERR-004] (rule's primary statement);
+/// [RULE-EXEMPT-4]-shaped attribute/macro carve-out.
+///
+/// Detection: walks one level up to `MacroExpansionExprSyntax`,
+/// checks the macro name is `expect`, and verifies the argument list
+/// contains a `throws:` labeled argument.
+internal func throwsClosureIsInsideExpectThrows(_ node: ClosureExprSyntax) -> Swift.Bool {
+    guard let parent = node.parent else { return false }
+    guard let macro = parent.as(MacroExpansionExprSyntax.self) else { return false }
+    guard macro.macroName.text == "expect" else { return false }
+    for argument in macro.arguments {
+        if argument.label?.text == "throws" {
+            return true
+        }
+    }
+    return false
+}
+
 /// Returns true if the node is inside an enclosing `DoStmtSyntax` whose
 /// `catchClauses` contain at least one catch body that ends with a
 /// `return` of a value (the Result-materialization shape). Stops the
@@ -145,6 +177,16 @@ internal final class ThrowsClosureAnnotationVisitor: SyntaxVisitor {
         if let signature = node.signature,
            throwsIsTypedThrows(signature.effectSpecifiers?.throwsClause)
         { return .visitChildren }
+        // Carve-out: `#expect(throws:)` macro expansion. The macro's
+        // `throws:` argument carries the expected error; the closure
+        // annotation is semantically meaningless. Additionally, the
+        // annotation triggers a Swift 6.3.2 SIL crash when the body
+        // holds ~Copyable lifetime-dependent types. See
+        // `throwsClosureIsInsideExpectThrows` for full rationale and
+        // citation.
+        if throwsClosureIsInsideExpectThrows(node) {
+            return .visitChildren
+        }
         let finder = ThrowsClosureTryFinder(viewMode: .sourceAccurate)
         for statement in node.statements {
             finder.walk(statement)
