@@ -141,4 +141,57 @@ extension Lint.Rule.`nonisolated unsafe without invariant Tests`.Unit {
         let findings = Lint.Rule.`nonisolated unsafe without invariant Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    @Test
+    func `multi-line SAFETY block with first-line-only prefix is permitted`() {
+        // First-line-prefix convention: the // SAFETY: prefix on the
+        // FIRST line of a contiguous comment block suffices; continuation
+        // lines without the prefix are accepted as part of the same block.
+        let source = """
+        // SAFETY: Mutated only on the main thread under MainActor isolation.
+        // The annotation marks the local as disconnected from the caller's
+        // region; downstream reads are serialized by the actor.
+        nonisolated(unsafe) var counter: Int = 0
+        """
+        let findings = Lint.Rule.`nonisolated unsafe without invariant Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `multi-line WHY block with first-line-only prefix is permitted`() {
+        // Parity with SAFETY for the WHY prefix.
+        let source = """
+        // WHY: established ecosystem pattern; the binding is load-bearing
+        // because nonisolated(unsafe) is a declaration modifier.
+        nonisolated(unsafe) let v = value
+        """
+        let findings = Lint.Rule.`nonisolated unsafe without invariant Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `swift-linter disable directive between SAFETY and declaration is walked through`() {
+        // The directive line doesn't carry SAFETY/WHY but is still inside
+        // the contiguous comment block. The walker should treat it as a
+        // pass-through, finding the SAFETY line earlier in the block.
+        let source = """
+        // SAFETY: Mutated only under MainActor isolation.
+        // swift-linter:disable:next intermediate binding then return
+        nonisolated(unsafe) let v = value
+        """
+        let findings = Lint.Rule.`nonisolated unsafe without invariant Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `blank line between SAFETY and declaration breaks adjacency`() {
+        // Regression guard: the contiguous-block requirement holds.
+        let source = """
+        // SAFETY: Mutated only on the main thread under MainActor isolation.
+
+        nonisolated(unsafe) var counter: Int = 0
+        """
+        let findings = Lint.Rule.`nonisolated unsafe without invariant Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }

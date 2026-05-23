@@ -25,9 +25,12 @@ internal import SwiftSyntax
 ///
 /// The comment MUST be immediately adjacent to the declaration: a
 /// blank line between the comment and the `nonisolated(unsafe)` token
-/// breaks adjacency and the rule fires. Multi-line `// SAFETY:` /
-/// `// WHY:` blocks are accepted as long as the LAST comment line
-/// before the declaration is one of those forms.
+/// breaks adjacency and the rule fires. First-line-prefix convention:
+/// multi-line blocks may carry `// SAFETY:` or `// WHY:` on only the
+/// FIRST line of the block with continuation comments below; the
+/// prefix on any line of the contiguous comment block is sufficient
+/// to assert the invariant. Intervening `// swift-linter:disable:next ...`
+/// directives are walked through.
 extension Lint.Rule {
     public static let `nonisolated unsafe without invariant` = Lint.Rule(
         id: "nonisolated unsafe without invariant",
@@ -50,8 +53,9 @@ internal let memoryNonisolatedUnsafeInvariantMessage: Swift.String =
     + "declarations MUST carry an adjacent `// SAFETY:` or `// WHY:` comment "
     + "citing the encapsulation invariant (allocated once / never mutated post-init / "
     + "sync mechanism / ownership discipline). The comment MUST immediately precede "
-    + "the declaration with no intervening blank line. Multi-line `// SAFETY:` or "
-    + "`// WHY:` blocks are accepted."
+    + "the declaration with no intervening blank line. Multi-line blocks are accepted "
+    + "with the `// SAFETY:` or `// WHY:` prefix on any line of the contiguous block "
+    + "(typically the first line); continuation lines need no prefix."
 
 internal final class MemoryNonisolatedUnsafeInvariantVisitor: SyntaxVisitor {
     let source: Source.File
@@ -105,32 +109,26 @@ internal final class MemoryNonisolatedUnsafeInvariantVisitor: SyntaxVisitor {
                 // broken.
                 if newlinesSinceLastComment >= 2 { return false }
             case .lineComment(let text):
-                // First comment we hit walking back. Decide based on
-                // its content and the newline count to the token.
-                //
-                // newlinesSinceLastComment must be at most 1 (the
-                // single newline that separates `// foo\n` from the
-                // next declaration line). If we already saw 2+ above
-                // we'd have returned false; we also need to NOT have
-                // seen zero newlines (which would be a trailing
-                // comment on the same line as some other token earlier
-                // in the trivia — not the adjacency we want, but
-                // SwiftSyntax's leading trivia model puts a newline
-                // before line comments parsed off the previous line).
+                // Walk back through CONTIGUOUS line comments looking for
+                // a `// SAFETY:` or `// WHY:` prefix on ANY line of the
+                // block (first-line-prefix convention). The block ends
+                // at: a blank line (>=2 newlines, handled in .newlines),
+                // a doc / block comment, or a non-comment trivia.
                 let trimmed = text.trimmingPrefix("//")
                 let body = trimmed.drop(while: { $0 == " " || $0 == "\t" })
                 if body.hasPrefix("SAFETY:") || body.hasPrefix("WHY:") {
                     return true
                 }
-                // First comment we found is not SAFETY/WHY — keep
-                // walking back; an earlier multi-line block might
-                // have started with SAFETY/WHY, but the institute's
-                // convention is that EVERY line of the block carries
-                // the prefix (`// SAFETY: ...\n// SAFETY: ...`). If
-                // the comment line immediately above the decl isn't
-                // SAFETY/WHY, the invariant isn't being asserted at
-                // the adjacent line.
-                return false
+                // This comment line isn't the prefix line — could be a
+                // continuation line, a `swift-linter:disable:next`
+                // directive, or an unrelated narrative comment.
+                // Reset the consecutive-newline counter (since this
+                // comment is between us and any earlier SAFETY/WHY
+                // line) and keep walking back. A subsequent blank line
+                // (>=2 newlines) in the trivia will still break
+                // adjacency via the .newlines branch.
+                newlinesSinceLastComment = 0
+                continue
             case .blockComment, .docLineComment, .docBlockComment:
                 // Block / doc comments do not satisfy the convention
                 // (the institute uses `// SAFETY:` / `// WHY:` for
