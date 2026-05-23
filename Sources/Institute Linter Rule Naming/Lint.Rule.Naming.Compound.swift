@@ -204,6 +204,16 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
         if Naming.hasFileprivateOrPrivateEffective(Syntax(node), modifiers: node.modifiers) {
             return .visitChildren
         }
+        // Skip nested function declarations inside function / closure /
+        // accessor bodies. The rule's intent ([API-NAME-002]) is
+        // public/API surface; local helpers are implementation detail
+        // and not part of the named-export surface. Symmetric with
+        // the local let/var exemption in `visit(_ node: VariableDeclSyntax)`
+        // below. Common in test bodies (`@Test func ... { func readTwice(...) }`)
+        // where the helper is bound to the test function's scope.
+        if isInsideFunctionLikeContext(Syntax(node)) {
+            return .visitChildren
+        }
         // Backtick-escape exemption: see `Naming.isBackticked` for the
         // full rationale. Backticks signal the author opted out of
         // standard identifier conventions (narrative, non-identifier-

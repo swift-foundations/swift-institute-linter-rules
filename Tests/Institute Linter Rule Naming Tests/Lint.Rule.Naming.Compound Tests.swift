@@ -639,4 +639,31 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
         let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    @Test
+    func `nested function declaration inside function body is NOT flagged`() {
+        // Symmetric with the local let/var exemption: nested helper
+        // functions inside test bodies (or any function body) are
+        // function-scope-local and have no consumer-observable API
+        // surface. Common pattern in swift-testing test bodies where
+        // helpers like `readTwice` / `forkAndReadBoth` document the
+        // test's setup arc.
+        let source = """
+        func outer() {
+            func readTwice() {}
+            func forkAndReadBoth() {}
+        }
+        """
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `top-level compound function remains flagged after nested-function exemption`() {
+        // Regression guard: the nested-function exemption MUST NOT
+        // short-circuit top-level (or member) compound function names.
+        let source = "func openWrite() {}"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }
