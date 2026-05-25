@@ -16,6 +16,23 @@ internal import SwiftSyntax
 /// namespace-adoption shape: the higher-layer namespace adopts a
 /// lower-layer concept under the same leaf name.
 ///
+/// The recognizer skips two well-defined cases where the same-leaf
+/// typealias is structurally dictated rather than a discretionary rename
+/// bridge:
+///
+/// 1. Conforming-context associatedtype satisfier — `extension X: Y {
+///    typealias Z = W.Z }` declares conformance to `Y`; the same-leaf
+///    typealias satisfies an associatedtype requirement, not a rename.
+/// 2. Parameterized adoption idiom — a GENERIC typealias that forwards its
+///    own generic parameter(s) into the RHS specialization AND binds at
+///    least one additional argument (the enclosing Self-type or a concrete
+///    type). This is how an institute consumer adopts a parameterized
+///    capability, e.g. `extension Stack { typealias Property<Tag> =
+///    Property_Primitives.Property<Tag, Stack<Element>> }`, which sugars
+///    `Stack.Property<Push>` to the two-parameter underlying generic. The
+///    self-binding distinguishes it from a bare rename bridge (no generics
+///    / pure passthrough), which the rule still flags.
+///
 /// Citation: `[API-NAME-004a]` (code-surface skill, naming).
 extension Lint.Rule {
     public static let `namespace adoption typealias` = Lint.Rule(
@@ -38,7 +55,49 @@ fileprivate let namingNamespaceAdoptionMessage: Swift.String =
     + "the namespace-adoption shape. Confirm the higher-layer namespace "
     + "declares ≥ 5 sibling types / extensions / methods on the adopted "
     + "concept — otherwise this is a rename bridge per [API-NAME-004]. "
-    + "Surfaced as a review prompt."
+    + "Surfaced as a review prompt. (The parameterized-adoption idiom — a "
+    + "generic typealias forwarding its parameter(s) while binding the "
+    + "enclosing Self-type into the underlying generic — does not fire.)"
+
+/// A *parameterized namespace-adoption* typealias is a GENERIC typealias
+/// whose RHS specialization both (a) forwards at least one of the
+/// typealias's own generic parameters and (b) binds at least one additional
+/// argument that is NOT a bare LHS parameter (the enclosing Self-type, a
+/// concrete type, or a nested generic). This is the institute
+/// consumer-adoption idiom — `extension Stack { typealias Property<Tag> =
+/// Property_Primitives.Property<Tag, Stack<Element>> }` — which is a partial
+/// application of the underlying two-parameter generic, not a rename. A bare
+/// rename bridge (`typealias Event = Kernel.Event`, no generics) and a pure
+/// passthrough (`typealias Array<T> = Swift.Array<T>`, every RHS argument is
+/// a bare forward) both return `false` here and remain flagged.
+fileprivate func namingIsParameterizedAdoption(
+    _ node: TypeAliasDeclSyntax,
+    member: MemberTypeSyntax
+) -> Swift.Bool {
+    guard let lhsParameters = node.genericParameterClause?.parameters,
+        !lhsParameters.isEmpty
+    else { return false }
+    guard let rhsArguments = member.genericArgumentClause?.arguments,
+        !rhsArguments.isEmpty
+    else { return false }
+
+    var lhsParameterNames: Swift.Set<Swift.String> = []
+    for parameter in lhsParameters { lhsParameterNames.insert(parameter.name.text) }
+
+    var forwardsAParameter = false
+    var bindsAnExtraArgument = false
+    for argument in rhsArguments {
+        if let identifier = argument.argument.as(IdentifierTypeSyntax.self),
+            identifier.genericArgumentClause == nil,
+            lhsParameterNames.contains(identifier.name.text)
+        {
+            forwardsAParameter = true
+        } else {
+            bindsAnExtraArgument = true
+        }
+    }
+    return forwardsAParameter && bindsAnExtraArgument
+}
 
 internal final class NamingNamespaceAdoptionVisitor: SyntaxVisitor {
     let source: Source.File
@@ -68,6 +127,12 @@ internal final class NamingNamespaceAdoptionVisitor: SyntaxVisitor {
         // structural signal is a non-empty inheritance clause on the
         // enclosing extension or type declaration.
         if Naming.isInsideConformingContext(Syntax(node)) {
+            return .visitChildren
+        }
+        // Exempt the parameterized namespace-adoption idiom (binds the
+        // enclosing Self-type into the underlying generic — institute
+        // consumer-adoption shape, not a rename bridge).
+        if namingIsParameterizedAdoption(node, member: member) {
             return .visitChildren
         }
         let location = converter.location(

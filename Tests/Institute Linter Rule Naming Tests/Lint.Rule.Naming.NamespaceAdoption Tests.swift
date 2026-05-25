@@ -52,6 +52,19 @@ extension Lint.Rule.`namespace adoption typealias Tests`.Unit {
         let findings = Lint.Rule.`namespace adoption typealias Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    @Test
+    func `pure passthrough generic typealias IS still flagged`() {
+        // Every RHS argument is a bare forward of an LHS generic parameter
+        // (no Self-type binding) — a pure rename bridge, still flagged.
+        let source = """
+        extension MyNamespace {
+            public typealias Array<T> = Swift.Array<T>
+        }
+        """
+        let findings = Lint.Rule.`namespace adoption typealias Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
 }
 
 extension Lint.Rule.`namespace adoption typealias Tests`.`Edge Case` {
@@ -110,5 +123,35 @@ extension Lint.Rule.`namespace adoption typealias Tests`.`Edge Case` {
         """
         let findings = Lint.Rule.`namespace adoption typealias Tests`.findings(in: source)
         #expect(findings.count == 1)
+    }
+
+    @Test
+    func `parameterized adoption binding the enclosing type is NOT flagged`() {
+        // The institute consumer-adoption idiom: a generic typealias that
+        // forwards its own parameter (Tag) AND binds the enclosing Self-type
+        // (Stack<Element>) into the underlying two-parameter generic. This is
+        // a partial application, not a rename bridge.
+        let source = """
+        extension Stack {
+            public typealias Property<Tag> =
+                Property_Primitives.Property<Tag, Stack<Element>>
+        }
+        """
+        let findings = Lint.Rule.`namespace adoption typealias Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `parameterized adoption binding a concrete type is NOT flagged`() {
+        // Forwarding the parameter while binding a concrete type argument is
+        // also partial application, not a rename.
+        let source = """
+        extension Box {
+            public typealias Property<Tag> =
+                Property_Primitives.Property<Tag, Int>
+        }
+        """
+        let findings = Lint.Rule.`namespace adoption typealias Tests`.findings(in: source)
+        #expect(findings.isEmpty)
     }
 }
