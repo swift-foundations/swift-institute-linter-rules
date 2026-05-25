@@ -97,6 +97,27 @@ extension Lint.Rule.`single type per file Tests`.Unit {
         let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
         #expect(findings.count == 1)
     }
+
+    // Regression: the institute `Nest.Name` convention declares every type inside an
+    // `extension`. The rule MUST count extension-nested types — previously it counted
+    // only file-top-level types and bumped depth on `extension`, making it inert on
+    // all institute code.
+    @Test
+    func `two types each declared in an extension are flagged - institute Nest.Name shape`() {
+        let source = """
+        extension Buffer {
+            public struct Linear {}
+        }
+        extension Buffer.Linear {
+            public struct Header {}
+        }
+        """
+        let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
+        #expect(findings.count == 1)
+        if findings.count == 1 {
+            #expect(findings[0].identifier == "single type per file")
+        }
+    }
 }
 
 extension Lint.Rule.`single type per file Tests`.`Edge Case` {
@@ -110,6 +131,20 @@ extension Lint.Rule.`single type per file Tests`.`Edge Case` {
             func y() {}
         }
         extension Foo: Sendable {}
+        """
+        let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    // A SINGLE type declared inside an extension (the institute norm) plus a conformance
+    // extension is fine — extensions are transparent to depth; only a 2nd *type* fires.
+    @Test
+    func `single type declared inside an extension is permitted`() {
+        let source = """
+        extension Buffer {
+            public struct Linear {}
+        }
+        extension Buffer.Linear: Sendable {}
         """
         let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
         #expect(findings.isEmpty)
@@ -169,8 +204,12 @@ extension Lint.Rule.`single type per file Tests`.`Edge Case` {
         #expect(findings.isEmpty)
     }
 
+    // Corrected 2026-05-25: a type declared inside an `extension` IS a distinct file-scope
+    // type per [API-IMPL-005] (each nested type gets its own file — `Foo.Bar` -> `Foo.Bar.swift`,
+    // mirroring `File.Directory.Walk.Options.swift`). The prior assertion (`isEmpty`) encoded the
+    // depth-0 bug that made the rule inert on all extension-nested institute code.
     @Test
-    func `extension with nested type does not count as file-scope type`() {
+    func `type declared in an extension is a distinct file-scope type and is flagged`() {
         let source = """
         struct Foo {}
         extension Foo {
@@ -178,7 +217,7 @@ extension Lint.Rule.`single type per file Tests`.`Edge Case` {
         }
         """
         let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
-        #expect(findings.isEmpty)
+        #expect(findings.count == 1)
     }
 
     @Test

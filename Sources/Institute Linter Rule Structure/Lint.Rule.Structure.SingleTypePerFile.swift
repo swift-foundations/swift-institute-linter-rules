@@ -119,9 +119,13 @@ internal final class StructureSingleTypePerFileVisitor: SyntaxVisitor {
     }
     override func visitPost(_ node: ProtocolDeclSyntax) { currentDepth -= 1 }
 
+    // Extensions are TRANSPARENT to type-nesting depth. Under the institute
+    // `Nest.Name` convention every type is declared via `extension Parent { struct X }`,
+    // so a type declared directly inside an extension is file-significant and MUST be
+    // counted at depth 0. Only a type nested inside another type's BODY (depth > 0) is a
+    // member type ([API-IMPL-008] governs those). Extensions therefore do NOT bump depth —
+    // bumping them (the prior behavior) made this rule inert on all extension-nested code.
     override func visit(_: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-        currentDepth += 1
-        return .visitChildren
+        .visitChildren
     }
-    override func visitPost(_: ExtensionDeclSyntax) { currentDepth -= 1 }
 }
