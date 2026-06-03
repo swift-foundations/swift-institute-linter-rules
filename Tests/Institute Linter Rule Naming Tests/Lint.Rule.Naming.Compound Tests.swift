@@ -120,6 +120,16 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
         #expect(findings.isEmpty)
     }
 
+    /// stdlib-vocabulary exemption: `allSatisfy` mirrors
+    /// `Swift.Sequence.allSatisfy(_:)`. Joins flatMap / compactMap / forEach
+    /// in namingCompoundSwiftNativeIdiomCitations.
+    @Test
+    func `stdlib idiom allSatisfy is NOT flagged`() {
+        let source = "var allSatisfy: Bool = false"
+        let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
     @Test
     func `SE-0517 mutableSpan computed property is NOT flagged`() {
         let source = """

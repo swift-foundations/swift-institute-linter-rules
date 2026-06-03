@@ -70,6 +70,7 @@ fileprivate let namingCompoundTypeStdlibMethodMirrorCitations: [Swift.String: Sw
     "CompactMap": "Swift.Sequence.compactMap(_:) / Swift.Optional.compactMap(_:)",
     "FlatMap":    "Swift.Sequence.flatMap(_:) / Swift.Optional.flatMap(_:)",
     "ForEach":    "Swift.Sequence.forEach(_:)",
+    "AllSatisfy": "Swift.Sequence.allSatisfy(_:)",
 ]
 
 internal final class NamingCompoundTypeVisitor: SyntaxVisitor {

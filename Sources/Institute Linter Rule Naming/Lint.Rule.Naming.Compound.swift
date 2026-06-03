@@ -91,6 +91,7 @@ fileprivate let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.St
     "flatMap":          "Swift.Optional.flatMap — canonical monadic-bind name",
     "compactMap":       "Swift.Sequence.compactMap(_:) / Swift.Optional.compactMap(_:)",
     "forEach":          "Swift.Sequence.forEach(_:)",
+    "allSatisfy":       "Swift.Sequence.allSatisfy(_:)",
     // Stdlib with-helper functions: scoped-resource patterns the stdlib
     // ships as compound names (`withX` accumulates the scoped-action
     // operand into the name). Following the stdlib precedent rather

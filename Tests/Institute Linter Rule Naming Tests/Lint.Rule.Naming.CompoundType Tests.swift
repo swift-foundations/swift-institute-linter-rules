@@ -135,6 +135,16 @@ extension Lint.Rule.`compound type name Tests`.`Edge Case` {
         #expect(findings.isEmpty)
     }
 
+    /// stdlib-method-mirror exemption ([API-NAME-003]): a Tag enum whose name
+    /// elevates `Swift.Sequence.allSatisfy(_:)` inherits the compound spelling.
+    /// Joins CompactMap / FlatMap / ForEach in the mirror citation set.
+    @Test
+    func `stdlib-mirror AllSatisfy type is NOT flagged`() {
+        let source = "enum AllSatisfy {}"
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
     @Test
     func `spec namespace RFC_4122 is NOT flagged`() {
         let source = "enum RFC_4122 {}"

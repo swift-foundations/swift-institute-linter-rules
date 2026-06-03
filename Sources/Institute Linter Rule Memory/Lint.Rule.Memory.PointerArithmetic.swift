@@ -12,16 +12,60 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
-/// Wave 4 (mechanization-program) — raw pointer arithmetic via
-/// `.advanced(by:)` is mechanism; types managing memory SHOULD expose a
-/// typed `pointer(at:)` primitive that encapsulates offset computation.
+/// Raw pointer arithmetic via `unsafe …advanced(by:)` is mechanism the
+/// Span family now subsumes for element storage. After the 2026-06
+/// de-pointer arc removed raw pointers from memory / storage / buffer / ADT
+/// types (a raw `Unsafe*Pointer` is the last resort per `[MEM-SAFE-015]`),
+/// this rule is a *prevention* rule: it flags a NEW `unsafe` pointer
+/// `.advanced(by:)` so the author reaches for `.span` / `.mutableSpan` /
+/// `.withOutputSpan(addingCapacity:)` first per `[MEM-SPAN-003]`.
 ///
-/// Citation: `[IMPL-011]` (implementation skill, infrastructure.md).
+/// Matching discipline:
+/// - **Fires only on `unsafe`-marked `.advanced(by:)`.** Under
+///   `.strictMemorySafety()` a raw-pointer `.advanced(by:)` is an unsafe
+///   operation that carries the `unsafe` keyword; `Strideable.advanced(by:)`
+///   (range / index iteration over a `Bound: Strideable`) is a *safe* stdlib
+///   operation and carries no `unsafe` — so the rule no longer
+///   false-positives on range / index iteration. This is the load-bearing
+///   discriminator: an AST-only linter cannot see the receiver's type, but
+///   the `unsafe` acknowledgement is the syntactic proxy for "this is a raw
+///   pointer."
+/// - **Skips `Tests/` / `Experiments/` / `Examples/` paths** — test
+///   harnesses legitimately exercise pointer arithmetic against the typed
+///   SLI overloads. Mirrors `Lint.Rule.Structure.SingleTypePerFile`.
+/// - **Exempts a documented last-resort site** — an adjacent `// SAFETY:`
+///   or `// WHY:` justification on the enclosing statement clears the
+///   warning (mirrors `[MEM-SAFE-025a]`). The justification both silences
+///   the deliberately-retained pointer and documents *why* `[MEM-SAFE-015]`
+///   applies there.
+///
+/// Brand-boundary firings — the typed pointer-arithmetic overloads in a
+/// package's `* Standard Library Integration` target (`UnsafePointer + Offset`,
+/// the designated home for pointer arithmetic per `[IMPL-010]` / `[INFRA-004]`)
+/// — are handled by the consuming package's `.excluding(rules:)` per
+/// `[LINT-EXCLUDE-003]`, not here: the rule corpus is brand-form-agnostic by
+/// design (`[API-BRAND-001]`).
+///
+/// Citation: `[MEM-SPAN-003]` (memory-safety skill, span.md — Span family
+/// selection); composes with `[MEM-SAFE-012]`, `[MEM-SAFE-015]`,
+/// `[MEM-SAFE-025a]`, `[IMPL-011]`.
 extension Lint.Rule {
     public static let `pointer advanced by` = Lint.Rule(
         id: "pointer advanced by",
         default: .warning,
         findings: { source, severity in
+            // Scope-exclusion: test / experiment / example trees legitimately
+            // exercise raw pointer arithmetic against the SLI overloads.
+            // Mirrors `Lint.Rule.Structure.SingleTypePerFile`.
+            let path = source.file.filePath.underlying
+            for excluded in ["Tests", "Experiments", "Examples"] {
+                if path == excluded
+                    || path.hasPrefix("\(excluded)/")
+                    || path.contains("/\(excluded)/")
+                {
+                    return []
+                }
+            }
             let visitor = MemoryPointerArithmeticVisitor(
                 source: source.file,
                 severity: severity,
@@ -35,12 +79,17 @@ extension Lint.Rule {
 
 @usableFromInline
 internal let memoryPointerArithmeticMessage: Swift.String =
-    "[pointer advanced by] [IMPL-011]: raw pointer arithmetic via "
-    + "`.advanced(by:)` is mechanism. Types managing memory SHOULD expose "
-    + "a typed `pointer(at: Index<Element>)` primitive that encapsulates "
-    + "the offset computation. Either (a) add the typed primitive to the "
-    + "storage type and call it, or (b) confine the `.advanced(by:)` to a "
-    + "designated pointer-primitives package."
+    "[pointer advanced by] [MEM-SPAN-003]: raw pointer arithmetic via "
+    + "`unsafe …advanced(by:)` is mechanism. Prefer the Span family: `.span` "
+    + "(read the initialised region), `.mutableSpan` (mutate it in place), or "
+    + "`.withOutputSpan(addingCapacity:)` (append into the uninitialised tail) "
+    + "per [MEM-SPAN-003]/[MEM-SAFE-012]. A raw `Unsafe*Pointer` is the last "
+    + "resort per [MEM-SAFE-015]: when one is genuinely required (C / FFI, or "
+    + "move-out semantics `MutableSpan` cannot express), keep it `unsafe` and "
+    + "add an adjacent `// SAFETY:` or `// WHY:` justification on the enclosing "
+    + "statement — that documents the last-resort site and clears this warning. "
+    + "(`Strideable.advanced(by:)` for range / index iteration is not pointer "
+    + "arithmetic and is not flagged.)"
 
 internal final class MemoryPointerArithmeticVisitor: SyntaxVisitor {
     let source: Source.File
@@ -69,6 +118,20 @@ internal final class MemoryPointerArithmeticVisitor: SyntaxVisitor {
         else {
             return .visitChildren
         }
+        // Unsafe-discrimination: a raw-pointer `.advanced(by:)` is an unsafe
+        // operation under `.strictMemorySafety()` and is wrapped in an
+        // `unsafe` expression; `Strideable.advanced(by:)` is a safe stdlib
+        // operation and is not. Firing only on the unsafe form eliminates
+        // the Strideable (range / index iteration) false-positive class.
+        guard isWithinUnsafeExpression(Syntax(node)) else {
+            return .visitChildren
+        }
+        // Last-resort exemption ([MEM-SAFE-015], mirrors [MEM-SAFE-025a]):
+        // a documented last-resort site (adjacent `// SAFETY:` / `// WHY:`
+        // on the enclosing statement) is the deliberately-retained pointer.
+        if hasAdjacentLastResortJustification(Syntax(node)) {
+            return .visitChildren
+        }
         let location = converter.location(
             for: member.declName.baseName.positionAfterSkippingLeadingTrivia
         )
@@ -84,5 +147,75 @@ internal final class MemoryPointerArithmeticVisitor: SyntaxVisitor {
             message: memoryPointerArithmeticMessage
         ))
         return .visitChildren
+    }
+
+    /// `true` if `node` is within an `unsafe` expression — an
+    /// `UnsafeExprSyntax` is an ancestor within the same statement. `unsafe`
+    /// is an expression modifier ([MEM-SAFE-002], [IMPL-034]) that wraps its
+    /// expression from the left, so the matched call is a descendant of the
+    /// `UnsafeExprSyntax` exactly when it was acknowledged unsafe. The walk
+    /// stops at the statement / member boundary — `unsafe` cannot span it.
+    private func isWithinUnsafeExpression(_ node: Syntax) -> Bool {
+        var current: Syntax? = node.parent
+        while let candidate = current {
+            if candidate.is(UnsafeExprSyntax.self) { return true }
+            if candidate.is(CodeBlockItemSyntax.self)
+                || candidate.is(MemberBlockItemSyntax.self)
+            {
+                return false
+            }
+            current = candidate.parent
+        }
+        return false
+    }
+
+    /// `true` if the enclosing statement (or member item) carries an adjacent
+    /// `// SAFETY:` or `// WHY:` justification comment — the institute
+    /// convention for documenting an acknowledged last-resort unsafe site
+    /// ([MEM-SAFE-025a]).
+    private func hasAdjacentLastResortJustification(_ node: Syntax) -> Bool {
+        var current: Syntax? = node
+        while let candidate = current {
+            if let item = candidate.as(CodeBlockItemSyntax.self) {
+                return hasAdjacentJustificationComment(item.leadingTrivia)
+            }
+            if let member = candidate.as(MemberBlockItemSyntax.self) {
+                return hasAdjacentJustificationComment(member.leadingTrivia)
+            }
+            current = candidate.parent
+        }
+        return false
+    }
+
+    /// Walks the leading trivia backwards from the declaration token; returns
+    /// `true` if the first contiguous comment block carries a `// SAFETY:` or
+    /// `// WHY:` prefix on any line, with no intervening blank line breaking
+    /// adjacency. Mirrors
+    /// `MemoryNonisolatedUnsafeInvariantVisitor.hasAdjacentInvariantComment`.
+    private func hasAdjacentJustificationComment(_ trivia: Trivia) -> Bool {
+        var newlinesSinceLastComment = 0
+        for piece in Swift.Array(trivia).reversed() {
+            switch piece {
+            case .newlines(let count):
+                newlinesSinceLastComment += count
+                if newlinesSinceLastComment >= 2 { return false }
+            case .carriageReturns(let count), .carriageReturnLineFeeds(let count):
+                newlinesSinceLastComment += count
+                if newlinesSinceLastComment >= 2 { return false }
+            case .lineComment(let text):
+                let trimmed = text.trimmingPrefix("//")
+                let body = trimmed.drop(while: { $0 == " " || $0 == "\t" })
+                if body.hasPrefix("SAFETY:") || body.hasPrefix("WHY:") {
+                    return true
+                }
+                newlinesSinceLastComment = 0
+                continue
+            case .blockComment, .docLineComment, .docBlockComment:
+                return false
+            default:
+                continue
+            }
+        }
+        return false
     }
 }
