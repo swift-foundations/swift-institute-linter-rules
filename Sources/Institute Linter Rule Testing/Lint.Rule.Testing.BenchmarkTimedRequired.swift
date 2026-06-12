@@ -12,7 +12,12 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
-/// Performance-suite `@Test` functions MUST carry the `.timed()` trait.
+/// Performance-suite `@Test` functions MUST carry the `.timed()` trait — OR the
+/// enclosing suite/function carries the `[BENCH-003]` executable-variant citation
+/// in its leading trivia (the sanctioned instrument for L1-isolated trees whose
+/// dependency closure cannot reach the `.timed()` stack: measurement lives in a
+/// nested `Benchmarks/` executable; in-test Performance suites are then
+/// load-scale GATES, exempt when citing the variant).
 /// Citation: `[BENCH-003]`.
 extension Lint.Rule {
     public static let `benchmark timed required` = Lint.Rule(
@@ -34,7 +39,11 @@ extension Lint.Rule {
 internal let testingBenchmarkTimedRequiredMessage: Swift.String =
     "[benchmark timed required] [BENCH-003]: `@Test` functions inside a "
     + "`Performance` suite MUST carry the `.timed()` trait. Without it, the "
-    + "performance test runs once with no measurement structure."
+    + "performance test runs once with no measurement structure. Where the "
+    + ".timed() stack is unreachable (L1-isolated trees), the sanctioned "
+    + "executable-variant instrument applies — measure in the nested "
+    + "Benchmarks/ package and mark this suite with a `[BENCH-003]` variant "
+    + "citation comment to exempt it."
 
 internal final class TestingBenchmarkTimedRequiredVisitor: SyntaxVisitor {
     let source: Source.File
@@ -42,6 +51,7 @@ internal final class TestingBenchmarkTimedRequiredVisitor: SyntaxVisitor {
     let converter: SourceLocationConverter
     var matches: [Diagnostic.Record] = []
     var inPerformanceStructDepth: Swift.Int = 0
+    var variantExemptDepth: Swift.Int = 0
 
     init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
         self.source = source
@@ -59,28 +69,55 @@ internal final class TestingBenchmarkTimedRequiredVisitor: SyntaxVisitor {
     }
 
     override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        if node.name.text == "Performance" { inPerformanceStructDepth += 1 }
+        if node.name.text == "Performance" {
+            inPerformanceStructDepth += 1
+            if citesVariant(node.leadingTrivia) { variantExemptDepth += 1 }
+        }
         return .visitChildren
     }
     override func visitPost(_ node: StructDeclSyntax) {
-        if node.name.text == "Performance" { inPerformanceStructDepth -= 1 }
+        if node.name.text == "Performance" {
+            inPerformanceStructDepth -= 1
+            if citesVariant(node.leadingTrivia) { variantExemptDepth -= 1 }
+        }
     }
 
     override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
         if let last = node.extendedType.trimmedDescription.split(separator: ".").last,
-           Swift.String(last) == "Performance"
-        { inPerformanceStructDepth += 1 }
+           Swift.String(last) == "Performance" {
+            inPerformanceStructDepth += 1
+            if citesVariant(node.leadingTrivia) { variantExemptDepth += 1 }
+        }
         return .visitChildren
     }
     override func visitPost(_ node: ExtensionDeclSyntax) {
         if let last = node.extendedType.trimmedDescription.split(separator: ".").last,
-           Swift.String(last) == "Performance"
-        { inPerformanceStructDepth -= 1 }
+           Swift.String(last) == "Performance" {
+            inPerformanceStructDepth -= 1
+            if citesVariant(node.leadingTrivia) { variantExemptDepth -= 1 }
+        }
+    }
+
+    /// The executable-variant citation carve ([BENCH-003], rule-exemptions
+    /// citation-comment shape): `[BENCH-003]` in the decl's leading trivia.
+    private func citesVariant(_ trivia: Trivia) -> Swift.Bool {
+        for piece in trivia {
+            switch piece {
+            case .lineComment(let text), .blockComment(let text),
+                 .docLineComment(let text), .docBlockComment(let text):
+                if text.contains("[BENCH-003]") { return true }
+            default:
+                continue
+            }
+        }
+        return false
     }
 
     override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
         guard inPerformanceStructDepth > 0 else { return .visitChildren }
+        guard variantExemptDepth == 0 else { return .visitChildren }
         guard let attribute = testAttribute(node.attributes) else { return .visitChildren }
+        if citesVariant(node.leadingTrivia) { return .visitChildren }
         if !attribute.trimmedDescription.contains(".timed") {
             let location = converter.location(for: node.name.positionAfterSkippingLeadingTrivia)
             matches.append(Diagnostic.Record(

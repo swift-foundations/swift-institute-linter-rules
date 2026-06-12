@@ -91,3 +91,49 @@ extension Lint.Rule.`benchmark timed required Tests`.Unit {
         #expect(findings.isEmpty)
     }
 }
+
+// MARK: - The [BENCH-003] executable-variant citation carve (Round M ζ pilot 3)
+
+extension Lint.Rule.`benchmark timed required Tests` {
+    @Suite struct `Variant Exemption` {}
+}
+
+extension Lint.Rule.`benchmark timed required Tests`.`Variant Exemption` {
+    @Test
+    func `suite-level variant citation exempts every contained test`() {
+        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: """
+            // Load-scale gates; measurement lives in Benchmarks/ ([BENCH-003] executable variant).
+            struct Performance {
+                @Test func growthCurve() {}
+                @Test func validationFlat() {}
+            }
+            """)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `function-level variant citation exempts that test only`() {
+        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: """
+            struct Performance {
+                // [BENCH-003] executable variant: measured in Benchmarks/.
+                @Test func growthCurve() {}
+                @Test func unmeasured() {}
+            }
+            """)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `a later suite without the citation still fires (depth stays balanced)`() {
+        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: """
+            // [BENCH-003] variant.
+            struct Performance {
+                @Test func exempt() {}
+            }
+            struct Performance {
+                @Test func fires() {}
+            }
+            """)
+        #expect(findings.count == 1)
+    }
+}
