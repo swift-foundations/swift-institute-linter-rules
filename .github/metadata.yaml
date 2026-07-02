@@ -1,5 +1,5 @@
 # .github/metadata.yaml
-description: "Institute-tier lint rule packs for swift-linter, bundled as Lint.Rule.Bundle.institute."
+description: "Institute-tier SwiftSyntax lint rule packs (naming, typed throws, byte discipline, memory safety, platform layering) for swift-linter."
 topics:
   - foundations
   - linter
