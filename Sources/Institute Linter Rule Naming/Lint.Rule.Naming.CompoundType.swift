@@ -16,40 +16,40 @@ internal import SwiftSyntax
 ///
 /// Citation: `[API-NAME-001]` (code-surface skill — Nest.Name pattern).
 extension Lint.Rule {
-    public static let `compound type name` = Lint.Rule(
-        id: "compound type name",
-        default: .warning,
-        findings: { source, severity in
-            let visitor = NamingCompoundTypeVisitor(
-                source: source.file,
-                severity: severity,
-                converter: source.converter
-            )
-            visitor.walk(source.tree)
-            return visitor.matches
-        }
-    )
+  public static let `compound type name` = Lint.Rule(
+    id: "compound type name",
+    default: .warning,
+    findings: { source, severity in
+      let visitor = NamingCompoundTypeVisitor(
+        source: source.file,
+        severity: severity,
+        converter: source.converter
+      )
+      visitor.walk(source.tree)
+      return visitor.matches
+    }
+  )
 }
 
-fileprivate let namingCompoundTypeMessage: Swift.String =
-    "[compound type name] [API-NAME-001]: types MUST use the `Nest.Name` "
-    + "pattern. Compound type names like `FileDirectoryWalk` or "
-    + "`DirectoryWalk` are forbidden — use the nested form "
-    + "(`File.Directory.Walk`). Acronyms (`URL`, `UUID`, `IO`) are "
-    + "permitted as single-word names; spec-namespace forms with "
-    + "underscores (`RFC_4122`, `ISO_9945`) are exempt per "
-    + "`[API-NAME-003]`. `package`-scope declarations and macro decls "
-    + "are exempt; `fileprivate`/`private` type declarations including "
-    + "members whose effective visibility is reduced by an enclosing "
-    + "fileprivate/private type are exempt per "
-    + "`Research/api-name-002-private-surface-applicability.md` "
-    + "(symmetric extension of the 2026-05-11 [API-NAME-002] amendment "
-    + "— consumer-observable surface is the rule's intent and "
-    + "fileprivate/private types have none even within the module). "
-    + "Stdlib-method-mirror type names that elevate a Swift.Sequence "
-    + "(or adjacent) method name to a namespace are exempt per "
-    + "`[API-NAME-003]` — see `namingCompoundTypeStdlibMethodMirrorCitations` "
-    + "in this rule's source for the citation set."
+private let namingCompoundTypeMessage: Swift.String =
+  "[compound type name] [API-NAME-001]: types MUST use the `Nest.Name` "
+  + "pattern. Compound type names like `FileDirectoryWalk` or "
+  + "`DirectoryWalk` are forbidden — use the nested form "
+  + "(`File.Directory.Walk`). Acronyms (`URL`, `UUID`, `IO`) are "
+  + "permitted as single-word names; spec-namespace forms with "
+  + "underscores (`RFC_4122`, `ISO_9945`) are exempt per "
+  + "`[API-NAME-003]`. `package`-scope declarations and macro decls "
+  + "are exempt; `fileprivate`/`private` type declarations including "
+  + "members whose effective visibility is reduced by an enclosing "
+  + "fileprivate/private type are exempt per "
+  + "`Research/api-name-002-private-surface-applicability.md` "
+  + "(symmetric extension of the 2026-05-11 [API-NAME-002] amendment "
+  + "— consumer-observable surface is the rule's intent and "
+  + "fileprivate/private types have none even within the module). "
+  + "Stdlib-method-mirror type names that elevate a Swift.Sequence "
+  + "(or adjacent) method name to a namespace are exempt per "
+  + "`[API-NAME-003]` — see `namingCompoundTypeStdlibMethodMirrorCitations` "
+  + "in this rule's source for the citation set."
 
 /// Compound type names that mirror a Swift-stdlib method name and
 /// elevate it to a namespace at the institute's iteration / collection
@@ -66,141 +66,142 @@ fileprivate let namingCompoundTypeMessage: Swift.String =
 /// Each entry cites the specific Swift.Sequence (or adjacent) method
 /// whose name the type elevates. Adding an entry without a citation
 /// makes the exemption indefensible at review time.
-fileprivate let namingCompoundTypeStdlibMethodMirrorCitations: [Swift.String: Swift.String] = [
-    "CompactMap": "Swift.Sequence.compactMap(_:) / Swift.Optional.compactMap(_:)",
-    "FlatMap":    "Swift.Sequence.flatMap(_:) / Swift.Optional.flatMap(_:)",
-    "ForEach":    "Swift.Sequence.forEach(_:)",
-    "AllSatisfy": "Swift.Sequence.allSatisfy(_:)",
+private let namingCompoundTypeStdlibMethodMirrorCitations: [Swift.String: Swift.String] = [
+  "CompactMap": "Swift.Sequence.compactMap(_:) / Swift.Optional.compactMap(_:)",
+  "FlatMap": "Swift.Sequence.flatMap(_:) / Swift.Optional.flatMap(_:)",
+  "ForEach": "Swift.Sequence.forEach(_:)",
+  "AllSatisfy": "Swift.Sequence.allSatisfy(_:)",
 ]
 
 internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
-    let source: Source.File
-    let severity: Diagnostic.Severity
-    let converter: SourceLocationConverter
-    var matches: [Diagnostic.Record] = []
+  let source: Source.File
+  let severity: Diagnostic.Severity
+  let converter: SourceLocationConverter
+  var matches: [Diagnostic.Record] = []
 
-    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-        self.source = source
-        self.severity = severity
-        self.converter = converter
-        super.init(viewMode: .sourceAccurate)
-    }
+  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+    self.source = source
+    self.severity = severity
+    self.converter = converter
+    super.init(viewMode: .sourceAccurate)
+  }
 
-    override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
-        return .visitChildren
+  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+    check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
+    return .visitChildren
+  }
+  override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    // Exempt per [RULE-EXEMPT-7] (syntax-visitor-subclass): the
+    // SwiftSyntax convention names visitor subclasses
+    // `<Subject>Visitor` (e.g. `CardinalConstructorVisitor`,
+    // `CompoundVisitor`), which trips compound-name even though
+    // the suffix is dictated by the framework's idiom. Helper
+    // lives in `Lint.Rule.Naming.Shared.swift`. See
+    // `swift-institute/Skills/rule-exemptions/SKILL.md`.
+    if Naming.Visitor.extends(node.inheritanceClause) {
+      return .visitChildren
     }
-    override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-        // Exempt per [RULE-EXEMPT-7] (syntax-visitor-subclass): the
-        // SwiftSyntax convention names visitor subclasses
-        // `<Subject>Visitor` (e.g. `CardinalConstructorVisitor`,
-        // `CompoundVisitor`), which trips compound-name even though
-        // the suffix is dictated by the framework's idiom. Helper
-        // lives in `Lint.Rule.Naming.Shared.swift`. See
-        // `swift-institute/Skills/rule-exemptions/SKILL.md`.
-        if Naming.Visitor.extends(node.inheritanceClause) {
-            return .visitChildren
+    check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
+    return .visitChildren
+  }
+  override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+    check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
+    return .visitChildren
+  }
+  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
+    return .visitChildren
+  }
+  override func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
+    check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
+    return .visitChildren
+  }
+
+  // Macros are exempt per [API-NAME-001] — descend without checking.
+  override func visit(_: MacroDeclSyntax) -> SyntaxVisitorContinueKind {
+    .visitChildren
+  }
+
+  private func check(name token: TokenSyntax, modifiers: DeclModifierListSyntax, syntax: Syntax) {
+    guard !hasPackageModifier(modifiers) else { return }
+    // Visibility-scope exemption: fileprivate / private type decls
+    // have no consumer-observable surface even within the module.
+    // The walk-up captures effective visibility (a nested type
+    // inside a fileprivate enclosing type is effectively
+    // fileprivate even when its own modifier list is empty).
+    // Symmetric with the [API-NAME-002] visibility-scope amendment
+    // (2026-05-11, Option B) — see
+    // `Research/api-name-002-private-surface-applicability.md`.
+    if Naming.hasFileprivateOrPrivateEffective(syntax, modifiers: modifiers) {
+      return
+    }
+    // Backtick-escape exemption: see `Naming.isBackticked` for the
+    // full rationale. A backticked type-name token (e.g.,
+    // `` struct `compound identifier Tests` `` for a @Suite scaffold,
+    // or `` struct `Edge Case` ``) signals the author opted out of
+    // the Nest.Name convention this rule enforces — typically for
+    // narrative @Suite type names per [SWIFT-TEST-002].
+    if Naming.isBackticked(token) { return }
+    let text = token.text
+    guard isCompoundTypeIdentifier(text) else { return }
+    let location = converter.location(for: token.positionAfterSkippingLeadingTrivia)
+    matches.append(
+      Diagnostic.Record(
+        location: Source.Location(
+          fileID: source.fileID,
+          filePath: source.filePath,
+          line: location.line,
+          column: location.column
+        ),
+        severity: severity,
+        identifier: "compound type name",
+        message: namingCompoundTypeMessage
+      ))
+  }
+
+  private func hasPackageModifier(_ modifiers: DeclModifierListSyntax) -> Bool {
+    for modifier in modifiers {
+      if modifier.name.tokenKind == .keyword(.package) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private func isCompoundTypeIdentifier(_ name: Swift.String) -> Bool {
+    // Stdlib-method-mirror exemption per [API-NAME-003]: type names
+    // that elevate a Swift.Sequence (or adjacent) compound method
+    // name to a namespace inherit the compound spelling.
+    if namingCompoundTypeStdlibMethodMirrorCitations[name] != nil {
+      return false
+    }
+    // Spec-namespace forms (`RFC_4122`, `ISO_9945`) — exempt.
+    if name.contains("_") { return false }
+    // Empty / single-char names — degenerate, not compound.
+    guard name.count >= 2 else { return false }
+    // Must start with uppercase to be a type identifier (sanity).
+    let chars = Array(name)
+    guard chars[0].isUppercase else { return false }
+    // Word-boundary count.
+    var words = 1
+    var i = 1
+    while i < chars.count {
+      let prev = chars[i - 1]
+      let curr = chars[i]
+      let next: Swift.Character? = i + 1 < chars.count ? chars[i + 1] : nil
+      if curr.isUppercase {
+        // lowercase → uppercase: word boundary (FooBar)
+        if prev.isLowercase {
+          words += 1
+        } else if prev.isUppercase, let next, next.isLowercase {
+          // uppercase → uppercase → lowercase: acronym → word
+          // boundary (IOError ⇒ IO + Error at the E).
+          words += 1
         }
-        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
-        return .visitChildren
+      }
+      if words >= 2 { return true }
+      i += 1
     }
-    override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
-        return .visitChildren
-    }
-    override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
-        return .visitChildren
-    }
-    override func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
-        check(name: node.name, modifiers: node.modifiers, syntax: Syntax(node))
-        return .visitChildren
-    }
-
-    // Macros are exempt per [API-NAME-001] — descend without checking.
-    override func visit(_: MacroDeclSyntax) -> SyntaxVisitorContinueKind {
-        .visitChildren
-    }
-
-    private func check(name token: TokenSyntax, modifiers: DeclModifierListSyntax, syntax: Syntax) {
-        guard !hasPackageModifier(modifiers) else { return }
-        // Visibility-scope exemption: fileprivate / private type decls
-        // have no consumer-observable surface even within the module.
-        // The walk-up captures effective visibility (a nested type
-        // inside a fileprivate enclosing type is effectively
-        // fileprivate even when its own modifier list is empty).
-        // Symmetric with the [API-NAME-002] visibility-scope amendment
-        // (2026-05-11, Option B) — see
-        // `Research/api-name-002-private-surface-applicability.md`.
-        if Naming.hasFileprivateOrPrivateEffective(syntax, modifiers: modifiers) {
-            return
-        }
-        // Backtick-escape exemption: see `Naming.isBackticked` for the
-        // full rationale. A backticked type-name token (e.g.,
-        // `` struct `compound identifier Tests` `` for a @Suite scaffold,
-        // or `` struct `Edge Case` ``) signals the author opted out of
-        // the Nest.Name convention this rule enforces — typically for
-        // narrative @Suite type names per [SWIFT-TEST-002].
-        if Naming.isBackticked(token) { return }
-        let text = token.text
-        guard isCompoundTypeIdentifier(text) else { return }
-        let location = converter.location(for: token.positionAfterSkippingLeadingTrivia)
-        matches.append(Diagnostic.Record(
-            location: Source.Location(
-                fileID: source.fileID,
-                filePath: source.filePath,
-                line: location.line,
-                column: location.column
-            ),
-            severity: severity,
-            identifier: "compound type name",
-            message: namingCompoundTypeMessage
-        ))
-    }
-
-    private func hasPackageModifier(_ modifiers: DeclModifierListSyntax) -> Bool {
-        for modifier in modifiers {
-            if modifier.name.tokenKind == .keyword(.package) {
-                return true
-            }
-        }
-        return false
-    }
-
-    private func isCompoundTypeIdentifier(_ name: Swift.String) -> Bool {
-        // Stdlib-method-mirror exemption per [API-NAME-003]: type names
-        // that elevate a Swift.Sequence (or adjacent) compound method
-        // name to a namespace inherit the compound spelling.
-        if namingCompoundTypeStdlibMethodMirrorCitations[name] != nil {
-            return false
-        }
-        // Spec-namespace forms (`RFC_4122`, `ISO_9945`) — exempt.
-        if name.contains("_") { return false }
-        // Empty / single-char names — degenerate, not compound.
-        guard name.count >= 2 else { return false }
-        // Must start with uppercase to be a type identifier (sanity).
-        let chars = Array(name)
-        guard chars[0].isUppercase else { return false }
-        // Word-boundary count.
-        var words = 1
-        var i = 1
-        while i < chars.count {
-            let prev = chars[i - 1]
-            let curr = chars[i]
-            let next: Swift.Character? = i + 1 < chars.count ? chars[i + 1] : nil
-            if curr.isUppercase {
-                // lowercase → uppercase: word boundary (FooBar)
-                if prev.isLowercase {
-                    words += 1
-                } else if prev.isUppercase, let next, next.isLowercase {
-                    // uppercase → uppercase → lowercase: acronym → word
-                    // boundary (IOError ⇒ IO + Error at the E).
-                    words += 1
-                }
-            }
-            if words >= 2 { return true }
-            i += 1
-        }
-        return false
-    }
+    return false
+  }
 }

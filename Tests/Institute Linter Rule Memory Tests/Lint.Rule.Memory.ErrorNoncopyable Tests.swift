@@ -9,81 +9,84 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Testing
-import SwiftSyntax
-import SwiftParser
 import Linter_Primitives
 import Linter_Rules_Test_Support
+import SwiftParser
+import SwiftSyntax
+import Testing
+
 @testable import Institute_Linter_Rule_Memory
 
 extension Lint.Rule {
-    @Suite
-    struct `noncopyable error Tests` {
-        @Suite struct Unit {}
-    }
+  @Suite
+  struct `noncopyable error Tests` {
+    @Suite struct Unit {}
+  }
 }
 
 extension Lint.Rule.`noncopyable error Tests` {
-    static func findings(in source: Swift.String, file: Swift.String = "Sources/X/Test.swift") -> [Diagnostic.Record] {
-        let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`noncopyable error`.findings(parsed, .warning)
-    }
+  static func findings(in source: Swift.String, file: Swift.String = "Sources/X/Test.swift")
+    -> [Diagnostic.Record]
+  {
+    let parsed = Lint.Source.parsed(from: source, file: file)
+    return Lint.Rule.`noncopyable error`.findings(parsed, .warning)
+  }
 }
 
 extension Lint.Rule.`noncopyable error Tests`.Unit {
-    @Test
-    func `Error and noncopyable struct is flagged`() {
-        let source = """
-        struct MyError: Error, ~Copyable {}
-        """
-        let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
-        #expect(findings.count == 1)
-    }
+  @Test
+  func `Error and noncopyable struct is flagged`() {
+    let source = """
+      struct MyError: Error, ~Copyable {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 
-    @Test
-    func `Error without noncopyable is permitted`() {
-        let source = """
-        struct MyError: Error {}
-        """
-        let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
-        #expect(findings.isEmpty)
-    }
+  @Test
+  func `Error without noncopyable is permitted`() {
+    let source = """
+      struct MyError: Error {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 
-    @Test
-    func `noncopyable without Error is permitted`() {
-        let source = """
-        struct Token: ~Copyable {}
-        """
-        let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
-        #expect(findings.isEmpty)
-    }
+  @Test
+  func `noncopyable without Error is permitted`() {
+    let source = """
+      struct Token: ~Copyable {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 
-    @Test
-    func `Error and noncopyable enum is flagged`() {
-        let source = """
-        enum MyError: Error, ~Copyable {
-            case oops
-        }
-        """
-        let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
-        #expect(findings.count == 1)
-    }
+  @Test
+  func `Error and noncopyable enum is flagged`() {
+    let source = """
+      enum MyError: Error, ~Copyable {
+          case oops
+      }
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 
-    @Test
-    func `Swift Error fully qualified is flagged`() {
-        let source = """
-        struct MyError: Swift.Error, ~Copyable {}
-        """
-        let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
-        #expect(findings.count == 1)
-    }
+  @Test
+  func `Swift Error fully qualified is flagged`() {
+    let source = """
+      struct MyError: Swift.Error, ~Copyable {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 
-    @Test
-    func `noncopyable struct with non-Error protocol is permitted`() {
-        let source = """
-        struct Token: Sendable, ~Copyable {}
-        """
-        let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
-        #expect(findings.isEmpty)
-    }
+  @Test
+  func `noncopyable struct with non-Error protocol is permitted`() {
+    let source = """
+      struct Token: Sendable, ~Copyable {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }

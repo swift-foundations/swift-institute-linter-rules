@@ -12,11 +12,11 @@
 internal import SwiftSyntax
 
 internal final class ThrowsDoCatchTryFinder2: SyntaxVisitor {
-    var found = false
-    override func visit(_: TryExprSyntax) -> SyntaxVisitorContinueKind {
-        found = true
-        return .skipChildren
-    }
-    override func visit(_: DoStmtSyntax) -> SyntaxVisitorContinueKind { return .skipChildren }
-    override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind { return .skipChildren }
+  var found = false
+  override func visit(_: TryExprSyntax) -> SyntaxVisitorContinueKind {
+    found = true
+    return .skipChildren
+  }
+  override func visit(_: DoStmtSyntax) -> SyntaxVisitorContinueKind { return .skipChildren }
+  override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind { return .skipChildren }
 }

@@ -27,7 +27,7 @@ internal import SwiftSyntax
 /// `Lint.Rule.Structure.MinimalTypeBody` to skip the typealias-name
 /// check on `Protocol`-named members.
 internal func structureIsProtocolSentinelName(_ name: Swift.String) -> Swift.Bool {
-    return name == "Protocol" || name == "`Protocol`"
+  return name == "Protocol" || name == "`Protocol`"
 }
 
 /// The SwiftSyntax visitor-family base classes whose subclasses are
@@ -44,9 +44,9 @@ internal func structureIsProtocolSentinelName(_ name: Swift.String) -> Swift.Boo
 /// same leaf string in the inheritance clause walk.
 @usableFromInline
 internal let structureSyntaxVisitorFamilyNames: Swift.Set<Swift.String> = [
-    "SyntaxVisitor",
-    "SyntaxAnyVisitor",
-    "SyntaxRewriter",
+  "SyntaxVisitor",
+  "SyntaxAnyVisitor",
+  "SyntaxRewriter",
 ]
 
 /// Returns true if `clause` lists any member of the SwiftSyntax
@@ -64,20 +64,20 @@ internal let structureSyntaxVisitorFamilyNames: Swift.Set<Swift.String> = [
 /// `MemberTypeSyntax` (qualified `SwiftSyntax.SyntaxVisitor`) resolve
 /// to the visitor's name.
 internal func structureExtendsSyntaxVisitor(_ clause: InheritanceClauseSyntax?) -> Swift.Bool {
-    guard let clause else { return false }
-    for inherited in clause.inheritedTypes {
-        let type = inherited.type
-        let leaf: Swift.String?
-        if let identifier = type.as(IdentifierTypeSyntax.self) {
-            leaf = identifier.name.text
-        } else if let member = type.as(MemberTypeSyntax.self) {
-            leaf = member.name.text
-        } else {
-            leaf = nil
-        }
-        if let leaf, structureSyntaxVisitorFamilyNames.contains(leaf) {
-            return true
-        }
+  guard let clause else { return false }
+  for inherited in clause.inheritedTypes {
+    let type = inherited.type
+    let leaf: Swift.String?
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+      leaf = identifier.name.text
+    } else if let member = type.as(MemberTypeSyntax.self) {
+      leaf = member.name.text
+    } else {
+      leaf = nil
     }
-    return false
+    if let leaf, structureSyntaxVisitorFamilyNames.contains(leaf) {
+      return true
+    }
+  }
+  return false
 }

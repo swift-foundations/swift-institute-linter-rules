@@ -12,13 +12,13 @@
 internal import SwiftSyntax
 
 internal final class ThrowsClosureCatchThrowFinder: SyntaxVisitor {
-    var foundThrow = false
-    override func visit(_: ThrowStmtSyntax) -> SyntaxVisitorContinueKind {
-        foundThrow = true
-        return .skipChildren
-    }
-    override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
-        // Nested closures have their own boundary.
-        return .skipChildren
-    }
+  var foundThrow = false
+  override func visit(_: ThrowStmtSyntax) -> SyntaxVisitorContinueKind {
+    foundThrow = true
+    return .skipChildren
+  }
+  override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
+    // Nested closures have their own boundary.
+    return .skipChildren
+  }
 }

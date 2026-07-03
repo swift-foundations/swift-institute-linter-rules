@@ -15,96 +15,100 @@ internal import SwiftSyntax
 /// Caseless-enum namespaces containing exactly one nested type are
 /// variant labels, not namespaces. Citation: `[API-NAME-001a]`.
 extension Lint.Rule {
-    public static let `single type namespace` = Lint.Rule(
-        id: "single type namespace",
-        default: .warning,
-        findings: { source, severity in
-            let visitor = NamingSingleTypeNamespaceVisitor(
-                source: source.file,
-                severity: severity,
-                converter: source.converter
-            )
-            visitor.walk(source.tree)
-            return visitor.matches
-        }
-    )
+  public static let `single type namespace` = Lint.Rule(
+    id: "single type namespace",
+    default: .warning,
+    findings: { source, severity in
+      let visitor = NamingSingleTypeNamespaceVisitor(
+        source: source.file,
+        severity: severity,
+        converter: source.converter
+      )
+      visitor.walk(source.tree)
+      return visitor.matches
+    }
+  )
 }
 
-fileprivate let namingSingleTypeNamespaceMessage: Swift.String =
-    "[single type namespace] [API-NAME-001a]: caseless-enum namespace "
-    + "contains exactly one nested type — that's a *variant label*, "
-    + "not a namespace. Promote the inner type and nest the label "
-    + "under its parent: `extension <InnerType> { public struct <Label> "
-    + "{ ... } }`."
+private let namingSingleTypeNamespaceMessage: Swift.String =
+  "[single type namespace] [API-NAME-001a]: caseless-enum namespace "
+  + "contains exactly one nested type — that's a *variant label*, "
+  + "not a namespace. Promote the inner type and nest the label "
+  + "under its parent: `extension <InnerType> { public struct <Label> "
+  + "{ ... } }`."
 
 internal final class NamingSingleTypeNamespaceVisitor: SyntaxVisitor {
-    /// Per-member classification for the single-type-namespace check.
-    /// Nested inside the visitor because the enum is class-private —
-    /// the file-level `private enum SingleTypeMemberCategory` shape
-    /// tripped [API-NAME-001] (compound type name). The nested shape's
-    /// path is `NamingSingleTypeNamespaceVisitor.Category`, where
-    /// `Category` is single-word and not compound; the outer visitor
-    /// name is exempt per [RULE-EXEMPT-7] (syntax-visitor-subclass).
-    private enum Category {
-        case enumCase
-        case typeDecl
-        case typealiasDecl
-        case other
-    }
+  /// Per-member classification for the single-type-namespace check.
+  /// Nested inside the visitor because the enum is class-private —
+  /// the file-level `private enum SingleTypeMemberCategory` shape
+  /// tripped [API-NAME-001] (compound type name). The nested shape's
+  /// path is `NamingSingleTypeNamespaceVisitor.Category`, where
+  /// `Category` is single-word and not compound; the outer visitor
+  /// name is exempt per [RULE-EXEMPT-7] (syntax-visitor-subclass).
+  private enum Category {
+    case enumCase
+    case typeDecl
+    case typealiasDecl
+    case other
+  }
 
-    let source: Source.File
-    let severity: Diagnostic.Severity
-    let converter: SourceLocationConverter
-    var matches: [Diagnostic.Record] = []
+  let source: Source.File
+  let severity: Diagnostic.Severity
+  let converter: SourceLocationConverter
+  var matches: [Diagnostic.Record] = []
 
-    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-        self.source = source
-        self.severity = severity
-        self.converter = converter
-        super.init(viewMode: .sourceAccurate)
-    }
+  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+    self.source = source
+    self.severity = severity
+    self.converter = converter
+    super.init(viewMode: .sourceAccurate)
+  }
 
-    private static func categorize(_ decl: DeclSyntax) -> Category {
-        if decl.is(EnumCaseDeclSyntax.self) { return .enumCase }
-        if decl.is(StructDeclSyntax.self) { return .typeDecl }
-        if decl.is(ClassDeclSyntax.self) { return .typeDecl }
-        if decl.is(EnumDeclSyntax.self) { return .typeDecl }
-        if decl.is(ActorDeclSyntax.self) { return .typeDecl }
-        if decl.is(ProtocolDeclSyntax.self) { return .typeDecl }
-        if decl.is(TypeAliasDeclSyntax.self) { return .typealiasDecl }
-        return .other
-    }
+  private static func categorize(_ decl: DeclSyntax) -> Category {
+    if decl.is(EnumCaseDeclSyntax.self) { return .enumCase }
+    if decl.is(StructDeclSyntax.self) { return .typeDecl }
+    if decl.is(ClassDeclSyntax.self) { return .typeDecl }
+    if decl.is(EnumDeclSyntax.self) { return .typeDecl }
+    if decl.is(ActorDeclSyntax.self) { return .typeDecl }
+    if decl.is(ProtocolDeclSyntax.self) { return .typeDecl }
+    if decl.is(TypeAliasDeclSyntax.self) { return .typealiasDecl }
+    return .other
+  }
 
-    override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-        var typeCount = 0
-        var hasOther = false
-        for member in node.memberBlock.members {
-            let category = Self.categorize(member.decl)
-            switch category {
-            case .enumCase:
-                return .visitChildren
-            case .typeDecl:
-                typeCount += 1
-            case .typealiasDecl:
-                continue
-            case .other:
-                hasOther = true
-            }
-        }
-        guard !hasOther else { return .visitChildren }
-        guard typeCount == 1 else { return .visitChildren }
-        let location = converter.location(for: node.name.positionAfterSkippingLeadingTrivia)
-        matches.append(Diagnostic.Record(
-            location: Source.Location(
-                fileID: source.fileID,
-                filePath: source.filePath,
-                line: location.line,
-                column: location.column
-            ),
-            severity: severity,
-            identifier: "single type namespace",
-            message: namingSingleTypeNamespaceMessage
-        ))
+  override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+    var typeCount = 0
+    var hasOther = false
+    for member in node.memberBlock.members {
+      let category = Self.categorize(member.decl)
+      switch category {
+      case .enumCase:
         return .visitChildren
+
+      case .typeDecl:
+        typeCount += 1
+
+      case .typealiasDecl:
+        continue
+
+      case .other:
+        hasOther = true
+      }
     }
+    guard !hasOther else { return .visitChildren }
+    guard typeCount == 1 else { return .visitChildren }
+    let location = converter.location(for: node.name.positionAfterSkippingLeadingTrivia)
+    matches.append(
+      Diagnostic.Record(
+        location: Source.Location(
+          fileID: source.fileID,
+          filePath: source.filePath,
+          line: location.line,
+          column: location.column
+        ),
+        severity: severity,
+        identifier: "single type namespace",
+        message: namingSingleTypeNamespaceMessage
+      ))
+    return .visitChildren
+  }
 }

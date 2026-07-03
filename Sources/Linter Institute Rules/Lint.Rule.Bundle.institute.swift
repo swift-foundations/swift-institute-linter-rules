@@ -9,7 +9,6 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
 public import Institute_Linter_Rule_Byte
 public import Institute_Linter_Rule_Closure
 public import Institute_Linter_Rule_Conformance
@@ -24,6 +23,7 @@ public import Institute_Linter_Rule_Testing
 public import Institute_Linter_Rule_Throws
 public import Institute_Linter_Rule_Try
 public import Institute_Linter_Rule_Unchecked
+public import Linter_Primitives
 public import Linter_Rules
 
 /// Institute-tier rule bundle.
@@ -45,107 +45,107 @@ public import Linter_Rules
 /// `Lint.Rule.Bundle.institute` and pick up the migration
 /// automatically.
 extension Lint.Rule.Bundle {
-    public static let institute: [Lint.Rule.Configuration] =
-        Lint.Rule.Bundle.universal + [
-            // Naming pack
-            .enable(.`bool public parameter`),
-            .enable(.`ad hoc box class`),
-            .enable(.`compound identifier`),
-            .enable(.`compound suite name`),
-            .enable(.`compound type name`),
-            .enable(.`variable named impl`),
-            .enable(.`int public parameter`),
-            .enable(.`namespace adoption typealias`),
-            .enable(.`property named flags`),
-            .enable(.`redundant prefix`),
-            .enable(.`single type namespace`),
-            .enable(.`tag suffix`),
-            .enable(.`nested tag`),
-            .enable(.`unification typealias`),
-            // Foundation pack
-            .enable(.`foundation import`),
-            // Framework pack
-            .enable(.`xctest import`),
-            .enable(.`suite categories`),
-            // Byte pack (Wave 1 of Post-W2 swift-linter arc, 2026-05-19)
-            // — encodes the W2 UInt8/Byte discrimination rubric per
-            // broader-l2-l3-byte-typing-gap-plan.md § Wave 2.
-            .enable(.`uint8 conforms to byte protocol`),
-            .enable(.`byte conforms to arithmetic protocol`),
-            .enable(.`binary serializable uint8 witness`),
-            .enable(.`binary serializable rawvalue uint8`),
-            .enable(.`uint8 ascii extension`),
-            .enable(.`uint8 forwarder missing disfavored`),
-            .enable(.`stdlib forwarder outside sli`),
-            // Conformance pack
-            .enable(.`leaf body typealias missing`),
-            // Closure pack (Wave 3 2026-05-15)
-            .enable(.`configuration before content`),
-            .enable(.`lifecycle order`),
-            .enable(.`unlabeled lifecycle closure`),
-            .enable(.`parameter position`),
-            // Idiom pack (Wave 3 2026-05-15)
-            .enable(.`bounded index static capacity`),
-            .enable(.`enumerated with subscript`),
-            .enable(.`intermediate binding then return`),
-            .enable(.`counter loop iteration`),
-            .enable(.`string utf8 scanning`),
-            // Memory pack (Wave 3 2026-05-15)
-            .enable(.`borrowing self short circuit`),
-            .enable(.`noncopyable error`),
-            .enable(.`extension noncopyable constraint`),
-            .enable(.`nonisolated unsafe without invariant`),
-            .enable(.`safe attribute undocumented`),
-            .enable(.`pointer advanced by`),
-            .enable(.`sendable struct with class member`),
-            .enable(.`unchecked sendable revalidation anchor`),
-            .enable(.`unsafe assignment granularity`),
-            // Platform pack (Wave 3 2026-05-15)
-            .enable(.`c type in public api`),
-            .enable(.`convention c representability`),
-            .enable(.`dead case per platform`),
-            .enable(.`compound platform namespace root`),
-            .enable(.`optionset shell pattern`),
-            .enable(.`canimport conditional`),
-            .enable(.`swift protocol qualification`),
-            .enable(.`system subdomain`),
-            .enable(.`typealiased namespace bridge`),
-            // Structure pack (Wave 3 2026-05-15)
-            .enable(.`hoisted protocol alias`),
-            .enable(.`minimal type body`),
-            .enable(.`raw value access`),
-            .enable(.`single type per file`),
-            .enable(.`throwing wrapper init`),
-            .enable(.`type transform placement`),
-            .enable(.`wrapper backing exposed`),
-            // Testing pack (Wave 3 2026-05-15)
-            // `benchmark timed required` ([BENCH-003]) deferred 2026-05-18:
-            // depends on swift-testing's `.timed()` trait which isn't
-            // production-ready; benchmarks are moving to separate
-            // /Benchmarks/ packages per the `benchmark` skill, so the rule's
-            // target audience (in-tree Performance @Suites) is going away.
-            // Re-enable when (a) swift-testing's `.timed()` ships stable OR
-            // (b) we readopt in-tree Performance @Suites with a different
-            // measurement primitive. The rule definition stays in the
-            // Institute_Linter_Rule_Testing module for re-enable convenience.
-            // .enable(.`benchmark timed required`),
-            .enable(.`test function naming`),
-            .enable(.`performance suite serialized`),
-            // Throws pack (Wave 3 2026-05-15)
-            .enable(.`closure typed throws annotation`),
-            .enable(.`do throws for typed catch`),
-            .enable(.`do throws for typed catch with throw`),
-            .enable(.`existential throws`),
-            .enable(.`generic throws missing never`),
-            .enable(.`hoisted error in public throws`),
-            .enable(.`lifecycle typealias review`),
-            .enable(.`callback result over throws thunk`),
-            .enable(.`result wrapper for rethrows shim`),
-            .enable(.`typed throws cannot use self error`),
-            .enable(.`untyped throws`),
-            // Try pack (Wave 3 2026-05-15)
-            .enable(.`try optional`),
-            // Unchecked pack (Wave 3 2026-05-15)
-            .enable(.`unchecked call site`),
-        ]
+  public static let institute: [Lint.Rule.Configuration] =
+    Lint.Rule.Bundle.universal + [
+      // Naming pack
+      .enable(.`bool public parameter`),
+      .enable(.`ad hoc box class`),
+      .enable(.`compound identifier`),
+      .enable(.`compound suite name`),
+      .enable(.`compound type name`),
+      .enable(.`variable named impl`),
+      .enable(.`int public parameter`),
+      .enable(.`namespace adoption typealias`),
+      .enable(.`property named flags`),
+      .enable(.`redundant prefix`),
+      .enable(.`single type namespace`),
+      .enable(.`tag suffix`),
+      .enable(.`nested tag`),
+      .enable(.`unification typealias`),
+      // Foundation pack
+      .enable(.`foundation import`),
+      // Framework pack
+      .enable(.`xctest import`),
+      .enable(.`suite categories`),
+      // Byte pack (Wave 1 of Post-W2 swift-linter arc, 2026-05-19)
+      // — encodes the W2 UInt8/Byte discrimination rubric per
+      // broader-l2-l3-byte-typing-gap-plan.md § Wave 2.
+      .enable(.`uint8 conforms to byte protocol`),
+      .enable(.`byte conforms to arithmetic protocol`),
+      .enable(.`binary serializable uint8 witness`),
+      .enable(.`binary serializable rawvalue uint8`),
+      .enable(.`uint8 ascii extension`),
+      .enable(.`uint8 forwarder missing disfavored`),
+      .enable(.`stdlib forwarder outside sli`),
+      // Conformance pack
+      .enable(.`leaf body typealias missing`),
+      // Closure pack (Wave 3 2026-05-15)
+      .enable(.`configuration before content`),
+      .enable(.`lifecycle order`),
+      .enable(.`unlabeled lifecycle closure`),
+      .enable(.`parameter position`),
+      // Idiom pack (Wave 3 2026-05-15)
+      .enable(.`bounded index static capacity`),
+      .enable(.`enumerated with subscript`),
+      .enable(.`intermediate binding then return`),
+      .enable(.`counter loop iteration`),
+      .enable(.`string utf8 scanning`),
+      // Memory pack (Wave 3 2026-05-15)
+      .enable(.`borrowing self short circuit`),
+      .enable(.`noncopyable error`),
+      .enable(.`extension noncopyable constraint`),
+      .enable(.`nonisolated unsafe without invariant`),
+      .enable(.`safe attribute undocumented`),
+      .enable(.`pointer advanced by`),
+      .enable(.`sendable struct with class member`),
+      .enable(.`unchecked sendable revalidation anchor`),
+      .enable(.`unsafe assignment granularity`),
+      // Platform pack (Wave 3 2026-05-15)
+      .enable(.`c type in public api`),
+      .enable(.`convention c representability`),
+      .enable(.`dead case per platform`),
+      .enable(.`compound platform namespace root`),
+      .enable(.`optionset shell pattern`),
+      .enable(.`canimport conditional`),
+      .enable(.`swift protocol qualification`),
+      .enable(.`system subdomain`),
+      .enable(.`typealiased namespace bridge`),
+      // Structure pack (Wave 3 2026-05-15)
+      .enable(.`hoisted protocol alias`),
+      .enable(.`minimal type body`),
+      .enable(.`raw value access`),
+      .enable(.`single type per file`),
+      .enable(.`throwing wrapper init`),
+      .enable(.`type transform placement`),
+      .enable(.`wrapper backing exposed`),
+      // Testing pack (Wave 3 2026-05-15)
+      // `benchmark timed required` ([BENCH-003]) deferred 2026-05-18:
+      // depends on swift-testing's `.timed()` trait which isn't
+      // production-ready; benchmarks are moving to separate
+      // /Benchmarks/ packages per the `benchmark` skill, so the rule's
+      // target audience (in-tree Performance @Suites) is going away.
+      // Re-enable when (a) swift-testing's `.timed()` ships stable OR
+      // (b) we readopt in-tree Performance @Suites with a different
+      // measurement primitive. The rule definition stays in the
+      // Institute_Linter_Rule_Testing module for re-enable convenience.
+      // .enable(.`benchmark timed required`),
+      .enable(.`test function naming`),
+      .enable(.`performance suite serialized`),
+      // Throws pack (Wave 3 2026-05-15)
+      .enable(.`closure typed throws annotation`),
+      .enable(.`do throws for typed catch`),
+      .enable(.`do throws for typed catch with throw`),
+      .enable(.`existential throws`),
+      .enable(.`generic throws missing never`),
+      .enable(.`hoisted error in public throws`),
+      .enable(.`lifecycle typealias review`),
+      .enable(.`callback result over throws thunk`),
+      .enable(.`result wrapper for rethrows shim`),
+      .enable(.`typed throws cannot use self error`),
+      .enable(.`untyped throws`),
+      // Try pack (Wave 3 2026-05-15)
+      .enable(.`try optional`),
+      // Unchecked pack (Wave 3 2026-05-15)
+      .enable(.`unchecked call site`),
+    ]
 }

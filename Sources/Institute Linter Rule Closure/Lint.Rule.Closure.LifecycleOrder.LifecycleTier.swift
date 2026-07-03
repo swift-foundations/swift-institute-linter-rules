@@ -12,21 +12,21 @@
 internal import SwiftSyntax
 
 internal enum LifecycleTier {
-    case completion
-    case body
-    case other
+  case completion
+  case body
+  case other
 }
 
 internal func lifecycleTier(of parameter: FunctionParameterSyntax) -> LifecycleTier {
-    if parameter.firstName.tokenKind == .wildcard {
-        return .body
-    }
-    let labelText = parameter.firstName.text
-    if completionTierLabels.contains(labelText) {
-        return .completion
-    }
-    if bodyTierLabels.contains(labelText) {
-        return .body
-    }
-    return .other
+  if parameter.firstName.tokenKind == .wildcard {
+    return .body
+  }
+  let labelText = parameter.firstName.text
+  if completionTierLabels.contains(labelText) {
+    return .completion
+  }
+  if bodyTierLabels.contains(labelText) {
+    return .body
+  }
+  return .other
 }

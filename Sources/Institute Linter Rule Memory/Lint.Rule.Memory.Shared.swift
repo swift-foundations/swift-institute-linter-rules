@@ -27,17 +27,19 @@ internal import SwiftSyntax
 /// Tilde-prefixed `~Copyable` is excluded — only the *positive* form
 /// trips this predicate. The `Swift.Copyable` qualified form is
 /// recognized when the base identifier is the bare token `Swift`.
-internal func memoryWhereClauseHasPositiveCopyable(_ clause: GenericWhereClauseSyntax?) -> Swift.Bool {
-    guard let clause else { return false }
-    for requirement in clause.requirements {
-        guard let conformance = requirement.requirement.as(ConformanceRequirementSyntax.self) else {
-            continue
-        }
-        if memoryTypeMentionsPositiveCopyable(conformance.rightType) {
-            return true
-        }
+internal func memoryWhereClauseHasPositiveCopyable(_ clause: GenericWhereClauseSyntax?)
+  -> Swift.Bool
+{
+  guard let clause else { return false }
+  for requirement in clause.requirements {
+    guard let conformance = requirement.requirement.as(ConformanceRequirementSyntax.self) else {
+      continue
     }
-    return false
+    if memoryTypeMentionsPositiveCopyable(conformance.rightType) {
+      return true
+    }
+  }
+  return false
 }
 
 /// Walks a type syntax for any positive `Copyable` mention. Composition
@@ -47,22 +49,24 @@ internal func memoryWhereClauseHasPositiveCopyable(_ clause: GenericWhereClauseS
 /// Internal helper — call `memoryWhereClauseHasPositiveCopyable(_:)`
 /// from rule visitors.
 internal func memoryTypeMentionsPositiveCopyable(_ type: TypeSyntax) -> Swift.Bool {
-    if let identifier = type.as(IdentifierTypeSyntax.self),
-       identifier.name.text == "Copyable" {
+  if let identifier = type.as(IdentifierTypeSyntax.self),
+    identifier.name.text == "Copyable"
+  {
+    return true
+  }
+  if let member = type.as(MemberTypeSyntax.self),
+    member.name.text == "Copyable",
+    let base = member.baseType.as(IdentifierTypeSyntax.self),
+    base.name.text == "Swift"
+  {
+    return true
+  }
+  if let composition = type.as(CompositionTypeSyntax.self) {
+    for element in composition.elements {
+      if memoryTypeMentionsPositiveCopyable(element.type) {
         return true
+      }
     }
-    if let member = type.as(MemberTypeSyntax.self),
-       member.name.text == "Copyable",
-       let base = member.baseType.as(IdentifierTypeSyntax.self),
-       base.name.text == "Swift" {
-        return true
-    }
-    if let composition = type.as(CompositionTypeSyntax.self) {
-        for element in composition.elements {
-            if memoryTypeMentionsPositiveCopyable(element.type) {
-                return true
-            }
-        }
-    }
-    return false
+  }
+  return false
 }

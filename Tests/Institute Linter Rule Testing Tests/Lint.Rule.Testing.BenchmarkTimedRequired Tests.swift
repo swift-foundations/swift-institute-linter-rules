@@ -9,131 +9,137 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Testing
-import SwiftSyntax
-import SwiftParser
 import Linter_Primitives
 import Linter_Rules_Test_Support
+import SwiftParser
+import SwiftSyntax
+import Testing
+
 @testable import Institute_Linter_Rule_Testing
 
 extension Lint.Rule {
-    @Suite
-    struct `benchmark timed required Tests` {
-        @Suite struct Unit {}
-    }
+  @Suite
+  struct `benchmark timed required Tests` {
+    @Suite struct Unit {}
+  }
 }
 
 extension Lint.Rule.`benchmark timed required Tests` {
-    static func findings(in source: String, file: String = "Sources/X/Test.swift") -> [Diagnostic.Record] {
-        let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`benchmark timed required`.findings(parsed, .warning)
-    }
+  static func findings(in source: String, file: String = "Sources/X/Test.swift") -> [Diagnostic
+    .Record]
+  {
+    let parsed = Lint.Source.parsed(from: source, file: file)
+    return Lint.Rule.`benchmark timed required`.findings(parsed, .warning)
+  }
 }
 
 extension Lint.Rule.`benchmark timed required Tests`.Unit {
-    @Test
-    func `Test inside Performance suite without timed is flagged`() {
-        let source = """
-        @Suite(.serialized) struct Performance {
-            @Test
-            func `runs fast`() {}
-        }
-        """
-        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
-        #expect(findings.count == 1)
-    }
+  @Test
+  func `Test inside Performance suite without timed is flagged`() {
+    let source = """
+      @Suite(.serialized) struct Performance {
+          @Test
+          func `runs fast`() {}
+      }
+      """
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 
-    @Test
-    func `Test inside Performance suite with timed is permitted`() {
-        let source = """
-        @Suite(.serialized) struct Performance {
-            @Test(.timed())
-            func `runs fast`() {}
-        }
-        """
-        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
-        #expect(findings.isEmpty)
-    }
+  @Test
+  func `Test inside Performance suite with timed is permitted`() {
+    let source = """
+      @Suite(.serialized) struct Performance {
+          @Test(.timed())
+          func `runs fast`() {}
+      }
+      """
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 
-    @Test
-    func `Test outside Performance suite is not flagged`() {
-        let source = """
-        @Suite struct Unit {
-            @Test
-            func `something`() {}
-        }
-        """
-        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
-        #expect(findings.isEmpty)
-    }
+  @Test
+  func `Test outside Performance suite is not flagged`() {
+    let source = """
+      @Suite struct Unit {
+          @Test
+          func `something`() {}
+      }
+      """
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 
-    @Test
-    func `Test inside Performance extension without timed is flagged`() {
-        let source = """
-        extension Foo.Test.Performance {
-            @Test
-            func `runs fast`() {}
-        }
-        """
-        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
-        #expect(findings.count == 1)
-    }
+  @Test
+  func `Test inside Performance extension without timed is flagged`() {
+    let source = """
+      extension Foo.Test.Performance {
+          @Test
+          func `runs fast`() {}
+      }
+      """
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 
-    @Test
-    func `Test with timed threshold is permitted`() {
-        let source = """
-        @Suite(.serialized) struct Performance {
-            @Test(.timed(threshold: .milliseconds(50)))
-            func `meets budget`() {}
-        }
-        """
-        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
-        #expect(findings.isEmpty)
-    }
+  @Test
+  func `Test with timed threshold is permitted`() {
+    let source = """
+      @Suite(.serialized) struct Performance {
+          @Test(.timed(threshold: .milliseconds(50)))
+          func `meets budget`() {}
+      }
+      """
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }
 
 // MARK: - The [BENCH-003] executable-variant citation carve (Round M ζ pilot 3)
 
 extension Lint.Rule.`benchmark timed required Tests` {
-    @Suite struct `Variant Exemption` {}
+  @Suite struct `Variant Exemption` {}
 }
 
 extension Lint.Rule.`benchmark timed required Tests`.`Variant Exemption` {
-    @Test
-    func `suite-level variant citation exempts every contained test`() {
-        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: """
-            // Load-scale gates; measurement lives in Benchmarks/ ([BENCH-003] executable variant).
-            struct Performance {
-                @Test func growthCurve() {}
-                @Test func validationFlat() {}
-            }
-            """)
-        #expect(findings.isEmpty)
-    }
+  @Test
+  func `suite-level variant citation exempts every contained test`() {
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(
+      in: """
+        // Load-scale gates; measurement lives in Benchmarks/ ([BENCH-003] executable variant).
+        struct Performance {
+            @Test func growthCurve() {}
+            @Test func validationFlat() {}
+        }
+        """)
+    #expect(findings.isEmpty)
+  }
 
-    @Test
-    func `function-level variant citation exempts that test only`() {
-        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: """
-            struct Performance {
-                // [BENCH-003] executable variant: measured in Benchmarks/.
-                @Test func growthCurve() {}
-                @Test func unmeasured() {}
-            }
-            """)
-        #expect(findings.count == 1)
-    }
+  @Test
+  func `function-level variant citation exempts that test only`() {
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(
+      in: """
+        struct Performance {
+            // [BENCH-003] executable variant: measured in Benchmarks/.
+            @Test func growthCurve() {}
+            @Test func unmeasured() {}
+        }
+        """)
+    #expect(findings.count == 1)
+  }
 
-    @Test
-    func `a later suite without the citation still fires (depth stays balanced)`() {
-        let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: """
-            // [BENCH-003] variant.
-            struct Performance {
-                @Test func exempt() {}
-            }
-            struct Performance {
-                @Test func fires() {}
-            }
-            """)
-        #expect(findings.count == 1)
-    }
+  @Test
+  func `a later suite without the citation still fires (depth stays balanced)`() {
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(
+      in: """
+        // [BENCH-003] variant.
+        struct Performance {
+            @Test func exempt() {}
+        }
+        struct Performance {
+            @Test func fires() {}
+        }
+        """)
+    #expect(findings.count == 1)
+  }
 }

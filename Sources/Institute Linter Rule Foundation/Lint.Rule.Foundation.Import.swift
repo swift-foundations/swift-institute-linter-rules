@@ -17,61 +17,62 @@ internal import SwiftSyntax
 /// (ecosystem-wide Foundation-free policy extending the primitives
 /// rule to all five layers).
 extension Lint.Rule {
-    public static let `foundation import` = Lint.Rule(
-        id: "foundation import",
-        default: .warning,
-        findings: { source, severity in
-            let visitor = FoundationImportVisitor(
-                source: source.file,
-                severity: severity,
-                converter: source.converter
-            )
-            visitor.walk(source.tree)
-            return visitor.matches
-        }
-    )
+  public static let `foundation import` = Lint.Rule(
+    id: "foundation import",
+    default: .warning,
+    findings: { source, severity in
+      let visitor = FoundationImportVisitor(
+        source: source.file,
+        severity: severity,
+        converter: source.converter
+      )
+      visitor.walk(source.tree)
+      return visitor.matches
+    }
+  )
 }
 
 @usableFromInline
 internal let foundationImportMessage: Swift.String =
-    "[foundation import] [PRIM-FOUND-001]: primitives source MUST NOT import "
-    + "Foundation or FoundationEssentials. Use institute primitives "
-    + "(`Time_Primitives`, `Binary_Primitives`, etc.) instead. Foundation-adjacent "
-    + "interop belongs in a separately-declared `* Foundation Integration` "
-    + "subtarget per `[ARCH-LAYER-007]`, not the main target."
+  "[foundation import] [PRIM-FOUND-001]: primitives source MUST NOT import "
+  + "Foundation or FoundationEssentials. Use institute primitives "
+  + "(`Time_Primitives`, `Binary_Primitives`, etc.) instead. Foundation-adjacent "
+  + "interop belongs in a separately-declared `* Foundation Integration` "
+  + "subtarget per `[ARCH-LAYER-007]`, not the main target."
 
 internal final class FoundationImportVisitor: SyntaxVisitor {
-    let source: Source.File
-    let severity: Diagnostic.Severity
-    let converter: SourceLocationConverter
-    var matches: [Diagnostic.Record] = []
+  let source: Source.File
+  let severity: Diagnostic.Severity
+  let converter: SourceLocationConverter
+  var matches: [Diagnostic.Record] = []
 
-    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-        self.source = source
-        self.severity = severity
-        self.converter = converter
-        super.init(viewMode: .sourceAccurate)
-    }
+  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+    self.source = source
+    self.severity = severity
+    self.converter = converter
+    super.init(viewMode: .sourceAccurate)
+  }
 
-    override func visit(_ node: ImportDeclSyntax) -> SyntaxVisitorContinueKind {
-        let pathText = node.path.trimmedDescription
-        guard foundationImportIsFoundationModule(pathText) else {
-            return .visitChildren
-        }
-        let location = converter.location(for: node.path.positionAfterSkippingLeadingTrivia)
-        matches.append(Diagnostic.Record(
-            location: Source.Location(
-                fileID: source.fileID,
-                filePath: source.filePath,
-                line: location.line,
-                column: location.column
-            ),
-            severity: severity,
-            identifier: "foundation import",
-            message: foundationImportMessage
-        ))
-        return .visitChildren
+  override func visit(_ node: ImportDeclSyntax) -> SyntaxVisitorContinueKind {
+    let pathText = node.path.trimmedDescription
+    guard foundationImportIsFoundationModule(pathText) else {
+      return .visitChildren
     }
+    let location = converter.location(for: node.path.positionAfterSkippingLeadingTrivia)
+    matches.append(
+      Diagnostic.Record(
+        location: Source.Location(
+          fileID: source.fileID,
+          filePath: source.filePath,
+          line: location.line,
+          column: location.column
+        ),
+        severity: severity,
+        identifier: "foundation import",
+        message: foundationImportMessage
+      ))
+    return .visitChildren
+  }
 }
 
 /// Returns true if `pathText` is `Foundation` or `FoundationEssentials`.
@@ -79,6 +80,6 @@ internal final class FoundationImportVisitor: SyntaxVisitor {
 /// whose first component is `Foundation` / `FoundationEssentials`
 /// pulls in the framework and counts as a violation.
 private func foundationImportIsFoundationModule(_ pathText: Swift.String) -> Swift.Bool {
-    let firstComponent = pathText.split(separator: ".").first.map(Swift.String.init) ?? pathText
-    return firstComponent == "Foundation" || firstComponent == "FoundationEssentials"
+  let firstComponent = pathText.split(separator: ".").first.map(Swift.String.init) ?? pathText
+  return firstComponent == "Foundation" || firstComponent == "FoundationEssentials"
 }
