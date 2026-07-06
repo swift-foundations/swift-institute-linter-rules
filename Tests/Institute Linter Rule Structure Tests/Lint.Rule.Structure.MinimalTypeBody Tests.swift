@@ -350,4 +350,91 @@ extension Lint.Rule.`minimal type body Tests`.`Edge Case` {
     let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // Exemption shape: [RULE-EXEMPT-7] (syntax-visitor-subclass). A
+  // `final class XVisitor: SyntaxVisitor` (or `SyntaxAnyVisitor` /
+  // `SyntaxRewriter`) subclass has its member shape dictated by the
+  // base class's open `override func visit(_:)` / `visitPost` hooks —
+  // the overrides are protocol-shaped members per the SwiftSyntax
+  // visitor contract. Moving them to an extension yields
+  // stored-properties + extension-of-overrides for zero semantic gain
+  // (extraction measured semantic-zero across ~336 findings). The
+  // carve-out keys on inheritance, not on the type name. Helper:
+  // `structureExtendsSyntaxVisitor` in
+  // `Lint.Rule.Structure.Shared.swift`.
+
+  @Test
+  func `SyntaxVisitor subclass with visit overrides is exempt per RULE-EXEMPT-7`() {
+    let source = """
+      final class MyVisitor: SyntaxVisitor {
+          var matches: [Int] = []
+          override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+              return .visitChildren
+          }
+          override func visitPost(_ node: StructDeclSyntax) {}
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `SyntaxRewriter subclass with visit overrides is exempt per RULE-EXEMPT-7`() {
+    let source = """
+      final class MyRewriter: SyntaxRewriter {
+          var count: Int = 0
+          override func visit(_ token: TokenSyntax) -> TokenSyntax {
+              return token
+          }
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `SyntaxAnyVisitor subclass is exempt per RULE-EXEMPT-7`() {
+    // Covers the third visitor-family base recognized by the helper.
+    let source = """
+      final class AnyVisitor: SyntaxAnyVisitor {
+          var log: [String] = []
+          override func visitAny(_ node: Syntax) -> SyntaxVisitorContinueKind {
+              return .visitChildren
+          }
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `qualified SwiftSyntax dot SyntaxVisitor subclass is exempt per RULE-EXEMPT-7`() {
+    // Exercises the MemberTypeSyntax path of the inheritance walk:
+    // the leaf-name resolution must recognize `SwiftSyntax.SyntaxVisitor`
+    // the same as the bare `SyntaxVisitor` form.
+    let source = """
+      final class QualifiedVisitor: SwiftSyntax.SyntaxVisitor {
+          override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+              return .skipChildren
+          }
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `non-visitor class with a method is still flagged`() {
+    // Negative case — the carve-out keys on visitor-family inheritance,
+    // NOT on the `Visitor` name or the presence of a `visit` method. A
+    // class inheriting a non-visitor base still fires on its body method.
+    let source = """
+      final class FakeVisitor: NSObject {
+          var x: Int = 0
+          func visit() {}
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
