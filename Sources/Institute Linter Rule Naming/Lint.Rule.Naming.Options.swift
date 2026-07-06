@@ -30,7 +30,7 @@ extension Lint.Rule {
 }
 
 private let namingOptionsMessage: Swift.String =
-  "[property named flags] feedback_options_not_flags: an `OptionSet` type named with "
+  "[property named flags] [API-NAME-011]: an `OptionSet` type named with "
   + "the `Flags` suffix uses C-speak. The institute convention is `.Options` "
   + "(e.g., `File.Open.Options`, `Walk.Options`)."
 

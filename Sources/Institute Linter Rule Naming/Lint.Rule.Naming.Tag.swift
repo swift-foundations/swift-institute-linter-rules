@@ -31,7 +31,7 @@ extension Lint.Rule {
 }
 
 private let namingTagMessage: Swift.String =
-  "[tag suffix] feedback_no_tag_suffix: phantom-type tags MUST use the concept name "
+  "[tag suffix] [API-NAME-010]: phantom-type tags MUST use the concept name "
   + "directly (`enum Cardinal {}`, `struct Millimeter {}`), never a `Tag` suffix."
 
 internal final class NamingTagVisitor: SyntaxVisitor {

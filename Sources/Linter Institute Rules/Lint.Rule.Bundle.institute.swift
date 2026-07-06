@@ -106,6 +106,7 @@ extension Lint.Rule.Bundle {
       .enable(.`convention c representability`),
       .enable(.`dead case per platform`),
       .enable(.`compound platform namespace root`),
+      .enable(.`optimize suppression attribute`),  // [ISSUE-008] (/promote-rule 2026-07-06)
       .enable(.`optionset shell pattern`),
       .enable(.`canimport conditional`),
       .enable(.`swift protocol qualification`),
