@@ -90,6 +90,7 @@ extension Lint.Rule.Bundle {
       .enable(.`intermediate binding then return`),
       .enable(.`counter loop iteration`),
       .enable(.`string utf8 scanning`),
+      .enable(.`sli literal`),  // [IDX-019] (/promote-rule 2026-07-06)
       // Memory pack (Wave 3 2026-05-15)
       .enable(.`borrowing self short circuit`),
       .enable(.`noncopyable error`),
