@@ -61,6 +61,12 @@ extension Lint.Rule.Bundle {
       .enable(.`single type namespace`),
       .enable(.`tag suffix`),
       .enable(.`nested tag`),
+      // [API-NAME-010b] — validated 2026-07-07 against the ADT tower
+      // (tree-keyed 1, slab 5, buffer-slab 2 = 8 true-positive findings on
+      // phantom `<E: ~Copyable>` Index discriminators; the dominant fleet
+      // convention binds such phantoms `~Copyable & ~Escapable`, 99 sites).
+      // Receipt: Research/promote-phantom-suppression-tower-validation-2026-07-07.md.
+      .enable(.`phantom suppression`),
       .enable(.`unification typealias`),
       // Foundation pack
       .enable(.`foundation import`),
