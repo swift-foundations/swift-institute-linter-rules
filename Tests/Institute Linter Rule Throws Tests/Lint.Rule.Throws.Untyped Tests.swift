@@ -146,4 +146,77 @@ extension Lint.Rule.`untyped throws Tests`.`Edge Case` {
     let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // §C3 — external-protocol conformance allowlist (Testing.TestScoping.provideScope).
+
+  @Test
+  func `provideScope in a TestScoping conformance is NOT flagged`() {
+    let source = """
+      extension Foo: Testing.TestScoping {
+          public func provideScope(
+              for test: Testing.Test,
+              testCase: Testing.Test.Case?,
+              performing function: @Sendable () async throws -> Void
+          ) async throws {
+              try await function()
+          }
+      }
+      """
+    // Both signature-position untyped throws (outer `async throws` and the
+    // `performing` closure type) are conformance-forced → exempt.
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `provideScope in a multi-conformance (SuiteTrait, TestScoping) is NOT flagged`() {
+    let source = """
+      extension Foo: Testing.SuiteTrait, Testing.TestScoping {
+          public func provideScope(performing function: @Sendable () async -> Void) async throws {
+              await function()
+          }
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `provideScope outside a TestScoping conformance IS flagged`() {
+    let source = """
+      extension Foo {
+          func provideScope() async throws {}
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `differently-named method in a TestScoping conformance IS flagged`() {
+    let source = """
+      extension Foo: Testing.TestScoping {
+          func somethingElse() throws {}
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `untyped throws in a provideScope body is still flagged`() {
+    let source = """
+      extension Foo: Testing.TestScoping {
+          public func provideScope(performing function: @Sendable () async -> Void) async throws {
+              func helper() throws {}
+              try helper()
+              await function()
+          }
+      }
+      """
+    // The outer `async throws` is exempt (signature); the body-local
+    // `func helper() throws` is NOT forced by the protocol → still fires.
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
