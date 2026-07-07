@@ -219,4 +219,122 @@ extension Lint.Rule.`untyped throws Tests`.`Edge Case` {
     let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // §C3 — Codable witness pair (Encodable.encode(to:), Decodable.init(from:)),
+  // added by the remediation arc per Table A #3.
+
+  @Test
+  func `encode(to:) in an Encodable conformance is NOT flagged`() {
+    let source = """
+      extension Foo: Encodable {
+          public func encode(to encoder: any Encoder) throws {
+              var container = encoder.singleValueContainer()
+          }
+      }
+      """
+    // Signature-position `throws` is conformance-forced by Encodable → exempt.
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `init(from:) in a Decodable conformance is NOT flagged`() {
+    let source = """
+      extension Foo: Decodable {
+          public init(from decoder: any Decoder) throws {
+              let container = try decoder.singleValueContainer()
+          }
+      }
+      """
+    // The initializer's signature-position `throws` is conformance-forced → exempt.
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `Codable witnesses in a bare extension are NOT flagged`() {
+    // The dominant real-world shape (e.g. swift-rfc-9110 `HTTP.Headers.swift`):
+    // the conformance is declared elsewhere; this extension only provides the
+    // witnesses and carries NO inheritance clause. Recognized by signature shape
+    // (sole `Decoder`/`Encoder` parameter), not by an enclosing conformance.
+    let source = """
+      extension Foo {
+          public init(from decoder: any Decoder) throws {
+              let container = try decoder.singleValueContainer()
+          }
+          public func encode(to encoder: any Encoder) throws {
+              var container = encoder.singleValueContainer()
+          }
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `Codable witnesses in a composed Codable conformance are NOT flagged`() {
+    let source = """
+      extension Foo: Codable {
+          public init(from decoder: any Decoder) throws {}
+          public func encode(to encoder: any Encoder) throws {}
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `untyped throws in an encode(to:) body is still flagged`() {
+    let source = """
+      extension Foo {
+          public func encode(to encoder: any Encoder) throws {
+              func helper() throws {}
+              try helper()
+          }
+      }
+      """
+    // The signature `throws` is exempt; the body-local `func helper() throws`
+    // is not conformance-forced → still fires.
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `untyped throws in an init(from:) body is still flagged`() {
+    let source = """
+      extension Foo {
+          public init(from decoder: any Decoder) throws {
+              func helper() throws {}
+              try helper()
+              self.init()
+          }
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `a non-witness init(from:) with a non-Decoder parameter IS flagged`() {
+    // Precision: signature-shape recognition must not over-exempt. A bare
+    // `init(from:)` whose parameter is not a `Decoder` is not a Codable witness.
+    let source = """
+      extension Foo {
+          public init(from text: String) throws {}
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `a non-witness encode with no parameter IS flagged`() {
+    let source = """
+      extension Foo {
+          public func encode() throws {}
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

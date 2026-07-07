@@ -38,10 +38,11 @@ internal let throwsUntypedMessage: Swift.String =
   + "time and the error path stays exhaustive. Untyped throws boxes the error as "
   + "`any Error`, which the institute convention forbids."
 
-/// External-protocol conformance allowlist (§C3, 2026-07-07).
+/// External-protocol conformance allowlist (§C3, 2026-07-07; `Codable` witness
+/// pair added by the remediation arc, 2026-07-07 per Table A #3).
 ///
 /// Some external protocols the institute must conform to declare a requirement
-/// with *untyped* `throws`; the conforming method's signature is then forced to
+/// with *untyped* `throws`; the conforming member's signature is then forced to
 /// use untyped throws too, and [API-ERR-001] cannot be satisfied without
 /// breaking the conformance. Each entry names a `(protocol, method)` pair whose
 /// signature-position untyped throws are conformance-forced and therefore
@@ -49,15 +50,25 @@ internal let throwsUntypedMessage: Swift.String =
 /// protocol surfaces; matching is by the protocol's simple (last) name so both
 /// `TestScoping` and `Testing.TestScoping` inheritance-clause spellings match.
 ///
-/// Only untyped throws in the conforming method's SIGNATURE (its effect
+/// `method` is the enclosing member's selector: a function's base name
+/// (`provideScope`, `encode`), or — because initializers have no base name — an
+/// initializer's labeled selector `init(label:)` (`init(from:)`). The `Codable`
+/// pair covers hand-written `Decodable.init(from:)` / `Encodable.encode(to:)`
+/// witnesses, whose only caller is type-erased coder machinery: the rule's
+/// caller-exhaustiveness intent does not apply, and wrapping `DecodingError`
+/// into a domain error would degrade coding-path diagnostics.
+///
+/// Only untyped throws in the conforming member's SIGNATURE (its effect
 /// specifiers and parameter-clause closure types — all dictated by the external
-/// requirement) are exempt; untyped throws written inside the method BODY still
+/// requirement) are exempt; untyped throws written inside the member BODY still
 /// fire, preserving [API-ERR-001] enforcement everywhere the conformance does
 /// not force the shape.
 @usableFromInline
 internal let throwsConformanceForcedAllowlist:
   [(protocolSuffix: Swift.String, method: Swift.String)] = [
-    (protocolSuffix: "TestScoping", method: "provideScope")
+    (protocolSuffix: "TestScoping", method: "provideScope"),
+    (protocolSuffix: "Encodable", method: "encode"),
+    (protocolSuffix: "Decodable", method: "init(from:)"),
   ]
 
 internal final class ThrowsUntypedVisitor: SyntaxVisitor {
@@ -99,19 +110,26 @@ internal final class ThrowsUntypedVisitor: SyntaxVisitor {
     return .visitChildren
   }
 
-  /// True when `node` is a signature-position untyped `throws` on a method
-  /// whose signature is forced by an allowlisted external protocol
-  /// (`throwsConformanceForcedAllowlist`, §C3). Syntax-visible: the enclosing
-  /// extension/type's inheritance clause names the external protocol and the
-  /// enclosing function's name matches the allowlisted requirement. Untyped
-  /// throws inside the method body are NOT exempt.
+  /// True when `node` is a signature-position untyped `throws` on a member
+  /// (function or initializer) whose signature is forced by an allowlisted
+  /// external protocol (`throwsConformanceForcedAllowlist`, §C3). Syntax-visible:
+  /// the enclosing extension/type's inheritance clause names the external
+  /// protocol and the enclosing member's selector matches the allowlisted
+  /// requirement. Untyped throws inside the member body are NOT exempt.
   static func isConformanceForcedUntypedThrows(_ node: ThrowsClauseSyntax) -> Swift.Bool {
-    var enclosingFunction: FunctionDeclSyntax? = nil
+    var enclosingSelector: Swift.String? = nil
+    var enclosingSignature: FunctionSignatureSyntax? = nil
     var inheritedTypeSuffixes: Swift.Set<Swift.String> = []
     var cursor: Syntax? = node.parent
     while let current = cursor {
-      if enclosingFunction == nil, let function = current.as(FunctionDeclSyntax.self) {
-        enclosingFunction = function
+      if enclosingSelector == nil {
+        if let function = current.as(FunctionDeclSyntax.self) {
+          enclosingSelector = function.name.text
+          enclosingSignature = function.signature
+        } else if let initializer = current.as(InitializerDeclSyntax.self) {
+          enclosingSelector = Self.initializerSelector(initializer)
+          enclosingSignature = initializer.signature
+        }
       }
       if let clause = Self.inheritanceClause(of: current) {
         for inherited in clause.inheritedTypes {
@@ -120,22 +138,77 @@ internal final class ThrowsUntypedVisitor: SyntaxVisitor {
       }
       cursor = current.parent
     }
-    guard let function = enclosingFunction else { return false }
-    // Restrict to the function's own signature (effect specifiers +
+    guard let selector = enclosingSelector, let signature = enclosingSignature else {
+      return false
+    }
+    // Restrict to the enclosing member's own signature (effect specifiers +
     // parameter-clause closure types) — untyped throws in the body still fire.
-    let signature = function.signature
     guard
       node.position >= signature.position,
       node.endPosition <= signature.endPosition
     else {
       return false
     }
-    let methodName = function.name.text
-    for entry in throwsConformanceForcedAllowlist
-    where entry.method == methodName && inheritedTypeSuffixes.contains(entry.protocolSuffix) {
-      return true
+    // A member matches an allowlist entry when its selector matches AND it
+    // witnesses the entry's protocol. Witnessing is proven EITHER by an
+    // enclosing inheritance clause naming the protocol (the `provideScope` and
+    // same-extension `: Codable` spellings) OR by the member's canonical witness
+    // signature (the Codable pair, so a witness in a *bare* extension whose
+    // conformance is declared separately — e.g. the `// MARK: - Codable`
+    // extension in swift-rfc-9110 `HTTP.Headers.swift` — is still exempt).
+    for entry in throwsConformanceForcedAllowlist where entry.method == selector {
+      if inheritedTypeSuffixes.contains(entry.protocolSuffix) { return true }
+      if Self.isCanonicalWitnessSignature(
+        protocolSuffix: entry.protocolSuffix,
+        parameters: signature.parameterClause.parameters
+      ) {
+        return true
+      }
     }
     return false
+  }
+
+  /// The labeled selector of an initializer — `init(from:)` for
+  /// `init(from decoder: any Decoder)`. Each parameter contributes its argument
+  /// label (the `firstName` token: the external label, or `_` when the parameter
+  /// is unlabeled), matching Swift's own selector spelling so an allowlist entry
+  /// can name an initializer requirement precisely.
+  static func initializerSelector(_ node: InitializerDeclSyntax) -> Swift.String {
+    var selector = "init("
+    for parameter in node.signature.parameterClause.parameters {
+      selector += parameter.firstName.text
+      selector += ":"
+    }
+    selector += ")"
+    return selector
+  }
+
+  /// True when a member's parameter list is the canonical witness shape for an
+  /// allowlisted Codable protocol, so the exemption holds even when the
+  /// conformance is declared on a *separate* extension or file rather than the
+  /// one holding the witness (the common `// MARK: - Codable` bare-extension
+  /// pattern). A `Decodable` witness takes a sole `Decoder` parameter; an
+  /// `Encodable` witness a sole `Encoder` parameter. Only the Codable pair has a
+  /// canonical signature shape; `provideScope` returns `false` here and relies
+  /// on its enclosing `TestScoping` conformance clause.
+  static func isCanonicalWitnessSignature(
+    protocolSuffix: Swift.String,
+    parameters: FunctionParameterListSyntax
+  ) -> Swift.Bool {
+    guard parameters.count == 1, let parameter = parameters.first else { return false }
+    let parameterTypeSuffix = Self.lastNameComponent(Self.unwrappedConstraint(parameter.type))
+    switch protocolSuffix {
+    case "Decodable": return parameterTypeSuffix == "Decoder"
+    case "Encodable": return parameterTypeSuffix == "Encoder"
+    default: return false
+    }
+  }
+
+  /// Strips a leading `any`/`some` existential/opaque marker to expose the
+  /// underlying constraint type — `any Decoder` → `Decoder`.
+  static func unwrappedConstraint(_ type: TypeSyntax) -> TypeSyntax {
+    if let someOrAny = type.as(SomeOrAnyTypeSyntax.self) { return someOrAny.constraint }
+    return type
   }
 
   /// The inheritance clause of any nominal-type or extension declaration.
