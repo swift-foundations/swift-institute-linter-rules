@@ -125,4 +125,43 @@ extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
     let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  @Test
+  func `stored Underlying requirement in Tagged extension is NOT flagged`() {
+    // Underlying is Tagged's STORED value parameter, not the phantom —
+    // `~Copyable`-only is the correct bound there. FP class surfaced on
+    // swift-tagged-primitives' own surface (Tagged.swift map/retag
+    // extensions, 2026-07-07).
+    let source = """
+      extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
+          public var probe: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `positive Escapable composition on stored Underlying is NOT flagged`() {
+    // `Underlying: Escapable & ~Copyable` — the conditional-conformance
+    // companion shape (Tagged.swift:116). Stored param, out of scope.
+    let source = """
+      extension Tagged: Escapable where Tag: ~Copyable & ~Escapable, Underlying: Escapable & ~Copyable {}
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `Index extension with copyable-only Element phantom IS flagged`() {
+    // Index's phantom parameter is `Element` (Index<Element> =
+    // Tagged<Element, Ordinal>) — copyable-only on the phantom fires.
+    let source = """
+      extension Index where Element: ~Copyable {
+          public var probe: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

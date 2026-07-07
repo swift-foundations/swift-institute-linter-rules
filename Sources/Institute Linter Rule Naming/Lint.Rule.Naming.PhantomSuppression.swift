@@ -64,15 +64,24 @@ internal final class NamingPhantomSuppressionVisitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
-  // Shape 1 — `extension Tagged/Index/Property where <P>: ~Copyable`.
+  // Shape 1 — `extension Tagged/Index/Property where <phantom>: ~Copyable`.
+  //
+  // Only the wrapper's PHANTOM parameter is in scope (`Tag` for
+  // `Tagged`/`Property`, `Element` for `Index` — the first parameter,
+  // definitionally phantom). Other where-clause identifiers (`Underlying`,
+  // `Base`, …) name STORED / value parameters, where a `~Copyable`-only
+  // bound is correct — firing there was a false-positive class surfaced
+  // on swift-tagged-primitives' own surface (Tagged.swift `Underlying:
+  // ~Copyable` extensions, 2026-07-07 tower-validation follow-up).
   override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard phantomWrapperBaseName(node.extendedType) != nil else { return .visitChildren }
+    guard let wrapper = phantomWrapperBaseName(node.extendedType) else { return .visitChildren }
     guard let whereClause = node.genericWhereClause else { return .visitChildren }
     for requirement in whereClause.requirements {
       guard case .conformanceRequirement(let conformance) = requirement.requirement else {
         continue
       }
-      guard conformance.leftType.as(IdentifierTypeSyntax.self) != nil else { continue }
+      guard let left = conformance.leftType.as(IdentifierTypeSyntax.self) else { continue }
+      guard left.name.text == phantomParameterName(ofWrapper: wrapper) else { continue }
       if constraintIsCopyableOnly(conformance.rightType) {
         emit(at: conformance.rightType.positionAfterSkippingLeadingTrivia)
       }
@@ -131,6 +140,15 @@ internal final class NamingPhantomSuppressionVisitor: SyntaxVisitor {
         message: namingPhantomSuppressionMessage
       ))
   }
+}
+
+/// The phantom (first) generic parameter's canonical name for each
+/// supported wrapper: `Tagged<Tag, Underlying>` / `Property<Tag, …>` →
+/// `Tag`; `Index<Element> = Tagged<Element, Ordinal>` → `Element`.
+/// Shape 1 only inspects requirements on this parameter — the wrapper's
+/// remaining parameters are stored/value positions.
+private func phantomParameterName(ofWrapper leaf: Swift.String) -> Swift.String {
+  leaf == "Index" ? "Element" : "Tag"
 }
 
 /// The wrapper's leaf name if `type` is `Tagged` / `Index` / `Property`
