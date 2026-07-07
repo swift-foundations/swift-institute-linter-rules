@@ -213,6 +213,7 @@ extension Lint.Rule.`typed throws cannot use self error Tests`.`Edge Case` {
 
   @Test
   func `throws any Error is NOT flagged by this rule`() {
+    // swiftlint:disable:next no_existential_throws
     let source = "func f() throws(any Error) -> Int { 0 }"
     let findings = Lint.Rule.`typed throws cannot use self error Tests`.findings(in: source)
     #expect(findings.isEmpty)

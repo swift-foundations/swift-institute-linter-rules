@@ -57,7 +57,7 @@ internal let throwsUntypedMessage: Swift.String =
 @usableFromInline
 internal let throwsConformanceForcedAllowlist:
   [(protocolSuffix: Swift.String, method: Swift.String)] = [
-    (protocolSuffix: "TestScoping", method: "provideScope"),
+    (protocolSuffix: "TestScoping", method: "provideScope")
   ]
 
 internal final class ThrowsUntypedVisitor: SyntaxVisitor {

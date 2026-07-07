@@ -32,6 +32,10 @@ extension Lint.Rule.`property named flags Tests` {
   }
 }
 
+// swiftlint:disable options_not_flags
+// REASON: this suite's fixture sources deliberately embed .Flags-suffixed OptionSet names as
+// string literals under test
+// (self-referential fixture shape, rule-exemptions skill); re-enabled at end of file.
 extension Lint.Rule.`property named flags Tests`.Unit {
   @Test
   func `OptionSet struct ending in Flags is flagged`() {
@@ -156,3 +160,4 @@ extension Lint.Rule.`property named flags Tests`.`Edge Case` {
     #expect(findings.isEmpty)
   }
 }
+// swiftlint:enable options_not_flags

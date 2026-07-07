@@ -310,6 +310,7 @@ extension Lint.Rule.`binary serializable uint8 witness Tests`.Unit {
   }
 
   @Test
+  // swiftlint:disable:next function_name_whitespace
   func
     `conditional default-impl on Binary Serializable where Buffer Element equals UInt8 is flagged`()
   {

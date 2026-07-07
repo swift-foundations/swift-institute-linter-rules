@@ -510,6 +510,7 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
   }
 
   @Test
+  // swiftlint:disable:next function_name_whitespace
   func
     `encodeAtomicRepresentation inside AtomicRepresentable conformance is exempt per RULE-EXEMPT-2`()
   {

@@ -32,6 +32,10 @@ extension Lint.Rule.`variable named impl Tests` {
   }
 }
 
+// swiftlint:disable no_impl_obj_inst_bindings
+// REASON: this suite's fixture sources deliberately embed impl/obj/inst-named bindings as
+// string literals under test
+// (self-referential fixture shape, rule-exemptions skill); re-enabled at end of file.
 extension Lint.Rule.`variable named impl Tests`.Unit {
   @Test
   func `let impl is flagged`() {
@@ -128,3 +132,4 @@ extension Lint.Rule.`variable named impl Tests`.`Edge Case` {
     #expect(findings.isEmpty)
   }
 }
+// swiftlint:enable no_impl_obj_inst_bindings

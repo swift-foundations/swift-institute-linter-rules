@@ -32,6 +32,10 @@ extension Lint.Rule.`xctest import Tests` {
   }
 }
 
+// swiftlint:disable no_xctest_import
+// REASON: this suite's fixture sources deliberately embed 'import XCTest' as
+// string literals under test
+// (self-referential fixture shape, rule-exemptions skill); re-enabled at end of file.
 extension Lint.Rule.`xctest import Tests`.Unit {
   @Test
   func `bare XCTest import is flagged`() {
@@ -126,3 +130,4 @@ extension Lint.Rule.`xctest import Tests`.`Edge Case` {
     #expect(findings.isEmpty)
   }
 }
+// swiftlint:enable no_xctest_import

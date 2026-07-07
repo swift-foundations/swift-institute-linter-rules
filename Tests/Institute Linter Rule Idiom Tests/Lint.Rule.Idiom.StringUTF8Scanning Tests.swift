@@ -111,8 +111,8 @@ extension Lint.Rule.`string utf8 scanning Tests`.`Edge Case` {
   @Test
   func `unrelated member named unicodeScalars on non-String is still flagged`() {
     // The rule cannot resolve type info per-file; it flags by member
-    // name. Authors silence with a // swiftlint:disable if the
-    // context is unambiguous.
+    // name. Authors can silence a false positive with a scoped
+    // SwiftLint suppression directive when the context is unambiguous.
     let source = """
       struct Custom {
           var unicodeScalars: Int { 0 }

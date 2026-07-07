@@ -12,6 +12,10 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
+// swiftlint:disable no_try_optional
+// REASON: this rule's own doc comment and diagnostic message must literally cite the
+// `try?` pattern it detects — self-referential fixture shape (rule-exemptions skill);
+// the regex-based no_try_optional rule cannot distinguish prose citation from live code.
 /// `try?` swallows typed errors.
 ///
 /// `try?` converts a thrown error into a `nil` Optional, erasing both the
@@ -48,6 +52,7 @@ internal let tryOptionalMessage: Swift.String =
   + "causing the Linux hot-spin in the IO Notification.wait() site. If you genuinely "
   + "want to discard the error, use `do { ... } catch { }` so the discard is local "
   + "and visible."
+// swiftlint:enable no_try_optional
 
 internal final class TryOptionalVisitor: SyntaxVisitor {
   let source: Source.File

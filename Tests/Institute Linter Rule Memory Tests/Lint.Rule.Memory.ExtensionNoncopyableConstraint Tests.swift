@@ -90,6 +90,7 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
+  // swiftlint:disable:next function_name_whitespace
   func
     `extension with where clause containing noncopyable on a different generic param is permitted`()
   {
@@ -129,6 +130,7 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
+  // swiftlint:disable:next function_name_whitespace
   func
     `extension on namespace with both nested type and own consuming method flags only the latter`()
   {
@@ -145,6 +147,7 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
+  // swiftlint:disable:next function_name_whitespace
   func
     `extension on non-generic type with method-local generic consuming parameter is not flagged`()
   {
@@ -158,6 +161,7 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
+  // swiftlint:disable:next function_name_whitespace
   func
     `extension on non-generic type with method-local generic borrowing parameter is not flagged`()
   {

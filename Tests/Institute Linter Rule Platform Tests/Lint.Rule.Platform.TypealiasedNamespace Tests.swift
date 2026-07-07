@@ -167,6 +167,7 @@ extension Lint.Rule.`typealiased namespace bridge Tests`.`Edge Case` {
   // extension boundary and find the conformance on the sibling decl.
 
   @Test
+  // swiftlint:disable:next function_name_whitespace
   func
     `typealias in sibling extension is exempt when conformance is on nested struct in another extension`()
   {

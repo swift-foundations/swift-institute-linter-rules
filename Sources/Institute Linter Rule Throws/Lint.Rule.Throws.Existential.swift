@@ -12,6 +12,11 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
+// swiftlint:disable no_existential_throws
+// REASON: this rule's own doc comments, diagnostic message, and citation-carve-out
+// prose must literally cite `throws(any Error)` — self-referential fixture shape
+// (rule-exemptions skill); the regex-based no_existential_throws rule cannot
+// distinguish prose citation from live code. Re-enabled after the visitor class.
 /// `throws(any Error)` boxes the error existentially — semantically
 /// identical to untyped `throws`. Citation: `feedback_no_existential_throws`.
 extension Lint.Rule {
@@ -245,6 +250,8 @@ internal final class ThrowsExistentialVisitor: SyntaxVisitor {
     return false
   }
 }
+
+// swiftlint:enable no_existential_throws
 
 /// Walks a function body looking for any `#require(_:)` macro invocation.
 /// Used by `Lint.Rule.Throws.Existential`'s `#require` carve-out.

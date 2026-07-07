@@ -34,6 +34,11 @@ extension Lint.Rule.`existential throws Tests` {
   }
 }
 
+// swiftlint:disable no_existential_throws
+// REASON: this suite's fixture sources deliberately embed `throws(any Error)` as
+// the string literal under test — self-referential fixture shape (rule-exemptions
+// skill); the regex-based no_existential_throws rule cannot distinguish a fixture
+// string from live code. Re-enabled at end of file.
 extension Lint.Rule.`existential throws Tests`.Unit {
   @Test
   func `throws any Error is flagged`() {
@@ -233,3 +238,4 @@ extension Lint.Rule.`existential throws Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+// swiftlint:enable no_existential_throws

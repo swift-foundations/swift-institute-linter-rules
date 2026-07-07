@@ -72,6 +72,7 @@ extension Lint.Rule.`unlabeled lifecycle closure Tests`.Unit {
   }
 
   @Test
+  // swiftlint:disable:next function_name_whitespace
   func
     `non-closure parameter between closures (also a violation but for a different rule) is not flagged here`()
   {
