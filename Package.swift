@@ -77,6 +77,17 @@ let package = Package(
             name: "Institute Linter Rule Unchecked",
             targets: ["Institute Linter Rule Unchecked"]
         ),
+        // A5 move (2026-07-07) — brand-consumer rule packs relocated from
+        // swift-primitives-linter-rules so they enforce at L2/L3 too (brands
+        // are defined at L1 but consumed everywhere). Precedent: [PRIM-FOUND-001].
+        .library(
+            name: "Institute Linter Rule RawValue",
+            targets: ["Institute Linter Rule RawValue"]
+        ),
+        .library(
+            name: "Institute Linter Rule Cardinal",
+            targets: ["Institute Linter Rule Cardinal"]
+        ),
 
         // Aggregate bundle — re-exports every pack in this package and
         // the upstream universal bundle, publishing
@@ -194,6 +205,22 @@ let package = Package(
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
             ]
         ),
+        // A5 move (2026-07-07) — relocated from swift-primitives-linter-rules.
+        .target(
+            name: "Institute Linter Rule RawValue",
+            dependencies: [
+                .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+            ]
+        ),
+        .target(
+            name: "Institute Linter Rule Cardinal",
+            dependencies: [
+                .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftOperators", package: "swift-syntax"),
+            ]
+        ),
         .target(
             name: "Linter Institute Rules",
             dependencies: [
@@ -212,6 +239,9 @@ let package = Package(
                 "Institute Linter Rule Throws",
                 "Institute Linter Rule Try",
                 "Institute Linter Rule Unchecked",
+                // A5 move (2026-07-07) — relocated from swift-primitives-linter-rules.
+                "Institute Linter Rule RawValue",
+                "Institute Linter Rule Cardinal",
                 .product(name: "Linter Rules", package: "swift-linter-rules"),
             ]
         ),
@@ -324,6 +354,23 @@ let package = Package(
             name: "Institute Linter Rule Unchecked Tests",
             dependencies: [
                 "Institute Linter Rule Unchecked",
+                .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
+            ]
+        ),
+        // A5 move (2026-07-07) — relocated from swift-primitives-linter-rules.
+        .testTarget(
+            name: "Institute Linter Rule RawValue Tests",
+            dependencies: [
+                "Institute Linter Rule RawValue",
+                .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
+            ]
+        ),
+        .testTarget(
+            name: "Institute Linter Rule Cardinal Tests",
+            dependencies: [
+                "Institute Linter Rule Cardinal",
                 .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
             ]

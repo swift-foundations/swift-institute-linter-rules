@@ -10,6 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 public import Institute_Linter_Rule_Byte
+public import Institute_Linter_Rule_Cardinal
 public import Institute_Linter_Rule_Closure
 public import Institute_Linter_Rule_Conformance
 public import Institute_Linter_Rule_Foundation
@@ -18,6 +19,7 @@ public import Institute_Linter_Rule_Idiom
 public import Institute_Linter_Rule_Memory
 public import Institute_Linter_Rule_Naming
 public import Institute_Linter_Rule_Platform
+public import Institute_Linter_Rule_RawValue
 public import Institute_Linter_Rule_Structure
 public import Institute_Linter_Rule_Testing
 public import Institute_Linter_Rule_Throws
@@ -155,5 +157,22 @@ extension Lint.Rule.Bundle {
       .enable(.`try optional`),
       // Unchecked pack (Wave 3 2026-05-15)
       .enable(.`unchecked call site`),
+      // A5 move (2026-07-07, principal ruling) — brand-consumer rule packs
+      // relocated from swift-primitives-linter-rules so they enforce at L2/L3
+      // too (brands are defined at L1 but consumed everywhere). Precedent:
+      // [PRIM-FOUND-001] made the same primitives→institute move mid-pilot.
+      // Cardinal pack (Wave 3 2026-05-15)
+      .enable(.`zero or one literal`),
+      .enable(.`count minus one`),
+      // RawValue pack
+      .enable(.`bitpattern rawvalue chain`),
+      .enable(.`chained rawvalue access`),
+      .enable(.`tagged extension public init`),
+      // [CONV-015] — promoted 2026-07-07 (principal ruling, option a)
+      // from swift-tagged-primitives' nested Lint/ PoC
+      // (Lint.Rule.TaggedDomainAudit); map/retag/@Test exemptions
+      // preserved. Receipt:
+      // Research/promote-tagged-unchecked-validation-2026-07-07.md.
+      .enable(.`tagged unchecked with typed alternative`),
     ]
 }
