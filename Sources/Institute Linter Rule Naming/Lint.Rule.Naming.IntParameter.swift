@@ -21,6 +21,11 @@ extension Lint.Rule {
     id: "int public parameter",
     default: .warning,
     findings: { source, severity in
+      // §A brand-owner recognizer: a brand owner's own `Int`-parameter
+      // integration overloads bridge the brand to the stdlib boundary and
+      // are legitimate-by-construction. Retires the per-package
+      // `.excluding(rules:)` stopgap ([LINT-EXCLUDE-*]).
+      if Lint.Brand.owned(Lint.Brand.numericBoundaryVocabulary, in: source) { return [] }
       let visitor = NamingIntParameterVisitor(
         source: source.file,
         severity: severity,

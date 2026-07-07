@@ -54,6 +54,11 @@ extension Lint.Rule {
     id: "pointer advanced by",
     default: .warning,
     findings: { source, severity in
+      // §A brand-owner recognizer: the brand owner's own `* Standard Library
+      // Integration` pointer-arithmetic overloads are legitimate-by-
+      // construction. Retires the per-package `.excluding(rules:)` stopgap
+      // ([LINT-EXCLUDE-003]) referenced in this rule's header.
+      if Lint.Brand.owned(Lint.Brand.numericBoundaryVocabulary, in: source) { return [] }
       // Scope-exclusion: test / experiment / example trees legitimately
       // exercise raw pointer arithmetic against the SLI overloads.
       // Mirrors `Lint.Rule.Structure.SingleTypePerFile`.

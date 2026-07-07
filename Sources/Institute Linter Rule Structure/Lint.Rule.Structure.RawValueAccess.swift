@@ -21,6 +21,11 @@ extension Lint.Rule {
     id: "raw value access",
     default: .warning,
     findings: { source, severity in
+      // §A brand-owner recognizer: when the run's own sources declare a
+      // numeric brand, same-package `.rawValue` boundary access is
+      // legitimate-by-construction. Retires the per-package
+      // `.excluding(rules:)` stopgap ([LINT-EXCLUDE-*]).
+      if Lint.Brand.owned(Lint.Brand.numericBoundaryVocabulary, in: source) { return [] }
       let visitor = StructureRawValueAccessVisitor(
         source: source.file,
         severity: severity,

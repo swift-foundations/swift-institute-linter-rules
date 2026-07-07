@@ -30,6 +30,39 @@ extension Lint.Rule.`raw value access Tests` {
     let parsed = Lint.Source.parsed(from: source, file: file)
     return Lint.Rule.`raw value access`.findings(parsed, .warning)
   }
+
+  /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`.
+  static func findings(
+    in source: String,
+    declaredTypeNames: Set<String>
+  ) -> [Diagnostic.Record] {
+    let parsed = Lint.Source.parsed(from: source, declaredTypeNames: declaredTypeNames)
+    return Lint.Rule.`raw value access`.findings(parsed, .warning)
+  }
+}
+
+extension Lint.Rule.`raw value access Tests`.`Edge Case` {
+  @Test
+  func `brand-owner run self-suppresses raw value access (§A)`() {
+    // The run's own sources declare `Cardinal` (∈ numeric vocabulary), so
+    // same-package `.rawValue` boundary access is legitimate — zero findings.
+    let findings = Lint.Rule.`raw value access Tests`.findings(
+      in: "func op(tag: MyTag) { let raw = tag.rawValue; use(raw) }",
+      declaredTypeNames: ["Cardinal"]
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `consumer run still fires raw value access (§A)`() {
+    // The run declares no brand from the vocabulary — cross-package firing
+    // is preserved by construction.
+    let findings = Lint.Rule.`raw value access Tests`.findings(
+      in: "func op(tag: MyTag) { let raw = tag.rawValue; use(raw) }",
+      declaredTypeNames: ["SomeConsumerType"]
+    )
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`raw value access Tests`.Unit {
