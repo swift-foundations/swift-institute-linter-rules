@@ -213,7 +213,7 @@ internal final class MemoryUncheckedSendableRevalidationAnchorVisitor: SyntaxVis
   // (`// WHY: foo\n// WHY: bar`) is fine as long as the keyword
   // appears at least once.
 
-  private struct AnchorPresence {
+  fileprivate struct AnchorPresence {
     var why: Bool = false
     var whenToRemove: Bool = false
     var tracking: Bool = false
