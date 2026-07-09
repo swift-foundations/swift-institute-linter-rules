@@ -217,16 +217,6 @@ internal final class MemoryUncheckedSendableRevalidationAnchorVisitor: SyntaxVis
     var why: Bool = false
     var whenToRemove: Bool = false
     var tracking: Bool = false
-
-    var isComplete: Bool { why && whenToRemove && tracking }
-
-    var missingMarkers: [Swift.String] {
-      var missing: [Swift.String] = []
-      if !why { missing.append("WHY:") }
-      if !whenToRemove { missing.append("WHEN TO REMOVE:") }
-      if !tracking { missing.append("TRACKING:") }
-      return missing
-    }
   }
 
   private func anchorPresence(_ text: Swift.String) -> AnchorPresence {
@@ -329,5 +319,17 @@ internal final class MemoryUncheckedSendableRevalidationAnchorVisitor: SyntaxVis
   override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
     check(declaration: node, inheritanceClause: node.inheritanceClause)
     return .visitChildren
+  }
+}
+
+extension MemoryUncheckedSendableRevalidationAnchorVisitor.AnchorPresence {
+  var isComplete: Bool { why && whenToRemove && tracking }
+
+  var missingMarkers: [Swift.String] {
+    var missing: [Swift.String] = []
+    if !why { missing.append("WHY:") }
+    if !whenToRemove { missing.append("WHEN TO REMOVE:") }
+    if !tracking { missing.append("TRACKING:") }
+    return missing
   }
 }
