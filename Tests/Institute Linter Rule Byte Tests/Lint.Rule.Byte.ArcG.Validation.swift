@@ -27,7 +27,7 @@ import Testing
 @Suite(.serialized)
 struct `Arc G byte-lint validation` {
   @Test
-  func validateAllPackagesAcrossAllSevenRules() throws {
+  func `validate All Packages Across All Seven Rules`() throws {
     let workspaceRoot = "/Users/coen/Developer/swift-primitives"
     let fileManager = FileManager.default
     let allEntries = try fileManager.contentsOfDirectory(atPath: workspaceRoot)
