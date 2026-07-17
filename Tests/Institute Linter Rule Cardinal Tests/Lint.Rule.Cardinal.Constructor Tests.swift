@@ -22,7 +22,7 @@ extension Lint.Rule {
     struct `zero or one literal Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
-        @Suite struct Negative {}
+        @Suite struct `Negative` {}
     }
 }
 

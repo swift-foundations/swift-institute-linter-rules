@@ -191,7 +191,7 @@ extension Lint.Rule.`tagged unchecked with typed alternative Tests`.`Edge Case` 
     func `Tagged with _unchecked inside @Test function is NOT flagged`() {
         let source = """
             @Test
-            func someBehavior() {
+            func `Some Behavior`() {
                 let x = Tagged<Tag, Int>(_unchecked: 42)
                 _ = x
             }

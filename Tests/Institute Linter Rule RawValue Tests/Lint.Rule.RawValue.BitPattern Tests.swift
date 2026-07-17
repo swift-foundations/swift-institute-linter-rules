@@ -22,8 +22,8 @@ extension Lint.Rule {
     struct `bitpattern rawvalue chain Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
-        @Suite struct Evasion {}
-        @Suite struct Negative {}
+        @Suite struct `Evasion` {}
+        @Suite struct `Negative` {}
     }
 }
 

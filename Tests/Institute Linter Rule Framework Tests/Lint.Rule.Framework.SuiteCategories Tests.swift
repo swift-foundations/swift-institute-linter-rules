@@ -74,7 +74,7 @@ extension Lint.Rule.`suite categories Tests`.Unit {
   func `legacy flat shape with no categories is flagged`() {
     let source = """
       @Suite
-      struct FooBufferTests {
+      struct `Foo Buffer Tests` {
           @Test func basic() {}
       }
       """

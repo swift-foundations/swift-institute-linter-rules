@@ -270,9 +270,9 @@ extension Lint.Rule.`minimal type body Tests`.`Edge Case` {
   func `@Suite struct holding nested @Suite struct is exempt per RULE-EXEMPT-4`() {
     let source = """
       @Suite
-      struct OuterSuite {
+      struct `Outer Suite` {
           @Suite struct Unit {}
-          @Suite struct EdgeCase {}
+          @Suite struct `Edge Case` {}
       }
       """
     let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
@@ -288,7 +288,7 @@ extension Lint.Rule.`minimal type body Tests`.`Edge Case` {
       struct Outer {
           var x: Int
           @Suite
-          struct InnerSuite {}
+          struct `Inner Suite` {}
       }
       """
     let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)

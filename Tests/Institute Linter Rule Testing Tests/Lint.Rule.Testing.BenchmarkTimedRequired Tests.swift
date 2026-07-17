@@ -109,7 +109,7 @@ extension Lint.Rule.`benchmark timed required Tests`.`Variant Exemption` {
         // Load-scale gates; measurement lives in Benchmarks/ ([BENCH-003] executable variant).
         struct Performance {
             @Test func growthCurve() {}
-            @Test func validationFlat() {}
+            @Test func `Validation Flat`() {}
         }
         """)
     #expect(findings.isEmpty)
@@ -122,7 +122,7 @@ extension Lint.Rule.`benchmark timed required Tests`.`Variant Exemption` {
         struct Performance {
             // [BENCH-003] executable variant: measured in Benchmarks/.
             @Test func growthCurve() {}
-            @Test func unmeasured() {}
+            @Test func `Unmeasured`() {}
         }
         """)
     #expect(findings.count == 1)
