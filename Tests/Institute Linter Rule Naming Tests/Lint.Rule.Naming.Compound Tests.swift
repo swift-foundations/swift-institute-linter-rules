@@ -681,3 +681,61 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// #16 Option C ledger, Entry III.d (DECISION 2026-07-23): the witness
+// allowlist mechanism — conformance-gated and name-only entries.
+extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
+  @Test
+  func `conformance-gated property witness inside conforming extension is NOT flagged`() {
+    // The Identity.OAuth.GitHub witness-file shape (0205e7f seed).
+    let source = """
+      extension Identity.OAuth.GitHub: Identity.OAuth.Provider {
+          public var displayName: String { "GitHub" }
+          public var requiresTokenStorage: Bool { false }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `conformance-gated property witness outside conformance context is still flagged`() {
+    // Same name in a bare extension with no same-file conformance: the
+    // gate does not hold, the compound name fires.
+    let source = """
+      extension Widget {
+          public var displayName: String { "w" }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `name-only method witness in per-method extension file is NOT flagged`() {
+    // The one-extension-per-member convention places the witness in a
+    // bare extension whose conformance lives in a sibling FILE; the
+    // entry is name-only per the gate rationale.
+    let source = """
+      extension Identity.OAuth.GitHub {
+          public func exchangeCode(_ code: String, redirectURI: String) async throws -> Identity.OAuth.TokenResponse {
+              fatalError()
+          }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `non-witness compound identifier is still flagged`() {
+    // Positive control: a compound name in no dict still fires.
+    let source = """
+      extension Widget {
+          public func walkFiles() {}
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}

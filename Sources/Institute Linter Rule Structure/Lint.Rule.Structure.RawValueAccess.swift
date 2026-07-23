@@ -103,6 +103,21 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
     guard structureRawValueAccessFlaggedAccessors.contains(name) else {
       return .visitChildren
     }
+    // Initializer-boundary reserve (#16 Option C ledger, Entry II.1 DECISION
+    // 2026-07-23): the rule's own message reserves these accessors for
+    // "extension initializers (the brand-newtype's own boundary)" — an
+    // initializer IS the typed-conversion boundary the ladder terminates in
+    // (`init(rawValue:)` assigning its stored raw value; an adapter init
+    // consuming the brand's raw form exactly once). The implementation
+    // previously fired there anyway (e.g. `self.rawValue = rawValue` inside
+    // the declaring `init(rawValue:)`, swift-iso-9945
+    // `ISO 9945.Kernel.Process.ID.swift`), contradicting the message text.
+    // Only the DIRECTLY enclosing function-like context counts: a closure or
+    // nested function inside an initializer is ordinary consumer code and
+    // still fires.
+    if isDirectlyInsideInitializer(Syntax(node)) {
+      return .visitChildren
+    }
     // Disambiguate Swift.enum.rawValue from Tagged-newtype rawValue
     // via receiver-pattern recognition: `Lint.Visibility.public.rawValue`
     // looks like `<TypeChain>.<member>.rawValue`, where TypeChain is
@@ -131,6 +146,28 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
         message: structureRawValueAccessMessage
       ))
     return .visitChildren
+  }
+
+  /// True when the nearest enclosing function-like context of `node` is an
+  /// `InitializerDeclSyntax` — the typed-conversion boundary the rule's
+  /// message reserves. The walk stops at the FIRST function-like ancestor
+  /// (function, accessor, or closure), so raw access inside a closure or
+  /// helper nested within an init is not exempt.
+  private func isDirectlyInsideInitializer(_ node: Syntax) -> Swift.Bool {
+    var current: Syntax? = node.parent
+    while let candidate = current {
+      if candidate.is(InitializerDeclSyntax.self) { return true }
+      if candidate.is(FunctionDeclSyntax.self)
+        || candidate.is(AccessorDeclSyntax.self)
+        || candidate.is(ClosureExprSyntax.self)
+        || candidate.is(DeinitializerDeclSyntax.self)
+        || candidate.is(SubscriptDeclSyntax.self)
+      {
+        return false
+      }
+      current = candidate.parent
+    }
+    return false
   }
 
   /// True if `base` parses as `<TypeChain>.<member>` — i.e. an enum

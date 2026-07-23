@@ -40,7 +40,42 @@ internal let platformPlatformConditionalMessage: Swift.String =
   + "module — `canImport` evaluates against module resolution (varies "
   + "by build system); platform identity is what `#if os(...)` is "
   + "for (evaluates against the target triple). Reserve `canImport` "
-  + "for optional feature modules (`SwiftUI`, `Combine`, etc.)."
+  + "for module availability: optional feature modules (`SwiftUI`, "
+  + "`Combine`, etc.) and the raw C-library trellis "
+  + "(`#if canImport(Darwin) || canImport(Glibc) || canImport(Musl)`), "
+  + "which is genuine module availability — `os(Linux)` cannot "
+  + "distinguish Glibc from Musl. Institute platform-prefixed modules "
+  + "(`Darwin_Kernel_Standard` etc.) are the forbidden shape."
+
+/// Raw C-library / system-SDK modules whose `canImport` IS module
+/// availability, not platform identity — exempt (#16 Option C ledger,
+/// Entry II.2 DECISION 2026-07-23). The canonical libc trellis
+/// `#if canImport(Darwin) || canImport(Glibc) || canImport(Musl)` cannot
+/// be expressed with `os()` without losing the Musl arm (`os(Linux)` is
+/// true for both Glibc and Musl), so the skill's own determinism table
+/// (`platform/compilation.md` [PATTERN-004a]) does not condemn it. Each
+/// entry is an importable C-interop module shipped by a toolchain/SDK:
+///
+///   - `Darwin` — Apple libSystem clang module
+///   - `Glibc` / `Musl` / `Bionic` — Linux/Android libc modules
+///   - `Android` — Android NDK module
+///   - `WASILibc` — WASI libc module
+///   - `WinSDK` / `ucrt` / `CRT` — Windows SDK / C runtime modules
+///
+/// Bare `Linux` / `Windows` are NOT importable modules — `canImport` on
+/// them is always false and remains flagged (platform-identity confusion
+/// plus a latent dead branch).
+internal let platformPlatformConditionalCLibraryModules: Swift.Set<Swift.String> = [
+  "Darwin",
+  "Glibc",
+  "Musl",
+  "Bionic",
+  "Android",
+  "WASILibc",
+  "WinSDK",
+  "ucrt",
+  "CRT",
+]
 
 internal let platformPlatformConditionalPlatformPrefixes: Swift.Set<Swift.String> = [
   "Darwin",
@@ -53,6 +88,9 @@ internal let platformPlatformConditionalPlatformPrefixes: Swift.Set<Swift.String
 ]
 
 internal func platformPlatformConditionalIsPlatformModuleName(_ name: Swift.String) -> Swift.Bool {
+  // Exempt the raw C-library / system-SDK modules (#16 Entry II.2):
+  // gating on their importability is the sanctioned libc trellis.
+  if platformPlatformConditionalCLibraryModules.contains(name) { return false }
   if platformPlatformConditionalPlatformPrefixes.contains(name) { return true }
   for prefix in platformPlatformConditionalPlatformPrefixes {
     if name.hasPrefix("\(prefix)_") { return true }

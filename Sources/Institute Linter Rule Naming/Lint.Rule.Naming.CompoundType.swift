@@ -49,7 +49,11 @@ private let namingCompoundTypeMessage: Swift.String =
   + "Stdlib-method-mirror type names that elevate a Swift.Sequence "
   + "(or adjacent) method name to a namespace are exempt per "
   + "`[API-NAME-003]` — see `namingCompoundTypeStdlibMethodMirrorCitations` "
-  + "in this rule's source for the citation set."
+  + "in this rule's source for the citation set. Brand tokens whose "
+  + "internal capitals are brand/spec orthography (`GitHub`, `OAuth`, "
+  + "`IPv4`, …) are exempt per the #16 Option C ledger — see "
+  + "`namingCompoundTypeBrandTokenCitations`; propose additions there "
+  + "with the authority that fixes the spelling."
 
 /// Compound type names that mirror a Swift-stdlib method name and
 /// elevate it to a namespace at the institute's iteration / collection
@@ -71,6 +75,27 @@ private let namingCompoundTypeStdlibMethodMirrorCitations: [Swift.String: Swift.
   "FlatMap": "Swift.Sequence.flatMap(_:) / Swift.Optional.flatMap(_:)",
   "ForEach": "Swift.Sequence.forEach(_:)",
   "AllSatisfy": "Swift.Sequence.allSatisfy(_:)",
+]
+
+/// Brand tokens whose canonical spelling carries internal capitals that
+/// the word-boundary heuristic misreads as a compound name (#16 Option C
+/// ledger, Entries III.a/III.b DECISION 2026-07-23). A brand token is a
+/// SINGLE word whose orthography is fixed by the brand or specification
+/// that owns it — `GitHub` is not `Git` + `Hub` any more than `OAuth` is
+/// `O` + `Auth`. Firing on these forces the ecosystem's own canonical
+/// naming (`GitHub.Owner.ID`, `GitHub.HTTP.OAuth`) into per-site disables.
+///
+/// Mirrors the `namingCompoundTypeStdlibMethodMirrorCitations` /
+/// `namingCompoundSwiftNativeIdiomCitations` mechanism: each entry cites
+/// the authority that fixes the spelling; adding an entry without a
+/// citation is indefensible at review time. Entries match the full type
+/// name token only — `GitHubClient` (a genuine compound) still fires.
+private let namingCompoundTypeBrandTokenCitations: [Swift.String: Swift.String] = [
+  "GitHub": "github.com brand orthography — ecosystem canonical `GitHub.Owner.ID` (swift-github-standard)",
+  "OAuth": "RFC 6749 (The OAuth 2.0 Authorization Framework) — spec's own token spelling",
+  "IPv4": "RFC 791 — protocol-version orthography (`IPv4.Address`, swift-rfc-791)",
+  "IPv6": "RFC 8200 — protocol-version orthography",
+  "PostgreSQL": "postgresql.org brand orthography",
 ]
 
 internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
@@ -173,6 +198,12 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
     // that elevate a Swift.Sequence (or adjacent) compound method
     // name to a namespace inherit the compound spelling.
     if namingCompoundTypeStdlibMethodMirrorCitations[name] != nil {
+      return false
+    }
+    // Brand-token exemption per #16 Option C Entries III.a/III.b: the
+    // token's internal capitals are brand/spec orthography, not word
+    // boundaries. Exact-match only.
+    if namingCompoundTypeBrandTokenCitations[name] != nil {
       return false
     }
     // Spec-namespace forms (`RFC_4122`, `ISO_9945`) — exempt.

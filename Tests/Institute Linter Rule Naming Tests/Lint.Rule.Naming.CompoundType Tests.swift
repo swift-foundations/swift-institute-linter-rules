@@ -316,3 +316,46 @@ extension Lint.Rule.`compound type name Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// #16 Option C ledger, Entries III.a/III.b (DECISION 2026-07-23): brand
+// tokens whose internal capitals are brand/spec orthography.
+extension Lint.Rule.`compound type name Tests`.`Edge Case` {
+  @Test
+  func `brand token OAuth is NOT flagged`() {
+    // The swift-github-http `GitHub.HTTP.OAuth` shape (759330b seed).
+    let source = """
+      extension GitHub.HTTP {
+          public enum OAuth: Sendable {}
+      }
+      """
+    let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `brand token GitHub is NOT flagged`() {
+    // The swift-identities-github shape (0205e7f seed).
+    let source = """
+      extension Identity.OAuth {
+          public struct GitHub: Sendable {}
+      }
+      """
+    let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `brand token IPv4 is NOT flagged`() {
+    let source = "public enum IPv4 {}"
+    let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `brand-token-prefixed compound is still flagged`() {
+    // Exact-match only: `GitHubClient` is a genuine compound.
+    let source = "public struct GitHubClient {}"
+    let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}

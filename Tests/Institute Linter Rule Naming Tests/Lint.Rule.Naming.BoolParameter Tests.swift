@@ -223,3 +223,77 @@ extension Lint.Rule.`bool public parameter Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// #16 Option C ledger, Entry II.3 (DECISION 2026-07-23): wire-schema and
+// named-options memberwise-init exemptions.
+extension Lint.Rule.`bool public parameter Tests`.`Edge Case` {
+  @Test
+  func `Decodable wire struct memberwise init Bool is NOT flagged`() {
+    // The Mailgun `Recipient.activated` shape: the Bool mirrors the
+    // provider's JSON schema.
+    let source = """
+      public struct Recipient: Sendable, Decodable, Equatable {
+          public let email: EmailAddress
+          public let activated: Bool
+          public init(email: EmailAddress, activated: Bool) {
+              self.email = email
+              self.activated = activated
+          }
+      }
+      """
+    let findings = Lint.Rule.`bool public parameter Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `Options struct memberwise init Bools are NOT flagged`() {
+    // The iso-9945 `Kernel.File.Copy.Options` shape: the named-options
+    // struct is the rule's own prescribed remedy.
+    let source = """
+      extension Kernel.File.Copy {
+          public struct Options: Sendable {
+              public var overwrite: Bool
+              public var followSymlinks: Bool
+              public init(overwrite: Bool = false, followSymlinks: Bool = true) {
+                  self.overwrite = overwrite
+                  self.followSymlinks = followSymlinks
+              }
+          }
+      }
+      """
+    let findings = Lint.Rule.`bool public parameter Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `behavioral Bool in wire struct init is still flagged`() {
+    // A Bool the init consumes as logic (not assigned memberwise) is a
+    // behavioral flag even inside a Decodable type.
+    let source = """
+      public struct Config: Decodable {
+          public let mode: String
+          public init(strict: Bool) {
+              self.mode = strict ? "strict" : "lenient"
+          }
+      }
+      """
+    let findings = Lint.Rule.`bool public parameter Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `memberwise Bool init on plain public struct is still flagged`() {
+    // Positive control: no wire-schema conformance, not an Options
+    // struct — the behavioral-API signal is preserved.
+    let source = """
+      public struct Walker {
+          public let recursive: Bool
+          public init(recursive: Bool) {
+              self.recursive = recursive
+          }
+      }
+      """
+    let findings = Lint.Rule.`bool public parameter Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}

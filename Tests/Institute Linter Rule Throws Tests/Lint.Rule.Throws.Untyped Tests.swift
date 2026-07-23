@@ -338,3 +338,68 @@ extension Lint.Rule.`untyped throws Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// #16 Option C ledger, Entry III.c (DECISION 2026-07-23): @Test /
+// @Suite-member declarations are exempt — a test rethrows to the runner
+// and has no API surface.
+extension Lint.Rule.`untyped throws Tests`.`Edge Case` {
+  @Test
+  func `untyped throws on a Test function is NOT flagged`() {
+    let source = """
+      @Suite struct `Widget Tests` {
+          @Test
+          func `round-trips`() async throws {
+              try await run()
+          }
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `untyped throws on a Suite-member helper is NOT flagged`() {
+    let source = """
+      @Suite(.serialized) enum Tests {
+          static func makeServer() async throws -> Server {
+              try await Server()
+          }
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `untyped throws in extension of same-file Suite type is NOT flagged`() {
+    // The [SWIFT-TEST-002] extension-pattern: `@Suite enum Tests {}`
+    // nested via extension, members hung on a sibling extension.
+    let source = """
+      extension Sockets.TCP.Listener {
+          @Suite(.serialized)
+          enum Tests {}
+      }
+
+      extension Sockets.TCP.Listener.Tests {
+          static func makeServer() async throws -> Server {
+              try await Server()
+          }
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `untyped throws on a plain function is still flagged after III-c`() {
+    // Positive control: file-scope helpers (even in test files) keep
+    // firing — they have callers and can adopt typed throws.
+    let source = """
+      private func serverSideEcho(listener: Listener) async throws -> [UInt8] {
+          try await listener.echo()
+      }
+      """
+    let findings = Lint.Rule.`untyped throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}

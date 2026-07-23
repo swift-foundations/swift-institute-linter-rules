@@ -59,7 +59,11 @@ private let namingCompoundMessage: Swift.String =
   + "facing typed-input bridge (e.g., a typed-Cardinal-input overload of "
   + "`OutputSpan.removeLast` mirrors `Array.removeLast(_:Int)`), OR a "
   + "protocol this extension conforms to requires this exact name but "
-  + "isn't yet in the witness allowlist. The warning IS the intended "
+  + "isn't yet in the witness allowlist "
+  + "(`namingCompoundProtocolWitnessMethodCitations` in this rule's "
+  + "source — entries are proposed in lint drains with a "
+  + "`Protocol.requirement` citation and ratified per #16 Option C "
+  + "Entry III.d). The warning IS the intended "
   + "signal — review each canary, confirm the justification still holds, "
   + "leave the warning. Don't silently disable; don't fix-source against "
   + "the rule's intent. If you've confirmed a name is broadly applicable "
@@ -155,35 +159,69 @@ private let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.String
 ]
 
 /// Method names that are protocol-required witnesses on a stdlib or
-/// institute protocol. Exempt from the compound-name rule ONLY when
-/// the enclosing extension's inheritance clause names the corresponding
-/// protocol — outside that conformance context, the same compound name
-/// has no structural justification and should still fire.
+/// institute protocol — the witness allowlist the rule's accept-as-warning
+/// arm refers to. Formalized by the #16 Option C ledger, Entry III.d
+/// (DECISION 2026-07-23):
 ///
-/// The conformance-context gate uses `Naming.conformances`
-/// from `Lint.Rule.Naming.Shared.swift`. Each entry cites the specific
-/// protocol member whose contract dictates the name.
-private let namingCompoundProtocolWitnessMethodCitations: [Swift.String: Swift.String] = [
-  "encodeAtomicRepresentation": "Swift.AtomicRepresentable.encodeAtomicRepresentation(_:)",
-  "decodeAtomicRepresentation": "Swift.AtomicRepresentable.decodeAtomicRepresentation(_:)",
-  "makeIterator": "Swift.Sequence.makeIterator()",
+/// - **Who adds entries**: entries are proposed in lint drains and
+///   ratified by the principal (or a session holding delegated
+///   adjudication authority); the ratifying adjudication is cited in the
+///   entry's comment when the entry is institute-protocol-sourced.
+/// - **Citation**: each entry names the specific `Protocol.requirement`
+///   whose contract dictates the name. Adding an entry without a
+///   citation is indefensible at review time ([RULE-EXEMPT-2]).
+/// - **Effect**: allowlisted witnesses stop firing entirely inside their
+///   gate (below); outside it they still fire.
+///
+/// Gate (`conformanceGated`): when `true`, the exemption requires the
+/// enclosing context to introduce a conformance (`Naming.conformances`
+/// non-empty — [RULE-EXEMPT-3]); outside that context the compound name
+/// still fires. When `false`, the entry is name-only: the institute's
+/// one-extension-per-member file convention (`Type+method.swift`) places
+/// the witness in a bare extension whose conformance is declared in a
+/// SIBLING file, which no same-file AST walk can see — the same
+/// structural limitation that made `Naming.Build.methods` name-only
+/// (see the [RULE-EXEMPT-4] note in this file). Name-only entries MUST
+/// be protocol vocabulary distinctive enough that non-witness reuse is
+/// implausible.
+private let namingCompoundProtocolWitnessMethodCitations:
+  [Swift.String: (citation: Swift.String, conformanceGated: Swift.Bool)] = [
+  "encodeAtomicRepresentation": ("Swift.AtomicRepresentable.encodeAtomicRepresentation(_:)", true),
+  "decodeAtomicRepresentation": ("Swift.AtomicRepresentable.decodeAtomicRepresentation(_:)", true),
+  "makeIterator": ("Swift.Sequence.makeIterator()", true),
+  // Identity.OAuth.Provider witnesses (swift-identities-types,
+  // `Identity.OAuth.swift` — protocol requirements verified at source).
+  // Ratified per #16 Option C Entry III.d (0205e7f seeded the 7 sites).
+  // The property witnesses sit in the conformance-declaring extension
+  // (`Identity.OAuth.GitHub+Identity.OAuth.Provider.swift`) and are
+  // conformance-gated; the method witnesses live in per-method extension
+  // files (`Identity.OAuth.GitHub+exchangeCode.swift` etc.) whose
+  // conformance is declared in the sibling witness file, so they are
+  // name-only per the gate rationale above.
+  "displayName": ("Identity.OAuth.Provider.displayName", true),
+  "requiresTokenStorage": ("Identity.OAuth.Provider.requiresTokenStorage", true),
+  "supportsRefresh": ("Identity.OAuth.Provider.supportsRefresh", true),
+  "authorizationURL": ("Identity.OAuth.Provider.authorizationURL(state:redirectURI:)", false),
+  "exchangeCode": ("Identity.OAuth.Provider.exchangeCode(_:redirectURI:)", false),
+  "getUserInfo": ("Identity.OAuth.Provider.getUserInfo(accessToken:)", false),
+  "refreshToken": ("Identity.OAuth.Provider.refreshToken(_:)", false),
   // Institute Sequence.Iterator.`Protocol` sole protocol requirement.
   // Span-based primitive (`mutating func nextSpan(maximumCount:) -> Span<Element>`)
   // is the institute counterpart to Swift.IteratorProtocol's `next()`;
   // see `swift-primitives/swift-sequence-primitives/Sources/Sequence Primitives Core/Sequence.Iterator.Protocol.swift`.
   "nextSpan":
-    "Sequence.Iterator.`Protocol`.nextSpan(maximumCount:) — institute span-based iterator primitive aligned with Swift.IteratorProtocol vocabulary",
+    ("Sequence.Iterator.`Protocol`.nextSpan(maximumCount:) — institute span-based iterator primitive aligned with Swift.IteratorProtocol vocabulary", true),
   // Swift.Sequence/RangeReplaceableCollection vocabulary aligned, plus
   // institute Sequence.`Clearable` requirement (`mutating func removeAll()`).
   "removeAll":
-    "Swift.RangeReplaceableCollection.removeAll() / Swift.Sequence.removeAll(where:) / Sequence.`Clearable`.removeAll()",
+    ("Swift.RangeReplaceableCollection.removeAll() / Swift.Sequence.removeAll(where:) / Sequence.`Clearable`.removeAll()", true),
   // Institute Collection.Remove.Last requirement (`static func removeLast(_:)`),
   // preserving drop-in vocabulary alignment with Swift.Array.removeLast() and
   // Swift.RangeReplaceableCollection.removeLast(). Institute syntax is additive
   // on top: `.remove.last()` is the fluent View accessor; consumers may also
   // expose `removeLast()` instance form for stdlib-compatibility.
   "removeLast":
-    "Swift.RangeReplaceableCollection.removeLast() / Swift.Array.removeLast() / Collection.Remove.Last.removeLast(_:) — drop-in stdlib replacement vocabulary",
+    ("Swift.RangeReplaceableCollection.removeLast() / Swift.Array.removeLast() / Collection.Remove.Last.removeLast(_:) — drop-in stdlib replacement vocabulary", true),
 ]
 
 internal final class NamingCompoundVisitor: SyntaxVisitor {
@@ -268,7 +306,13 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
     // its specific protocol. Composes with [RULE-EXEMPT-3]
     // (conformance-context) via `namingIsInsideConformingContext`'s
     // lookup-form companion `Naming.conformances`.
-    if namingCompoundProtocolWitnessMethodCitations[name] != nil {
+    if let entry = namingCompoundProtocolWitnessMethodCitations[name] {
+      if !entry.conformanceGated {
+        // Name-only witness entry (#16 Entry III.d): the conformance is
+        // declared in a sibling file per the one-extension-per-member
+        // convention; no same-file walk can gate it.
+        return .visitChildren
+      }
       let conformances = Naming.conformances(Syntax(node))
       if !conformances.isEmpty {
         return .visitChildren
@@ -310,6 +354,20 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
       let name = pattern.identifier.text
       guard isCompoundIdentifier(name) else {
         continue
+      }
+      // Exempt per [RULE-EXEMPT-2] (protocol-witness-citation-dict) —
+      // property witnesses (`displayName`, `requiresTokenStorage`, …)
+      // are dictated by the cited protocol requirement exactly as
+      // method witnesses are. Same gate as the function path; #16
+      // Option C Entry III.d extended the dict's coverage to the
+      // variable path.
+      if let entry = namingCompoundProtocolWitnessMethodCitations[name] {
+        if !entry.conformanceGated {
+          continue
+        }
+        if !Naming.conformances(Syntax(node)).isEmpty {
+          continue
+        }
       }
       emit(at: pattern.identifier.positionAfterSkippingLeadingTrivia)
     }

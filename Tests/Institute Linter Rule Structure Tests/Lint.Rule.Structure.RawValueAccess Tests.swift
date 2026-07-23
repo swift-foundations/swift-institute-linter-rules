@@ -176,3 +176,68 @@ extension Lint.Rule.`raw value access Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// #16 Option C ledger, Entry II.1 (DECISION 2026-07-23): the
+// initializer-boundary reserve. The rule's message reserves the flagged
+// accessors for "extension initializers (the brand-newtype's own
+// boundary)"; the implementation now honors that reserve.
+extension Lint.Rule.`raw value access Tests`.`Edge Case` {
+  @Test
+  func `self rawValue assignment inside declaring init is NOT flagged`() {
+    // The swift-iso-9945 `ISO 9945.Kernel.Process.ID` shape.
+    let source = """
+      public struct ID: RawRepresentable {
+          public let rawValue: Int32
+          public init(rawValue: Int32) {
+              self.rawValue = rawValue
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `brand rawValue consumption inside adapter extension init is NOT flagged`() {
+    // The swift-sockets-ip-address `Kernel.Socket.Address.IPv4+IP` shape
+    // (#16 Entry III.f): the extension initializer IS the conversion
+    // boundary.
+    let source = """
+      extension Kernel.Socket.Address.IPv4 {
+          public init(ip: IPv4.Address, port: UInt16 = 0) {
+              let address: UInt32 = ip.rawValue
+              self.init(address: address.bigEndian, port: port)
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `rawValue inside a closure nested in an init is still flagged`() {
+    // Only the directly-enclosing initializer context is the boundary;
+    // a closure inside it is ordinary consumer code.
+    let source = """
+      struct Holder {
+          init(tags: [MyTag]) {
+              self.values = tags.map { tag in tag.rawValue }
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `rawValue in ordinary function body is still flagged after II-1`() {
+    // Positive control: the consumer-call-site signal is preserved.
+    let source = """
+      func send(tag: MyTag) {
+          transmit(tag.rawValue)
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}

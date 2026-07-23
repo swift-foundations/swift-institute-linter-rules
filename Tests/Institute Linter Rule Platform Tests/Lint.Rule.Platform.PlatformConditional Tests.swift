@@ -50,11 +50,39 @@ extension Lint.Rule.`canimport conditional Tests`.Unit {
     }
   }
 
+  // #16 Option C ledger, Entry II.2 (DECISION 2026-07-23): bare
+  // C-library modules are module availability, not platform identity —
+  // the libc trellis cannot be expressed with `os()` (`os(Linux)` cannot
+  // distinguish Glibc from Musl).
   @Test
-  func `canImport bare Darwin is flagged`() {
+  func `canImport bare Darwin is NOT flagged - C-library module availability`() {
     let source = """
       #if canImport(Darwin)
       import Darwin
+      #endif
+      """
+    let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `libc trellis is NOT flagged - Darwin Glibc Musl disjunction`() {
+    let source = """
+      #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+      import CInterop
+      #endif
+      """
+    let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `canImport bare Linux is flagged - not an importable module`() {
+    // `Linux` is not a real module; `canImport(Linux)` is an always-false
+    // platform-identity confusion and remains flagged.
+    let source = """
+      #if canImport(Linux)
+      import Glibc
       #endif
       """
     let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
@@ -73,10 +101,21 @@ extension Lint.Rule.`canimport conditional Tests`.Unit {
   }
 
   @Test
-  func `canImport Glibc is flagged`() {
+  func `canImport Glibc is NOT flagged - C-library module availability`() {
     let source = """
       #if canImport(Glibc)
       import Glibc
+      #endif
+      """
+    let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `canImport Glibc-prefixed institute module is flagged`() {
+    let source = """
+      #if canImport(Glibc_Kernel_Standard)
+      import Glibc_Kernel_Standard
       #endif
       """
     let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
