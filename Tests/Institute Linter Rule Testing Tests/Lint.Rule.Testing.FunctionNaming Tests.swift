@@ -48,7 +48,7 @@ extension Lint.Rule.`test function naming Tests`.Unit {
   func `Test func with camelCase name is flagged`() {
     let source = """
       @Test
-      func `Init Creates Empty Buffer`() {}
+      func testInitCreatesEmptyBuffer() {}
       """
     let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
     #expect(findings.count == 1)
@@ -77,7 +77,7 @@ extension Lint.Rule.`test function naming Tests`.Unit {
   func `Test with arguments and camelCase name is flagged`() {
     let source = """
       @Test(.tags(.fast))
-      func `Run Stuff`() {}
+      func runStuff() {}
       """
     let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
     #expect(findings.count == 1)
@@ -118,7 +118,7 @@ extension Lint.Rule.`test function naming Tests`.Unit {
     // non-CamelCase single-word identifiers pass.
     let source = """
       @Test
-      func `Comparison`() {}
+      func comparison() {}
       """
     let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
     #expect(findings.isEmpty)
@@ -130,7 +130,7 @@ extension Lint.Rule.`test function naming Tests`.Unit {
     // backticks. Identifier is clean Swift; backticks would add no value.
     let source = """
       @Test
-      func `Equality`() {}
+      func equality() {}
       """
     let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
     #expect(findings.isEmpty)
