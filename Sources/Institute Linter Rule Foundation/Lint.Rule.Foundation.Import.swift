@@ -12,10 +12,14 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
-/// Primitives packages MUST NOT import Foundation or FoundationEssentials.
-/// Citation: `[PRIM-FOUND-001]`. Composes with `[ARCH-LAYER-007]`
-/// (ecosystem-wide Foundation-free policy extending the primitives
-/// rule to all five layers).
+/// No package's main target imports the Foundation module family, at any of
+/// the five layers. Citation: `[ARCH-LAYER-007]`; `[PRIM-FOUND-001]` is the
+/// Layer-1 specialization of the same discipline.
+///
+/// The family is `Foundation`, `FoundationEssentials`, `FoundationNetworking`
+/// and `FoundationXML`. `FoundationNetworking` matters disproportionately: it
+/// is where `URLSession` lives on Linux, so omitting it leaves the rule blind
+/// on precisely the axis it exists to guard.
 extension Lint.Rule {
   public static let `foundation import` = Lint.Rule(
     id: "foundation import",
@@ -34,11 +38,14 @@ extension Lint.Rule {
 
 @usableFromInline
 internal let foundationImportMessage: Swift.String =
-  "[foundation import] [PRIM-FOUND-001]: primitives source MUST NOT import "
-  + "Foundation or FoundationEssentials. Use institute primitives "
-  + "(`Time_Primitives`, `Binary_Primitives`, etc.) instead. Foundation-adjacent "
-  + "interop belongs in a separately-declared `* Foundation Integration` "
-  + "subtarget per `[ARCH-LAYER-007]`, not the main target."
+  "[foundation import] [ARCH-LAYER-007]: no package's main target may import "
+  + "the Foundation module family (`Foundation`, `FoundationEssentials`, "
+  + "`FoundationNetworking`, `FoundationXML`) — at ANY of the five layers, not "
+  + "just primitives. Use institute primitives (`Time_Primitives`, "
+  + "`Binary_Primitives`, etc.) instead. Foundation-adjacent interop belongs in "
+  + "a separately-declared `* Foundation Integration` subtarget that consumers "
+  + "opt into, never the main target. (`[PRIM-FOUND-001]` is the Layer-1 "
+  + "specialization of this rule; it is not a primitives-only rule.)"
 
 internal final class FoundationImportVisitor: SyntaxVisitor {
   let source: Source.File
@@ -75,11 +82,24 @@ internal final class FoundationImportVisitor: SyntaxVisitor {
   }
 }
 
-/// Returns true if `pathText` is `Foundation` or `FoundationEssentials`.
-/// Submodule imports (`Foundation.NSURL`) are also caught — any path
-/// whose first component is `Foundation` / `FoundationEssentials`
-/// pulls in the framework and counts as a violation.
+/// The Foundation module family this rule flags.
+///
+/// `FoundationNetworking` and `FoundationXML` are the corelibs-Foundation
+/// modules on Linux; importing either pulls in Foundation just as surely as
+/// importing `Foundation` itself does.
+private let foundationModuleFamily: Swift.Set<Swift.String> = [
+  "Foundation",
+  "FoundationEssentials",
+  "FoundationNetworking",
+  "FoundationXML",
+]
+
+/// Returns true if `pathText` names a module in the Foundation family.
+/// Submodule imports (`Foundation.NSURL`) are also caught — any path whose
+/// FIRST component is a family member pulls in the framework and counts as a
+/// violation. Modules with a family name in a NON-leading position
+/// (`HTML_Foundation`, `Server_Foundation`) are deliberately not flagged.
 private func foundationImportIsFoundationModule(_ pathText: Swift.String) -> Swift.Bool {
   let firstComponent = pathText.split(separator: ".").first.map(Swift.String.init) ?? pathText
-  return firstComponent == "Foundation" || firstComponent == "FoundationEssentials"
+  return foundationModuleFamily.contains(firstComponent)
 }

@@ -76,6 +76,57 @@ extension Lint.Rule.`foundation import Tests`.Unit {
     let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `FoundationNetworking import is flagged`() {
+    // FoundationNetworking is where URLSession lives on Linux. Omitting it
+    // left the rule blind on exactly the axis it exists to guard.
+    let source = "import FoundationNetworking"
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `exported import of FoundationNetworking is flagged`() {
+    // The live shape that motivated closing the hole: a package re-exporting
+    // FoundationNetworking to every consumer while passing the rule clean.
+    // Observed at swift-urlrequest-handler exports.swift:4 on 2026-07-24.
+    let source = "@_exported import FoundationNetworking"
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `FoundationNetworking guarded by canImport is still flagged`() {
+    // The conditional does not make the import Foundation-free; it only makes
+    // it platform-conditional. Observed shape at DefaultSessionKey.swift:11-13.
+    let source = """
+      #if canImport(FoundationNetworking)
+          import FoundationNetworking
+      #endif
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `FoundationXML import is flagged`() {
+    let source = "import FoundationXML"
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `every Foundation family member is flagged exactly once`() {
+    let source = """
+      import Foundation
+      import FoundationEssentials
+      import FoundationNetworking
+      import FoundationXML
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 4)
+  }
 }
 
 extension Lint.Rule.`foundation import Tests`.`Edge Case` {
@@ -115,5 +166,37 @@ extension Lint.Rule.`foundation import Tests`.`Edge Case` {
     let source = ""
     let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
     #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `family name in a non-leading position is NOT flagged`() {
+    // Widening the family must not widen the non-leading-component exemption.
+    // Server_Foundation is an institute package, not the Apple framework.
+    let source = """
+      import HTML_Foundation
+      import Server_Foundation
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a longer module name merely PREFIXED by a family member is NOT flagged`() {
+    // The match is exact on the first path component, not a prefix test.
+    // FoundationNetworkingHelpers is a different module from
+    // FoundationNetworking and must not be flagged by widening the family.
+    let source = """
+      import FoundationNetworkingHelpers
+      import FoundationalTypes
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `FoundationNetworking submodule import is flagged`() {
+    let source = "import FoundationNetworking.NSURLSession"
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 1)
   }
 }
