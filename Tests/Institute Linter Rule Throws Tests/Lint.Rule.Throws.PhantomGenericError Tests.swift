@@ -39,6 +39,25 @@ extension Lint.Rule.`phantom generic error in typed throws Tests` {
     let parsed = Lint.Source.parsed(from: source, file: file)
     return Lint.Rule.`phantom generic error in typed throws`.findings(parsed, .warning)
   }
+
+  /// Which detector produced a finding.
+  ///
+  /// The rule has two, and they carry DIFFERENT messages because they prescribe
+  /// different remedies (`hoist it` vs `name the hoisted type directly`). A
+  /// `count == 1` assertion pins detector *existence* but not *identity*: swap
+  /// the two detectors' predicates and every count stays 1 while every
+  /// diagnostic becomes wrong. These assertions close that.
+  enum Detector: Swift.String {
+    case declarationSite
+    case useSite
+  }
+
+  /// Detectors that fired, in report order.
+  static func detectors(in source: Swift.String) -> [Detector] {
+    findings(in: source).map { record in
+      record.message.contains("never uses its parameter") ? .declarationSite : .useSite
+    }
+  }
 }
 
 // MARK: - Unit
@@ -60,6 +79,11 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Unit {
       #expect(findings[0].identifier == "phantom generic error in typed throws")
       #expect(findings[0].severity == .warning)
     }
+    // Pins detector IDENTITY, not just count.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source)
+        == [.declarationSite]
+    )
   }
 
   @Test
@@ -74,6 +98,13 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Unit {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [
+        .declarationSite
+      ]
+    )
   }
 
   @Test
@@ -93,6 +124,11 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Unit {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [.useSite]
+    )
   }
 
   @Test
@@ -116,6 +152,11 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Unit {
     let source = "func op<Input>() throws(Parse<Input>.Error) {}"
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [.useSite]
+    )
   }
 
   @Test
@@ -134,6 +175,13 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Unit {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [
+        .declarationSite
+      ]
+    )
   }
 
   @Test
@@ -147,6 +195,13 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Unit {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [
+        .declarationSite
+      ]
+    )
   }
 }
 
@@ -275,6 +330,14 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.`Edge Case` {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Dedup must keep the DECLARATION-SITE finding — it is the one whose remedy
+    // ("hoist the enum") is correct when the enum is genuinely still phantom.
+    // Count alone would pass even if dedup started keeping the use-site finding,
+    // silently swapping a correct remedy for the wrong one.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source)
+        == [.declarationSite]
+    )
   }
 }
 
@@ -299,6 +362,13 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Integration {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [
+        .declarationSite
+      ]
+    )
   }
 
   @Test
@@ -333,6 +403,11 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Integration {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [.useSite]
+    )
   }
 
   @Test
@@ -367,6 +442,13 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Integration {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [
+        .declarationSite
+      ]
+    )
   }
 
   @Test
@@ -400,6 +482,13 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Integration {
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [
+        .declarationSite
+      ]
+    )
   }
 
   @Test
@@ -425,5 +514,10 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Integration {
     // silently tolerated.
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+    // Pins detector IDENTITY, not just count: a swapped predicate keeps the
+    // count and silently emits the wrong remedy.
+    #expect(
+      Lint.Rule.`phantom generic error in typed throws Tests`.detectors(in: source) == [.useSite]
+    )
   }
 }
