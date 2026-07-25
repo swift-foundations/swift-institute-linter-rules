@@ -78,14 +78,37 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.Unit {
 
   @Test
   func `typealias Failure naming a generic-argument-bearing Error is flagged`() {
-    // Detector B: the enum itself lives in another file.
+    // Detector B: the error ENUM lives in another file, but the generic type and
+    // its `typealias Failure` share one — verified against the real pre-fix
+    // swift-rfc-9110 (`HTTP.Parse.Token.swift`: struct at :17, alias at :26) and
+    // swift-iso-8601 (`ISO_8601.Duration.Parser.swift`: struct at :22, alias at
+    // :30). That co-location is what makes `Input` resolvable in scope.
     let source = """
+      extension RFC_9110.Parse {
+          public struct Token<Input: Collection.Slice.`Protocol`>: Sendable {}
+      }
       extension RFC_9110.Parse.Token: Parser.`Protocol` {
           public typealias Failure = RFC_9110.Parse.Token<Input>.Error
       }
       """
     let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
     #expect(findings.count == 1)
+  }
+
+  @Test
+  func `use site whose generic type is declared in ANOTHER file is NOT detected`() {
+    // Stated recall limit, not a bug: with no declaration of `Token` in this
+    // file, `Input` cannot be resolved as a generic parameter, so the argument is
+    // indistinguishable from a concrete type. No real manifestation has this
+    // shape — every one co-locates the generic type with its `typealias Failure`
+    // — but a future package that splits them would be missed here.
+    let source = """
+      extension RFC_9110.Parse.Token: Parser.`Protocol` {
+          public typealias Failure = RFC_9110.Parse.Token<Input>.Error
+      }
+      """
+    let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
   }
 
   @Test
@@ -211,6 +234,26 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.`Edge Case` {
       extension Some.Other.Parse {
           public enum Error: Swift.Error {
               case bad
+          }
+      }
+      """
+    let findings = Lint.Rule.`phantom generic error in typed throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `concrete generic argument at a use site is NOT flagged`() {
+    // `Byte.Input` is a concrete type, not an in-scope generic parameter, so the
+    // base is fully specialized and no type parameter reaches the `@error` SIL
+    // result. Measured false positive at
+    // swift-w3c-xml/Sources/W3C XML/W3C_XML.Parser.swift:409 — and an unfixable
+    // one, since it is a public throws clause where naming the hoisted
+    // `__W3CXMLParserError` would violate [API-ERR-007].
+    let source = """
+      extension W3C_XML {
+          public struct Parser<Input>: ~Copyable {}
+          public static func fragment(_ string: String) throws(Parser<Byte.Input>.Error) -> Element {
+              fatalError()
           }
       }
       """

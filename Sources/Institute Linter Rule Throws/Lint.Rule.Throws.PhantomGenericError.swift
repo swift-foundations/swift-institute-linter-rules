@@ -163,26 +163,49 @@ private func throwsPhantomLeafName(of type: TypeSyntax) -> Swift.String? {
   return nil
 }
 
-/// True when `type` is a member type (`A.B<Args>.Error`) whose base chain
-/// carries a generic argument clause — i.e. the error type is *spelled* as
-/// parameterised by the enclosing type's parameter.
-private func throwsPhantomBaseCarriesGenericArguments(_ type: TypeSyntax) -> Swift.Bool {
+/// Generic arguments carried by a member type's base chain (`A.B<Args>.Error`).
+private func throwsPhantomBaseGenericArguments(_ type: TypeSyntax) -> [Swift.String] {
   var current = type
   while let optional = current.as(OptionalTypeSyntax.self) { current = optional.wrappedType }
   while let attributed = current.as(AttributedTypeSyntax.self) { current = attributed.baseType }
-  guard let member = current.as(MemberTypeSyntax.self) else { return false }
+  guard let member = current.as(MemberTypeSyntax.self) else { return [] }
   var base = member.baseType
   while true {
     if let identifier = base.as(IdentifierTypeSyntax.self) {
-      return identifier.genericArgumentClause != nil
+      return identifier.genericArgumentClause?.arguments.map { $0.argument.trimmedDescription }
+        ?? []
     }
     if let inner = base.as(MemberTypeSyntax.self) {
-      if inner.genericArgumentClause != nil { return true }
+      if let clause = inner.genericArgumentClause {
+        return clause.arguments.map { $0.argument.trimmedDescription }
+      }
       base = inner.baseType
       continue
     }
-    return false
+    return []
   }
+}
+
+/// True when at least one generic argument NAMES AN IN-SCOPE GENERIC PARAMETER.
+///
+/// A base spelled with *concrete* arguments is a fully-specialized type: no type
+/// parameter reaches the `@error` SIL result, so there is nothing to trip the
+/// optimizer. `W3C_XML.Parser.swift`'s
+/// `public static func fragment(_:) throws(Parser<Byte.Input>.Error)` is exactly
+/// this — `Byte.Input` is a concrete type and `Parser.Error` is already a
+/// typealias onto a non-generic enum. Firing there is a false positive, and an
+/// unfixable one: it is a public throws clause, so naming the hoisted
+/// `__W3CXMLParserError` directly would violate [API-ERR-007]. The current
+/// spelling is correct and must stay silent.
+private func throwsPhantomArgumentsAreInScopeParameters(
+  _ arguments: [Swift.String],
+  inScope: Set<Swift.String>
+) -> Swift.Bool {
+  // Exact match on the whole spelling: a bare `Input` names the parameter, while
+  // a qualified `Byte.Input` is a concrete type that merely ends in the same
+  // word. Matching on the leaf would silently re-admit the false positive.
+  for argument in arguments where inScope.contains(argument) { return true }
+  return false
 }
 
 /// Normalised dedup key for an owner spelling.
@@ -294,9 +317,12 @@ internal final class ThrowsPhantomGenericErrorVisitor: SyntaxVisitor {
 
   private func checkUseSite(_ type: TypeSyntax) {
     guard let leaf = throwsPhantomLeafName(of: type),
-      throwsPhantomGenericErrorNames.contains(leaf),
-      throwsPhantomBaseCarriesGenericArguments(type)
+      throwsPhantomGenericErrorNames.contains(leaf)
     else { return }
+    let arguments = throwsPhantomBaseGenericArguments(type)
+    guard !arguments.isEmpty else { return }
+    let inScope = inScopeParameters(Syntax(type))
+    guard throwsPhantomArgumentsAreInScopeParameters(arguments, inScope: inScope) else { return }
     guard let member = type.as(MemberTypeSyntax.self) else { return }
     let owner = member.baseType.trimmedDescription
     report(
@@ -345,6 +371,38 @@ internal final class ThrowsPhantomGenericErrorVisitor: SyntaxVisitor {
       current = parent.parent
     }
     return (nil, [])
+  }
+
+  /// Every generic parameter name in scope at `node` — from enclosing generic
+  /// type declarations, generic functions, and extensions of generic types
+  /// declared in this file.
+  private func inScopeParameters(_ node: Syntax) -> Set<Swift.String> {
+    var names: Set<Swift.String> = []
+    var current = node.parent
+    while let parent = current {
+      if let decl = parent.as(StructDeclSyntax.self) {
+        names.formUnion(throwsPhantomGenericParameterNames(decl.genericParameterClause))
+      }
+      if let decl = parent.as(EnumDeclSyntax.self) {
+        names.formUnion(throwsPhantomGenericParameterNames(decl.genericParameterClause))
+      }
+      if let decl = parent.as(ClassDeclSyntax.self) {
+        names.formUnion(throwsPhantomGenericParameterNames(decl.genericParameterClause))
+      }
+      if let decl = parent.as(ActorDeclSyntax.self) {
+        names.formUnion(throwsPhantomGenericParameterNames(decl.genericParameterClause))
+      }
+      if let decl = parent.as(FunctionDeclSyntax.self) {
+        names.formUnion(throwsPhantomGenericParameterNames(decl.genericParameterClause))
+      }
+      if let ext = parent.as(ExtensionDeclSyntax.self) {
+        let path = ext.extendedType.trimmedDescription
+        let leaf = path.split(separator: ".").last.map(Swift.String.init) ?? path
+        if let parameters = fileGenerics[leaf] { names.formUnion(parameters) }
+      }
+      current = parent.parent
+    }
+    return names
   }
 
   private func report(
