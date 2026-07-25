@@ -326,3 +326,90 @@ extension Lint.Rule.`foundation import Tests`.`Foundation Integration carve-out`
     #expect(findings.count == 1)
   }
 }
+
+// [ARCH-LAYER-007] governs a package's MAIN targets. Test, experiment and
+// example sources ship to no consumer, so firing there was over-reporting.
+// Controlled in both directions: the exemption must not leak into `Sources/`
+// via a coincidental substring.
+extension Lint.Rule.`foundation import Tests`.`Foundation Integration carve-out` {
+  // MARK: - Negative controls (non-main targets → must NOT fire)
+
+  @Test
+  func `Foundation import in a test target is NOT flagged`() {
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Tests/JSON Tests/JSON.Value Tests.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `the FI test target is NOT flagged`() {
+    // The residual swift-json finding this change closes: an FI *test*
+    // target is neither a main target nor a ` Foundation Integration`
+    // directory segment, so only the main-target scoping exempts it.
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Tests/JSON Foundation Integration Tests/JSON.Foundation.Coder Tests.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `Experiments and Examples roots are NOT flagged`() {
+    let source = "@_exported import FoundationNetworking"
+    for path in [
+      "Experiments/Spike/Probe.swift",
+      "Examples/Demo/main.swift",
+    ] {
+      let findings = Lint.Rule.`foundation import Tests`.findings(in: source, file: path)
+      #expect(findings.isEmpty, "expected no finding for \(path)")
+    }
+  }
+
+  // MARK: - Positive controls (main targets → must STILL fire)
+
+  @Test
+  func `every detection shape in a main target still fires after scoping`() {
+    let source = """
+      import Foundation
+      public import Foundation
+      @_exported import FoundationNetworking
+      import FoundationXML
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/JSON/Core.swift"
+    )
+    #expect(findings.count == 4)
+  }
+
+  // MARK: - Over-skip guards (coincidental substrings → must STILL fire)
+
+  @Test
+  func `main-target dirs merely CONTAINING the root names still fire`() {
+    // Whole segments only. `TestKit`, `Examples.swift` as a FILE, and a
+    // target named `Testing` are main-target code and must not be exempted.
+    let source = "import Foundation"
+    for path in [
+      "Sources/TestKit/Helper.swift",
+      "Sources/Testing Support/Helper.swift",
+      "Sources/JSON/Examples.swift",
+      "Sources/JSON/Tests.swift",
+    ] {
+      let findings = Lint.Rule.`foundation import Tests`.findings(in: source, file: path)
+      #expect(findings.count == 1, "expected a finding for \(path)")
+    }
+  }
+
+  @Test
+  func `default no-directory path still fires after scoping`() {
+    // Guards the whole pre-existing fixture suite: if the main-target gate
+    // swallowed the bare `test.swift` default, every earlier test would go
+    // silently green.
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: "import Foundation")
+    #expect(findings.count == 1)
+  }
+}

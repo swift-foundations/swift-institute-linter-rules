@@ -25,16 +25,26 @@ extension Lint.Rule {
     id: "foundation import",
     default: .warning,
     findings: { source, severity in
-      // Exempt the dedicated, opt-in `* Foundation Integration` subtarget:
-      // the sanctioned Foundation boundary consumers opt into per
-      // `[PRIM-FOUND-001]`, called out by this rule's own message. A file
-      // whose path carries a `… Foundation Integration/` directory segment
-      // IS that boundary, so its Foundation import is legitimate by
-      // construction. Every OTHER target — core targets at every layer —
-      // is still walked and still fires. (Path-based FI-target carve-out;
-      // a new exemption shape not yet catalogued in the `rule-exemptions`
-      // skill — flagged for a `[RULE-EXEMPT-12]` ratification.)
+      // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
+      // opt-in `* Foundation Integration` subtarget is the sanctioned
+      // Foundation boundary consumers opt into per `[PRIM-FOUND-001]`,
+      // named by this rule's own message. A file whose path carries a
+      // `… Foundation Integration/` directory segment IS that boundary, so
+      // its Foundation import is legitimate by construction. Every core
+      // target, at every layer, is still walked and still fires.
       guard !foundationImportIsInsideFoundationIntegrationTarget(source.file.filePath) else {
+        return []
+      }
+      // Exempt per [RULE-EXEMPT-12] (path-scoped target): `[ARCH-LAYER-007]`
+      // governs a package's MAIN targets. Test, experiment and example
+      // sources ship to no consumer and impose Foundation on nothing, so
+      // firing there was over-reporting — and noise that authors are told
+      // to ignore is how a real finding gets ignored too. Mirrors the
+      // scope exclusion in `Lint.Rule.Structure.SingleTypePerFile` and
+      // `Lint.Rule.Memory.PointerArithmetic`, which use this same segment
+      // set; kept as a separate guard from the FI carve-out above because
+      // it is a different sanctioned category with a different rationale.
+      guard !foundationImportIsOutsideMainTarget(source.file.filePath) else {
         return []
       }
       let visitor = FoundationImportVisitor(
@@ -67,6 +77,35 @@ private func foundationImportIsInsideFoundationIntegrationTarget(
   let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
   guard components.count > 1 else { return false }
   return components.dropLast().contains { $0.hasSuffix(foundationIntegrationTargetSuffix) }
+}
+
+/// Root directory names whose contents are, by SwiftPM and institute
+/// convention, not part of a package's main targets. `[ARCH-LAYER-007]`
+/// governs main targets, so these are outside its scope.
+///
+/// The set matches `Lint.Rule.Structure.SingleTypePerFile` and
+/// `Lint.Rule.Memory.PointerArithmetic` exactly; the three rules should
+/// agree on what "not a main target" means.
+private let foundationImportNonMainTargetRoots: [Swift.String] = [
+  "Tests",
+  "Experiments",
+  "Examples",
+]
+
+/// Returns true when `filePath` sits under a non-main-target root — i.e.
+/// some whole *directory* segment is `Tests`, `Experiments` or `Examples`.
+///
+/// Whole segments only, so a main-target file is not exempted by a
+/// coincidental substring: `Sources/TestKit/…` and `Sources/Examples.swift`
+/// both still fire. A nested `Sources/Foo/Tests/…` does match, which is the
+/// established behaviour of the two sibling rules above rather than a
+/// decision taken here.
+private func foundationImportIsOutsideMainTarget(_ filePath: Swift.String) -> Swift.Bool {
+  let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
+  guard components.count > 1 else { return false }
+  return components.dropLast().contains { component in
+    foundationImportNonMainTargetRoots.contains(Swift.String(component))
+  }
 }
 
 @usableFromInline
