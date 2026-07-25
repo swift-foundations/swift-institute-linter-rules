@@ -148,6 +148,7 @@ extension Lint.Rule.Bundle {
       .enable(.`existential throws`),
       .enable(.`generic throws missing never`),
       .enable(.`hoisted error in public throws`),
+      .enable(.`phantom generic error in typed throws`),
       .enable(.`lifecycle typealias review`),
       .enable(.`callback result over throws thunk`),
       .enable(.`result wrapper for rethrows shim`),
