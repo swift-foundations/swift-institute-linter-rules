@@ -32,6 +32,87 @@ extension Lint.Rule.`foundation import Tests` {
   }
 
   @Suite struct `Foundation Integration carve-out` {}
+  @Suite struct `House convention soundness` {}
+}
+
+// Soundness probe against the two house conventions that defeat hand-rolled
+// patterns: umbrella `exports.swift` files carrying the imports, and
+// space-separated target directories. A grep-based probe reported a package
+// Foundation-free on 2026-07-24 for the wrong reason — every import lived in
+// an umbrella file its pattern could not see, on a rule being ratcheted to
+// `.error`. These establish whether the RULE shares that blind spot.
+//
+// EVERY case here is a positive control: each MUST fire. A zero anywhere in
+// this suite is the finding.
+extension Lint.Rule.`foundation import Tests`.`House convention soundness` {
+  @Test
+  func `@_exported public import Foundation is flagged`() {
+    // The combined form: attribute AND access modifier on one line. Neither
+    // `public import` nor `@_exported import` alone covers it, and a
+    // character-class pattern like `@[a-zA-Z]+` cannot match `@_exported`
+    // at all — the underscore is outside the class.
+    let source = "@_exported public import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `@_exported public import of every family member is flagged`() {
+    for module in ["Foundation", "FoundationEssentials", "FoundationNetworking", "FoundationXML"] {
+      let findings = Lint.Rule.`foundation import Tests`.findings(
+        in: "@_exported public import \(module)"
+      )
+      #expect(findings.count == 1, "expected a finding for @_exported public import \(module)")
+    }
+  }
+
+  @Test
+  func `an umbrella exports file in a SPACE-SEPARATED target directory is flagged`() {
+    // Both conventions at once — the shape that defeated the grep. The path
+    // carries a space, and every import is an `@_exported public import` in
+    // an umbrella file rather than in ordinary sources.
+    let source = """
+      @_exported public import Foundation
+      @_exported public import FoundationNetworking
+      @_exported public import Time_Primitives
+      @_exported public import Binary_Primitives
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/Products Live/exports.swift"
+    )
+    #expect(findings.count == 2)
+  }
+
+  @Test
+  func `a space-separated MAIN target directory is not accidentally exempted`() {
+    // The three path gates added 2026-07-25 split on "/" — a directory name
+    // containing spaces must not resemble an exempt segment. `Products Live`
+    // is core code and must fire.
+    let source = "import Foundation"
+    for path in [
+      "Sources/Products Live/Client.swift",
+      "Sources/Stripe Balance Types/Model.swift",
+      "Sources/Products Live/exports.swift",
+    ] {
+      let findings = Lint.Rule.`foundation import Tests`.findings(in: source, file: path)
+      #expect(findings.count == 1, "expected a finding for \(path)")
+    }
+  }
+
+  @Test
+  func `an umbrella file mixing exempt and family imports flags only the family`() {
+    let source = """
+      @_exported public import Time_Primitives
+      @_exported public import HTML_Foundation
+      @_exported public import FoundationXML
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/Products Live/exports.swift"
+    )
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`foundation import Tests`.Unit {
