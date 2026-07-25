@@ -47,6 +47,17 @@ extension Lint.Rule {
       guard !foundationImportIsOutsideMainTarget(source.file.filePath) else {
         return []
       }
+      // Exempt per [RULE-EXEMPT-12] (path-scoped target): a package manifest
+      // is not a target at all. SwiftPM compiles `Package.swift` in its own
+      // manifest sandbox and ships it to no consumer, so a manifest's
+      // `import Foundation` cannot impose Foundation on anyone — which is
+      // the harm `[ARCH-LAYER-007]` exists to prevent. Keyed on the FILENAME,
+      // unlike the two directory-segment gates above; that difference is
+      // deliberate, because the manifest is identified by its name and can
+      // sit at any package root, including a nested package's.
+      guard !foundationImportIsPackageManifest(source.file.filePath) else {
+        return []
+      }
       let visitor = FoundationImportVisitor(
         source: source.file,
         severity: severity,
@@ -107,6 +118,56 @@ private func foundationImportIsOutsideMainTarget(_ filePath: Swift.String) -> Sw
     foundationImportNonMainTargetRoots.contains(Swift.String(component))
   }
 }
+
+/// Returns true when `filePath` names a SwiftPM package manifest — `Package.swift`
+/// or a version-specific `Package@swift-<version>.swift`.
+///
+/// Keyed on the trailing filename rather than a directory segment, because a
+/// manifest is identified by its name and sits at a package root — including
+/// the root of a *nested* package, which a root-relative test would miss.
+/// The match is exact on the whole component, so an ordinary source file
+/// merely mentioning the word (`PackageInfo.swift`, `MyPackage.swift`, or any
+/// file inside a directory named `Package`) still fires.
+private func foundationImportIsPackageManifest(_ filePath: Swift.String) -> Swift.Bool {
+  guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
+  else { return false }
+  if filename == "Package.swift" { return true }
+  return filename.hasPrefix("Package@swift-") && filename.hasSuffix(".swift")
+}
+
+// MARK: - Recorded scope decisions
+//
+// The contexts below were enumerated against the SwiftPM target model
+// (`regular`, `executable`, `test`, `system`, `binary`, `plugin`, `macro`,
+// plus the `Snippets/` directory convention) on 2026-07-25, after this rule
+// had over-reported in three non-main-target contexts discovered one incident
+// at a time. They are recorded here so a future instance is a known change
+// rather than a rediscovery.
+//
+// - `executable`: **exempt as policy, deliberately NOT implemented.** An
+//   executable ships as a binary and imposes Foundation on no library
+//   consumer, so it does not commit the harm this rule prevents. It cannot be
+//   implemented here: executable targets live in `Sources/<Name>/` exactly
+//   like library targets, so no path predicate can distinguish them. Doing so
+//   needs manifest awareness in the engine — a different change to a
+//   different component. 88 institute manifests declare executables; how many
+//   of those targets actually import Foundation is unmeasured, and that
+//   sizing should precede any engine work.
+//
+// - `plugin`, `macro`, `snippet`, `system`, `binary`: **zero instances across
+//   the institute fleet** (2,224 manifests, 2026-07-25). Deliberately not
+//   exempted — a both-direction fixture for a context with no real instance
+//   means inventing the shape being exempted. Detection approach when a first
+//   instance appears: `plugin` and `snippet` are path-distinguishable by the
+//   SwiftPM `Plugins/` and `Snippets/` directory conventions and belong in
+//   `foundationImportNonMainTargetRoots`; `macro` is NOT path-distinguishable
+//   and shares the executable problem above; `system` and `binary` carry no
+//   Swift sources, so nothing reaches this rule.
+//
+// ⚠️ The general limit, worth reading before adding a fourth gate: **this
+// class is not closed under path.** Three contexts happened to be
+// path-distinguishable and were fixed; `executable` and `macro` are not, and
+// no further enumeration changes that.
 
 @usableFromInline
 internal let foundationImportMessage: Swift.String =

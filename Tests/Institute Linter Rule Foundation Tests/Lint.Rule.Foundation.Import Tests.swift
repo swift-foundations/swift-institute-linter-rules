@@ -413,3 +413,74 @@ extension Lint.Rule.`foundation import Tests`.`Foundation Integration carve-out`
     #expect(findings.count == 1)
   }
 }
+
+// A package manifest is not a target: SwiftPM compiles it in its own sandbox
+// and ships it to nobody, so it cannot impose Foundation on a consumer. This
+// gate is keyed on the FILENAME, unlike the two directory-segment gates, so
+// the over-skip guards below are about names rather than path position.
+extension Lint.Rule.`foundation import Tests`.`Foundation Integration carve-out` {
+  // MARK: - Negative controls (manifests → must NOT fire)
+
+  @Test
+  func `a package manifest is NOT flagged`() {
+    // The live shape: swift-stripe-types Package.swift:3 imports Foundation
+    // (for ProcessInfo-style manifest-time work) and was being counted as
+    // shipped Foundation debt.
+    let source = """
+      // swift-tools-version: 6.3.3
+      import Foundation
+      import PackageDescription
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Package.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a version-specific manifest is NOT flagged`() {
+    let source = "import Foundation"
+    for path in ["Package@swift-6.0.swift", "Package@swift-5.9.swift"] {
+      let findings = Lint.Rule.`foundation import Tests`.findings(in: source, file: path)
+      #expect(findings.isEmpty, "expected no finding for \(path)")
+    }
+  }
+
+  @Test
+  func `a nested package's manifest is NOT flagged`() {
+    // Keyed on filename precisely so a nested package root is covered; a
+    // root-relative test would miss this one.
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: "import Foundation",
+      file: "Tests/Testing/Package.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  // MARK: - Over-skip guards (look-alike names → must STILL fire)
+
+  @Test
+  func `source files merely NAMED like a manifest still fire`() {
+    // Exact whole-component match. A file that embeds the word, or a source
+    // file inside a directory called `Package`, is ordinary main-target code.
+    let source = "import Foundation"
+    for path in [
+      "Sources/JSON/PackageInfo.swift",
+      "Sources/JSON/MyPackage.swift",
+      "Sources/Package/Registry.swift",
+      "Sources/JSON/Package.Description.swift",
+    ] {
+      let findings = Lint.Rule.`foundation import Tests`.findings(in: source, file: path)
+      #expect(findings.count == 1, "expected a finding for \(path)")
+    }
+  }
+
+  @Test
+  func `the manifest gate does not swallow the no-directory default`() {
+    // Third time this guard earns its place: each new gate is another chance
+    // to blank the entire pre-existing suite without failing anything.
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: "import Foundation")
+    #expect(findings.count == 1)
+  }
+}
