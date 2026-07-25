@@ -26,7 +26,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
   public static let `uint8 forwarder missing disfavored` = Lint.Rule(
     id: "uint8 forwarder missing disfavored",
-    default: .warning,
+    default: .error,
     findings: { source, severity in
       let visitor = ByteUInt8ForwarderMissingDisfavoredVisitor(
         source: source.file,

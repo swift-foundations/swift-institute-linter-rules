@@ -20,7 +20,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
   public static let `sendable struct with class member` = Lint.Rule(
     id: "sendable struct with class member",
-    default: .warning,
+    default: .error,
     findings: { source, severity in
       let visitor = MemoryStructSendableClassMemberVisitor(
         source: source.file,

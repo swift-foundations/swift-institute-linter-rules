@@ -24,7 +24,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
   public static let `byte conforms to arithmetic protocol` = Lint.Rule(
     id: "byte conforms to arithmetic protocol",
-    default: .warning,
+    default: .error,
     findings: { source, severity in
       let visitor = ByteConformsToArithmeticVisitor(
         source: source.file,

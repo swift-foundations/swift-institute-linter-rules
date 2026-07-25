@@ -25,7 +25,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
   public static let `binary serializable uint8 witness` = Lint.Rule(
     id: "binary serializable uint8 witness",
-    default: .warning,
+    default: .error,
     findings: { source, severity in
       let visitor = ByteBinarySerializableUInt8WitnessVisitor(
         source: source.file,

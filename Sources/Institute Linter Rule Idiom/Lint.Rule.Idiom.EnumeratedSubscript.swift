@@ -18,7 +18,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
   public static let `enumerated with subscript` = Lint.Rule(
     id: "enumerated with subscript",
-    default: .warning,
+    default: .error,
     findings: { source, severity in
       let visitor = IdiomEnumeratedSubscriptVisitor(
         source: source.file,

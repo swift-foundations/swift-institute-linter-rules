@@ -22,7 +22,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
   public static let `uint8 conforms to byte protocol` = Lint.Rule(
     id: "uint8 conforms to byte protocol",
-    default: .warning,
+    default: .error,
     findings: { source, severity in
       let visitor = ByteUInt8ConformsToByteProtocolVisitor(
         source: source.file,
