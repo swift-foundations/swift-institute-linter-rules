@@ -50,8 +50,15 @@ internal let tryOptionalMessage: Swift.String =
   + "and the error instance. Prefer typed throws (`throws(E)`) so the error path stays "
   + "explicit and recoverable. Past incident: `try? input.advance()` swallowed `EAGAIN` "
   + "causing the Linux hot-spin in the IO Notification.wait() site. If you genuinely "
-  + "want to discard the error, use `do { ... } catch { }` so the discard is local "
-  + "and visible."
+  + "want to discard the error AND the callee's error is TYPED, use "
+  + "`do throws(E) { ... } catch { }` so the discard is local and visible. If the "
+  + "callee throws UNTYPED (cross-module APIs such as `FileManager.removeItem(at:)` "
+  + "or `try await task.value`), no construct satisfies every rule: bare "
+  + "`do { ... } catch { }` fires [IMPL-075], `do throws(any Error)` fires "
+  + "[API-ERR-006], and `do throws(E)` does not compile because there is no `E`. "
+  + "Keep the `try?` and apply `// swift-linter:disable:next try optional` with a "
+  + "`// REASON:` naming the untyped callee — that case is the author's to judge, "
+  + "because a per-file rule can prove a callee typed but never untyped."
 // swiftlint:enable no_try_optional
 
 internal final class TryOptionalVisitor: SyntaxVisitor {

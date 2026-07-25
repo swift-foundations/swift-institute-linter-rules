@@ -35,6 +35,13 @@ internal let throwsDoCatchTypedMessage: Swift.String =
   "[do throws for typed catch] [IMPL-075]: bare `do { try ... } catch { }` "
   + "erases the concrete error type. Use `do throws(E) { try ... } catch { }` "
   + "to preserve `E` in the catch binding."
+  + " If the callee throws UNTYPED (cross-module APIs such as "
+  + "`FileManager.removeItem(at:)` or `try await task.value`) there is no `E` "
+  + "to name and no construct satisfies every rule — `try?` fires [API-ERR-001] "
+  + "and `do throws(any Error)` fires [API-ERR-006]. Apply "
+  + "`// swift-linter:disable:next do throws for typed catch` with a `// REASON:` "
+  + "naming the untyped callee. Where a typed `E` DOES exist both rules are "
+  + "satisfiable together, so this rule is not softened for the typed case."
 
 internal final class ThrowsDoCatchTypedVisitor: SyntaxVisitor {
   let source: Source.File
