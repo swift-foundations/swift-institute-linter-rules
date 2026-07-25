@@ -25,6 +25,18 @@ extension Lint.Rule {
     id: "foundation import",
     default: .warning,
     findings: { source, severity in
+      // Exempt the dedicated, opt-in `* Foundation Integration` subtarget:
+      // the sanctioned Foundation boundary consumers opt into per
+      // `[PRIM-FOUND-001]`, called out by this rule's own message. A file
+      // whose path carries a `… Foundation Integration/` directory segment
+      // IS that boundary, so its Foundation import is legitimate by
+      // construction. Every OTHER target — core targets at every layer —
+      // is still walked and still fires. (Path-based FI-target carve-out;
+      // a new exemption shape not yet catalogued in the `rule-exemptions`
+      // skill — flagged for a `[RULE-EXEMPT-12]` ratification.)
+      guard !foundationImportIsInsideFoundationIntegrationTarget(source.file.filePath) else {
+        return []
+      }
       let visitor = FoundationImportVisitor(
         source: source.file,
         severity: severity,
@@ -34,6 +46,27 @@ extension Lint.Rule {
       return visitor.matches
     }
   )
+}
+
+/// The directory-name suffix identifying a dedicated, opt-in Foundation
+/// Integration subtarget (`[PRIM-FOUND-001]`). The leading space mandates a
+/// non-empty brand token, so real targets — `JSON Foundation Integration`,
+/// `Structured Queries Primitives Foundation Integration` — match while a
+/// core target merely NAMED with `Foundation` in it (`HTML Foundation`) does
+/// not.
+private let foundationIntegrationTargetSuffix: Swift.String = " Foundation Integration"
+
+/// Returns true when `filePath` lives inside a `* Foundation Integration`
+/// subtarget — i.e. some *directory* segment of the path ends in
+/// ` Foundation Integration`. Only directory segments qualify: the trailing
+/// filename is dropped, so a source file that merely happens to end in
+/// `… Foundation Integration.swift` inside a core target is NOT exempted.
+private func foundationImportIsInsideFoundationIntegrationTarget(
+  _ filePath: Swift.String
+) -> Swift.Bool {
+  let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
+  guard components.count > 1 else { return false }
+  return components.dropLast().contains { $0.hasSuffix(foundationIntegrationTargetSuffix) }
 }
 
 @usableFromInline

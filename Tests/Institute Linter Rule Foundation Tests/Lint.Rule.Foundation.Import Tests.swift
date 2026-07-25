@@ -30,6 +30,8 @@ extension Lint.Rule.`foundation import Tests` {
     let parsed = Lint.Source.parsed(from: source, file: file)
     return Lint.Rule.`foundation import`.findings(parsed, .warning)
   }
+
+  @Suite struct `Foundation Integration carve-out` {}
 }
 
 extension Lint.Rule.`foundation import Tests`.Unit {
@@ -197,6 +199,130 @@ extension Lint.Rule.`foundation import Tests`.`Edge Case` {
   func `FoundationNetworking submodule import is flagged`() {
     let source = "import FoundationNetworking.NSURLSession"
     let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}
+
+// The dedicated, opt-in `* Foundation Integration` subtarget is the
+// sanctioned Foundation boundary ([PRIM-FOUND-001]); a file inside one must
+// NOT fire, while every core target at every layer STILL fires. Controlled
+// in both directions — an over-skip is as bad as a never-fire. Real target
+// dir names verified 2026-07-25: swift-json `JSON Foundation Integration`,
+// swift-structured-queries-primitives
+// `Structured Queries Primitives Foundation Integration`.
+extension Lint.Rule.`foundation import Tests`.`Foundation Integration carve-out` {
+  // MARK: - Negative controls (inside an FI target → must NOT fire)
+
+  @Test
+  func `Foundation import inside an FI target is NOT flagged`() {
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/JSON Foundation Integration/JSON.Foundation.Coder.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `every Foundation family member inside an FI target is NOT flagged`() {
+    let source = """
+      import Foundation
+      public import Foundation
+      @_exported import FoundationNetworking
+      import FoundationXML
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/Structured Queries Primitives Foundation Integration/Bridge.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `FI target at the source-tree root (no Sources prefix) is NOT flagged`() {
+    // The carve-out keys on the directory segment, not on a `Sources/`
+    // prefix, so a file located directly under the FI target dir is exempt.
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "JSON Foundation Integration/exports.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  // MARK: - Positive controls (core targets → must STILL fire)
+
+  @Test
+  func `Foundation import in a core target still fires`() {
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/JSON/JSON.Value.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `every detection shape in a core target still fires`() {
+    // Preserves the rule's named detections — bare, public, @_exported
+    // FoundationNetworking, FoundationXML — in a NON-FI (core) path.
+    let source = """
+      import Foundation
+      public import Foundation
+      @_exported import FoundationNetworking
+      import FoundationXML
+      """
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/JSON/Core.swift"
+    )
+    #expect(findings.count == 4)
+  }
+
+  @Test
+  func `default test path (no directory) still fires`() {
+    // The default `file: "test.swift"` has no directory segment; the
+    // carve-out must not swallow it, or every existing fixture goes blind.
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // MARK: - Over-skip guards (look-alike core dirs → must STILL fire)
+
+  @Test
+  func `core target merely named with Foundation still fires`() {
+    // `HTML Foundation` is a core institute target, not an FI subtarget —
+    // its dir does not end in ` Foundation Integration`, so it must fire.
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/HTML Foundation/Renderer.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `no-space prefix before Foundation Integration still fires`() {
+    // The required leading space means a segment without a real brand-token
+    // boundary (`XFoundation Integration`) is not the sanctioned shape.
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/XFoundation Integration/File.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `filename ending in Foundation Integration inside a core dir still fires`() {
+    // Only DIRECTORY segments qualify; a source file whose name ends in
+    // `… Foundation Integration.swift` inside a core target is not exempt.
+    let source = "import Foundation"
+    let findings = Lint.Rule.`foundation import Tests`.findings(
+      in: source,
+      file: "Sources/JSON/My Foundation Integration.swift"
+    )
     #expect(findings.count == 1)
   }
 }
