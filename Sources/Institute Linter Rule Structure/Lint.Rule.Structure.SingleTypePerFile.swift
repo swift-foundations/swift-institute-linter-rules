@@ -23,7 +23,7 @@ extension Lint.Rule {
     findings: { source, severity in
       // Scope-exclusion per Decision 2: skip files whose path has a
       // segment named `Tests`, `Experiments`, or `Examples`.
-      let path = source.file.filePath.underlying
+      let path = source.file.filePath
       for excluded in ["Tests", "Experiments", "Examples"] {
         if path == excluded
           || path.hasPrefix("\(excluded)/")

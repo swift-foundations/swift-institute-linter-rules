@@ -62,7 +62,7 @@ extension Lint.Rule {
       // Scope-exclusion: test / experiment / example trees legitimately
       // exercise raw pointer arithmetic against the SLI overloads.
       // Mirrors `Lint.Rule.Structure.SingleTypePerFile`.
-      let path = source.file.filePath.underlying
+      let path = source.file.filePath
       for excluded in ["Tests", "Experiments", "Examples"] {
         if path == excluded
           || path.hasPrefix("\(excluded)/")
