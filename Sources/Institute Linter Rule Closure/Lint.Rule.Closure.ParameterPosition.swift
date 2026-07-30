@@ -46,16 +46,7 @@ internal let closureParameterPositionMessage: Swift.String =
 /// Returns true when the type position resolves to a function type,
 /// after stripping optional / IUO / attribute / paren wrappers.
 internal func isClosureType(_ type: TypeSyntax) -> Swift.Bool {
-  var current = type
-  while let optional = current.as(OptionalTypeSyntax.self) {
-    current = optional.wrappedType
-  }
-  while let iuo = current.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    current = iuo.wrappedType
-  }
-  while let attributed = current.as(AttributedTypeSyntax.self) {
-    current = attributed.baseType
-  }
+  var current = closureStrippingWrapperTypes(type)
   while let tuple = current.as(TupleTypeSyntax.self), tuple.elements.count == 1 {
     current = tuple.elements.first!.type
   }

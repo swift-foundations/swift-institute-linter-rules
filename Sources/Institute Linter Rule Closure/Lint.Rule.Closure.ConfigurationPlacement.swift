@@ -63,16 +63,7 @@ internal let configurationSuffixes: Swift.Set<Swift.String> = [
 /// (`configurationSuffixes`) and its doc, and missing the common
 /// suffixed shapes).
 internal func isConfigurationType(_ type: TypeSyntax) -> Swift.Bool {
-  var current = type
-  while let optional = current.as(OptionalTypeSyntax.self) {
-    current = optional.wrappedType
-  }
-  while let iuo = current.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    current = iuo.wrappedType
-  }
-  while let attributed = current.as(AttributedTypeSyntax.self) {
-    current = attributed.baseType
-  }
+  let current = closureStrippingWrapperTypes(type)
   if let identifier = current.as(IdentifierTypeSyntax.self) {
     return configurationSuffixes.contains(where: identifier.name.text.hasSuffix)
   }

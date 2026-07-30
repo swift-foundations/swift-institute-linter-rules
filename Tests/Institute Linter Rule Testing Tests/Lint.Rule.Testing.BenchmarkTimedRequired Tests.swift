@@ -105,6 +105,21 @@ extension Lint.Rule.`benchmark timed required Tests`.Unit {
     let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  @Test
+  func `trait argument merely containing the substring timed does not count`() {
+    // #24 nit: replaces a `.contains(".timed")` textual scan with a
+    // structural check — a differently-named call ending in the same
+    // substring must NOT satisfy the requirement.
+    let source = """
+      @Suite(.serialized) struct Performance {
+          @Test(.untimed())
+          func `meets budget`() {}
+      }
+      """
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 // MARK: - The [BENCH-003] executable-variant citation carve (Round M ζ pilot 3)

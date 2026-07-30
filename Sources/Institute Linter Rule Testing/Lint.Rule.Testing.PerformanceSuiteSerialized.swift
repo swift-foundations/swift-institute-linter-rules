@@ -57,8 +57,21 @@ internal final class TestingPerformanceSuiteSerializedVisitor: SyntaxVisitor {
     return nil
   }
 
+  /// Structural check for the `.serialized` trait argument (#24 nit:
+  /// replaces a `.contains(".serialized")` textual scan of the whole
+  /// attribute's description, which also matches inside an unrelated
+  /// interior comment or string). Looks for a bare `.serialized`
+  /// member-access argument specifically.
   private func mentionsSerialized(_ attribute: AttributeSyntax) -> Swift.Bool {
-    return attribute.trimmedDescription.contains(".serialized")
+    guard case .argumentList(let arguments) = attribute.arguments else { return false }
+    for argument in arguments {
+      if let member = argument.expression.as(MemberAccessExprSyntax.self),
+        member.declName.baseName.text == "serialized"
+      {
+        return true
+      }
+    }
+    return false
   }
 
   /// A type with no explicit `@Suite` is still a suite under Swift

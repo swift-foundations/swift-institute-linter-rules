@@ -45,6 +45,25 @@ internal let testingBenchmarkTimedRequiredMessage: Swift.String =
   + "Benchmarks/ package and mark this suite with a `[BENCH-003]` variant "
   + "citation comment to exempt it."
 
+/// Structural check for the `.timed(...)` trait argument (#24 nit:
+/// replaces a `.contains(".timed")` textual scan of the whole
+/// attribute's description, which also matches inside an unrelated
+/// interior comment or string, or a differently-named trait that
+/// merely contains the substring). `.timed` is always invoked with
+/// parens per its own documented shape, so the argument must be a
+/// call whose called expression is the bare `.timed` member access.
+internal func testingBenchmarkAttributeMentionsTimed(_ attribute: AttributeSyntax) -> Swift.Bool {
+  guard case .argumentList(let arguments) = attribute.arguments else { return false }
+  for argument in arguments {
+    guard let call = argument.expression.as(FunctionCallExprSyntax.self) else { continue }
+    guard let member = call.calledExpression.as(MemberAccessExprSyntax.self) else { continue }
+    if member.declName.baseName.text == "timed" {
+      return true
+    }
+  }
+  return false
+}
+
 internal final class TestingBenchmarkTimedRequiredVisitor: SyntaxVisitor {
   let source: Source.File
   let severity: Diagnostic.Severity
@@ -122,7 +141,7 @@ internal final class TestingBenchmarkTimedRequiredVisitor: SyntaxVisitor {
     guard variantExemptDepth == 0 else { return .visitChildren }
     guard let attribute = testAttribute(node.attributes) else { return .visitChildren }
     if citesVariant(node.leadingTrivia) { return .visitChildren }
-    if !attribute.trimmedDescription.contains(".timed") {
+    if !testingBenchmarkAttributeMentionsTimed(attribute) {
       let location = converter.location(for: node.name.positionAfterSkippingLeadingTrivia)
       matches.append(
         Diagnostic.Record(

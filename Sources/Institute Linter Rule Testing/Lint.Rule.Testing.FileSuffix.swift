@@ -43,9 +43,11 @@ extension Lint.Rule {
       let filePath = source.file.filePath
       let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
       guard components.contains("Tests") else { return [] }
-      for component in components where component.hasPrefix(".") {
-        return []
-      }
+      // Exempt any path carrying a hidden path component (dot-prefixed
+      // directory, e.g. `.build/`) — deliberately also matches a `..`
+      // relative-path segment, since that's dot-prefixed too and is
+      // never itself a real target directory name.
+      guard !components.contains(where: { $0.hasPrefix(".") }) else { return [] }
       guard
         let filename = components.last,
         filename.hasSuffix(".swift")

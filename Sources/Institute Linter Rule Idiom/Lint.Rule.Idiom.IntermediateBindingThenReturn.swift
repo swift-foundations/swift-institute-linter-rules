@@ -14,6 +14,14 @@ internal import SwiftSyntax
 
 /// `let x = expr; return x` exposes mechanism over intent.
 /// Citation: `[IMPL-EXPR-001]`.
+///
+/// Exemption, by design: `let x: T = expr; return x` (an EXPLICIT type
+/// annotation on the binding) is not flagged. An explicit annotation is
+/// itself the kind of domain/intent signal the message's own carve-out
+/// names — it constrains or documents `expr`'s type at the binding
+/// site, which inlining into `return expr` would either lose or
+/// require re-stating awkwardly at the return. Only an un-annotated
+/// binding is in scope.
 extension Lint.Rule {
   public static let `intermediate binding then return` = Lint.Rule(
     id: "intermediate binding then return",
@@ -36,7 +44,9 @@ internal let idiomIntermediateBindingThenReturnMessage: Swift.String =
   + "<expr>; return <name>` adds mechanism. Return the expression "
   + "directly: `return <expr>`. The binding is justified only when the "
   + "name communicates domain knowledge the expression doesn't, or when "
-  + "the value is consumed more than once — neither applies here."
+  + "the value is consumed more than once — neither applies here. "
+  + "(An explicitly-typed binding, `let <name>: T = <expr>`, is exempt "
+  + "— the annotation itself is a domain/intent signal.)"
 
 internal final class IdiomIntermediateBindingThenReturnVisitor: SyntaxVisitor {
   let source: Source.File

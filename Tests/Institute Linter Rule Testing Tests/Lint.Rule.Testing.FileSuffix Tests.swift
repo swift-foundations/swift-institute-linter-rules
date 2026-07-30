@@ -151,6 +151,37 @@ extension Lint.Rule.`test file suffix Tests`.`Edge Case` {
   }
 
   @Test
+  func `bare Tests basename renames to Tests Tests`() {
+    // #24 nit: a file literally named `Tests.swift` — the subject
+    // strips to empty after dropping the trailing "Tests", so the
+    // rename falls back to appending " Tests" to the (empty) base
+    // rather than producing a leading-space or empty subject.
+    let findings = Lint.Rule.`test file suffix Tests`.findings(
+      source: Lint.Rule.`test file suffix Tests`.suiteSource,
+      file: "Tests/File Tests/Tests.swift"
+    )
+    #expect(findings.count == 1)
+    #expect(
+      findings.first?.message
+        == "[test file suffix] [TEST-009]: test file 'Tests.swift' must "
+        + "end in ' Tests.swift'; rename to 'Tests Tests.swift'"
+    )
+  }
+
+  @Test
+  func `relative path segment does not defeat scanning via the dot-prefix exemption`() {
+    // The hidden-component guard is deliberately also true for a `..`
+    // segment (dot-prefixed) — documented behavior, not a design
+    // change here. A literal hidden directory (e.g. `.build`) is the
+    // exemption's actual target.
+    let findings = Lint.Rule.`test file suffix Tests`.findings(
+      source: Lint.Rule.`test file suffix Tests`.suiteSource,
+      file: "Tests/.build/FooTests.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `nested Test functions inside a top-level type are detected`() {
     let source = """
       extension File.Tests.Unit {

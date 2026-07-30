@@ -87,6 +87,54 @@ extension Lint.Rule.`counter loop iteration Tests`.Unit {
     let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
     #expect(findings.count == 2)
   }
+
+  @Test
+  func `reversed half-open range is flagged`() {
+    // #24 nit: for i in (0..<n).reversed() was missed — the sequence
+    // is a .reversed() call, not a bare range expression.
+    let source = """
+      func op(_ n: Int) {
+          for i in (0..<n).reversed() {
+              use(i)
+          }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `reversed closed range is flagged`() {
+    let source = """
+      func op(_ n: Int) {
+          for i in (0...n).reversed() {
+              use(i)
+          }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `message does not claim the predicate is limited to index counters`() {
+    // #24 nit: the predicate fires on any identifier-pattern range,
+    // including a meaningfully-named non-index variable
+    // (`for byte in first...last`); the message must not overstate a
+    // narrower "index counter only" scope.
+    let source = """
+      func op(_ first: Int, _ last: Int) {
+          for byte in first...last {
+              use(byte)
+          }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.count == 1)
+    if findings.count == 1 {
+      #expect(!findings[0].message.contains("counter is mechanism"))
+    }
+  }
 }
 
 extension Lint.Rule.`counter loop iteration Tests`.`Edge Case` {
@@ -134,6 +182,19 @@ extension Lint.Rule.`counter loop iteration Tests`.`Edge Case` {
     let source = """
       func op(_ items: [Int]) {
           items.forEach { handle($0) }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `reversed collection (not a range) is NOT flagged`() {
+    let source = """
+      func op(_ items: [Int]) {
+          for item in items.reversed() {
+              handle(item)
+          }
       }
       """
     let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)

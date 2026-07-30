@@ -53,6 +53,18 @@ extension Lint.Rule.`performance suite serialized Tests`.Unit {
   }
 
   @Test
+  func `trait argument merely containing the substring serialized does not count`() {
+    // #24 nit: replaces a `.contains(".serialized")` textual scan with
+    // a structural check — a differently-named member ending in the
+    // same substring must NOT satisfy the requirement.
+    let source = """
+      @Suite(.notSerialized) struct Performance {}
+      """
+    let findings = Lint.Rule.`performance suite serialized Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `Performance struct without Suite attr and without Test functions is not flagged`() {
     let source = """
       struct Performance {}

@@ -63,6 +63,17 @@ internal func idiomHasValueGenericParameter(_ clause: GenericParameterClauseSynt
   return false
 }
 
+/// #24 nit: this optional/IUO/attribute-stripping loop mirrors the Closure
+/// pack's `closureStrippingWrapperTypes(_:)` (formerly duplicated inline as
+/// `isClosureType`/`isConfigurationType`, now consolidated there). It stays
+/// a separate copy here, not a shared call: `Institute Linter Rule Idiom`
+/// and `Institute Linter Rule Closure` are independent SwiftPM targets with
+/// no dependency edge between them (per this package's design, every rule
+/// pack depends only on `Linter Primitives` and `SwiftSyntax`). Sharing this
+/// helper across packs would mean introducing a new common target and
+/// wiring every pack to depend on it — an architecture decision, not a
+/// mechanical dedup, and out of this pass's scope. Recorded as the blocker
+/// on full three-copy consolidation.
 internal func idiomIsRawIntType(_ type: TypeSyntax) -> Swift.Bool {
   var current = type
   while let optional = current.as(OptionalTypeSyntax.self) {

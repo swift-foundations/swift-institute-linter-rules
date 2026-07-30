@@ -32,14 +32,36 @@ extension Lint.Rule {
 
 @usableFromInline
 internal let idiomIterationIntentMessage: Swift.String =
-  "[counter loop iteration] [IMPL-033]: `for <i> in <a>..<<b>` "
-  + "counter loop is mechanism, not intent. Climb the iteration "
-  + "ladder: `items.forEach { … }` (per-element), `items.indices."
-  + "forEach { … }` (when the index is needed), or a typed-while "
-  + "inside iteration infrastructure if you're authoring the "
-  + "infrastructure itself."
+  "[counter loop iteration] [IMPL-033]: `for <name> in <a>..<<b>` "
+  + "(or `.reversed()` of the same range) is mechanism, not intent. "
+  + "This fires on any identifier-pattern range iteration, not only an "
+  + "unused numeric counter — `for byte in first...last` is also "
+  + "mechanism, not intent, even though `byte` is a meaningful name. "
+  + "Climb the iteration ladder: `items.forEach { … }` (per-element), "
+  + "`items.indices.forEach { … }` (when the index is needed), or a "
+  + "typed-while inside iteration infrastructure if you're authoring "
+  + "the infrastructure itself."
 
+/// Returns true for a bare `<a>..<<b>` / `<a>...<b>` range expression,
+/// or that same shape wrapped in a single trailing `.reversed()` call
+/// (`(<a>..<<b>).reversed()`) — the loop-direction inversion doesn't
+/// change what's being iterated.
 internal func idiomIsRangeExpression(_ expression: ExprSyntax) -> Swift.Bool {
+  if idiomIsBareRangeExpression(expression) {
+    return true
+  }
+  if let call = expression.as(FunctionCallExprSyntax.self),
+    call.arguments.isEmpty,
+    call.trailingClosure == nil,
+    let member = call.calledExpression.as(MemberAccessExprSyntax.self),
+    member.declName.baseName.text == "reversed"
+  {
+    return idiomIsBareRangeExpression(member.base?.unwrappingParens ?? ExprSyntax(call))
+  }
+  return false
+}
+
+private func idiomIsBareRangeExpression(_ expression: ExprSyntax) -> Swift.Bool {
   if let sequence = expression.as(SequenceExprSyntax.self) {
     for element in sequence.elements {
       if let binary = element.as(BinaryOperatorExprSyntax.self) {
@@ -56,6 +78,18 @@ internal func idiomIsRangeExpression(_ expression: ExprSyntax) -> Swift.Bool {
     }
   }
   return false
+}
+
+extension ExprSyntax {
+  /// Strips a single layer of enclosing parentheses, if present.
+  fileprivate var unwrappingParens: ExprSyntax {
+    if let tuple = self.as(TupleExprSyntax.self), tuple.elements.count == 1,
+      let onlyElement = tuple.elements.first, onlyElement.label == nil
+    {
+      return onlyElement.expression
+    }
+    return self
+  }
 }
 
 internal final class IdiomIterationIntentVisitor: SyntaxVisitor {
