@@ -124,7 +124,10 @@ internal final class ByteStdlibForwarderOutsideSLIVisitor: SyntaxVisitor {
 private func byteStdlibForwarderHostIsSLI(_ filePath: Swift.String) -> Swift.Bool {
   let components = filePath.split(separator: "/", omittingEmptySubsequences: true).map(
     Swift.String.init)
-  for index in components.indices where components[index] == "Sources" {
+  // The target-owning `Sources/` is the LAST one on the path — a checkout
+  // root containing an earlier `Sources` component (e.g. a workspace path
+  // segment literally named `Sources`) must not steal the anchor.
+  for index in components.indices.reversed() where components[index] == "Sources" {
     let targetIndex = components.index(after: index)
     guard targetIndex < components.endIndex else { return false }
     return components[targetIndex].hasSuffix("Standard Library Integration")

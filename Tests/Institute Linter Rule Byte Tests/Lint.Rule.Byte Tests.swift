@@ -865,6 +865,29 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
   }
 
   @Test
+  func `disfavored Array UInt8 in SLI module is NOT flagged when an earlier path segment is also named Sources`() {
+    // Regression guard: the host-target anchor must be the LAST `Sources`
+    // path component. A checkout root that happens to contain an earlier
+    // `Sources` segment (e.g. `/Users/dev/Sources/checkout/Sources/Foo
+    // Standard Library Integration/Bar.swift`) must not have that earlier
+    // segment steal the anchor and misresolve the host target name.
+    let source = """
+      extension Array where Element == UInt8 {
+          @_disfavoredOverload
+          public init<S: Binary.Serializable>(_ s: S) {
+              self = []
+          }
+      }
+      """
+    let result = findings(
+      in: source,
+      rule: Lint.Rule.`stdlib forwarder outside sli`,
+      file: "/Users/dev/Sources/checkout/Sources/Foo Standard Library Integration/Bar.swift"
+    )
+    #expect(result.isEmpty)
+  }
+
+  @Test
   func `Array UInt8 init without disfavoredOverload is NOT flagged`() {
     let source = """
       extension Array where Element == UInt8 {

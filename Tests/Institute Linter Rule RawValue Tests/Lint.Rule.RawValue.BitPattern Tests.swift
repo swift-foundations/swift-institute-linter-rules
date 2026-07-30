@@ -55,6 +55,21 @@ extension Lint.Rule.`bitpattern rawvalue chain Tests`.Unit {
       in: "let i = UInt(bitPattern: x.rawValue)")
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `message names the real engine-recognized suppression directive`() {
+    // Regression guard: the message must cite the `swift-linter:` namespace
+    // and the real space-separated rule id — not the SwiftLint-era
+    // `swiftlint:` namespace with an underscored id, which the engine's
+    // malformed-suppression rule does not recognize as a directive at all.
+    let findings = Lint.Rule.`bitpattern rawvalue chain Tests`.findings(
+      in: "let i = Int(bitPattern: x.rawValue)")
+    #expect(findings.count == 1)
+    if let message = findings.first?.message {
+      #expect(message.contains("swift-linter:disable:next bitpattern rawvalue chain"))
+      #expect(!message.contains("swiftlint:disable:next bitpattern_rawvalue_chain"))
+    }
+  }
 }
 
 extension Lint.Rule.`bitpattern rawvalue chain Tests`.Evasion {

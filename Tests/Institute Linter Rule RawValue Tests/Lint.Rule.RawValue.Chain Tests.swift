@@ -54,6 +54,20 @@ extension Lint.Rule.`chained rawvalue access Tests`.Unit {
       in: "let n = x.rawValue.foo()")
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `message names the real engine-recognized suppression directive`() {
+    // Regression guard: the message must cite the `swift-linter:` namespace
+    // and the real space-separated rule id — not the SwiftLint-era
+    // `swiftlint:` namespace with an underscored id, which the engine's
+    // malformed-suppression rule does not recognize as a directive at all.
+    let findings = Lint.Rule.`chained rawvalue access Tests`.findings(in: "let n = x.rawValue.foo")
+    #expect(findings.count == 1)
+    if let message = findings.first?.message {
+      #expect(message.contains("swift-linter:disable:next chained rawvalue access"))
+      #expect(!message.contains("swiftlint:disable:next chained_rawvalue_access"))
+    }
+  }
 }
 
 extension Lint.Rule.`chained rawvalue access Tests`.Evasion {

@@ -61,7 +61,7 @@ private let bitpatternRawvalueChainMessage: Swift.String =
   + "pass the typed value directly: `Int(bitPattern: foo)` not "
   + "`Int(bitPattern: foo.rawValue)`. If this site IS the [INFRA-002] integration "
   + "overload definition itself, escalate to supervisor and apply "
-  + "`// swiftlint:disable:next bitpattern_rawvalue_chain  // reason: <citation>`."
+  + "`// swift-linter:disable:next bitpattern rawvalue chain  // reason: <citation>`."
 
 internal final class RawValueBitPatternVisitor: SyntaxVisitor {
   let source: Source.File
