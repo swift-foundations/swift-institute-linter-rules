@@ -865,7 +865,8 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
   }
 
   @Test
-  func `disfavored Array UInt8 in SLI module is NOT flagged when an earlier path segment is also named Sources`() {
+  func `disfavored Array UInt8 in SLI module is NOT flagged with an earlier Sources path segment`()
+  {
     // Regression guard: the host-target anchor must be the LAST `Sources`
     // path component. A checkout root that happens to contain an earlier
     // `Sources` segment (e.g. `/Users/dev/Sources/checkout/Sources/Foo

@@ -224,7 +224,7 @@ extension Lint.Rule.`extension file naming Tests`.Negative {
 
 extension Lint.Rule.`extension file naming Tests`.Edge {
   @Test
-  func `platform-conditional primary type paired with an unconditional extension is NOT misclassified as extension-only`() {
+  func `platform-conditional type with unconditional extension is NOT misclassified`() {
     // A top-level `#if os(...)` type declaration must be visible to the
     // by-hand top-level scan (IfConfigDeclSyntax descent), or the file is
     // wrongly classified as extension-only and judged against the
