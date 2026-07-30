@@ -197,8 +197,16 @@ internal final class StructureThrowingWrapperInitVisitor: SyntaxVisitor {
   private func isBaseInitializerTryForward(_ syntax: Syntax) -> Swift.Bool {
     guard let tryExpr = extractTryExpr(syntax) else { return false }
     let inner = tryExpr.expression
-    if let assignment = inner.as(AssignmentExprSyntax.self) {
-      return isConstructorCall(assignment.value)
+    if let sequence = inner.as(SequenceExprSyntax.self) {
+      let elements = Array(sequence.elements)
+      if elements.count == 3, elements[1].is(AssignmentExprSyntax.self) {
+        return isConstructorCall(elements[2])
+      }
+    }
+    if let infix = inner.as(InfixOperatorExprSyntax.self),
+      infix.operator.is(AssignmentExprSyntax.self)
+    {
+      return isConstructorCall(infix.rightOperand)
     }
     return isConstructorCall(inner)
   }
