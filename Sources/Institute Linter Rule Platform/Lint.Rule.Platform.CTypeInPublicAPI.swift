@@ -68,47 +68,6 @@ internal let platformCTypeInPublicAPIFlaggedCTypes: Swift.Set<Swift.String> = [
   "sockaddr_un", "stat", "statfs", "dirent", "passwd",
 ]
 
-internal func platformCTypeInPublicAPIIsPublicAPI(_ modifiers: DeclModifierListSyntax) -> Swift.Bool
-{
-  for modifier in modifiers {
-    switch modifier.name.tokenKind {
-    case .keyword(.public), .keyword(.open):
-      return true
-
-    default:
-      continue
-    }
-  }
-  return false
-}
-
-/// Returns true if `node`'s *effective* visibility is `public`/`open`
-/// — either it carries the modifier itself, or it declares no access
-/// modifier and is a member of a `public`/`open extension`. In Swift,
-/// a member of a `public extension` is public API without carrying
-/// the keyword; every rule in this pack that is explicitly scoped to
-/// public API by its own doc/message is silently defeated by moving
-/// the `public` keyword to the enclosing extension. Shared between
-/// `c type in public api` and `dead case per platform`, whose
-/// byte-identical local copies of the direct (non-effective) check
-/// this supersedes.
-internal func platformIsPublicAPIEffective(
-  _ node: Syntax,
-  modifiers: DeclModifierListSyntax
-) -> Swift.Bool {
-  if platformCTypeInPublicAPIIsPublicAPI(modifiers) {
-    return true
-  }
-  var current: Syntax? = node.parent
-  while let candidate = current {
-    if let ext = candidate.as(ExtensionDeclSyntax.self) {
-      return platformCTypeInPublicAPIIsPublicAPI(ext.modifiers)
-    }
-    current = candidate.parent
-  }
-  return false
-}
-
 internal func platformCTypeInPublicAPIContainsCType(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
     if platformCTypeInPublicAPIFlaggedCTypes.contains(identifier.name.text) {
