@@ -47,6 +47,35 @@ public import Linter_Rules
 /// content sharpens. Consumers continue to reference
 /// `Lint.Rule.Bundle.institute` and pick up the migration
 /// automatically.
+///
+/// ## Severity-tier policy
+///
+/// This repository's graduation discipline, made explicit (anchors the
+/// bundle's existing "advisory at introduction; error only after the
+/// standing graduation gate" comments to one standing rule):
+///
+/// 1. **A rule is born `.warning`.** `default: .error` is not available
+///    at introduction, without exception.
+/// 2. **Promotion to `.error` requires all three:**
+///    (a) **Structural predicate** — the rule decides on AST shape.
+///    Textual matching of source spellings, name-suffix heuristics, and
+///    path heuristics each disqualify.
+///    (b) **Both-direction fixtures for every exemption and carve-out
+///    the rule carries.** An untested exemption is an unbounded silent
+///    hole and is disqualifying on its own.
+///    (c) **Fleet evidence that is non-zero and adjudicated.** A fleet
+///    zero is *never* evidence for promotion: zero is equally
+///    consistent with a clean fleet and a blind predicate. Only a
+///    non-zero run whose every finding was adjudicated — fixed,
+///    suppressed with a reason, or ruled a false positive and the
+///    predicate corrected — supports promotion.
+/// 3. **Demotion needs only (a) failing.** A demonstrated
+///    non-structural predicate at `.error` is demoted immediately;
+///    demotion strictly reduces enforcement and so cannot break a
+///    converging root.
+/// 4. **Scope.** This governs a rule's `default:` severity in this
+///    repository. A consumer's configured override is out of scope,
+///    and nothing here promotes anything.
 extension Lint.Rule.Bundle {
   public static let institute: [Lint.Rule.Configuration] =
     Lint.Rule.Bundle.universal + [

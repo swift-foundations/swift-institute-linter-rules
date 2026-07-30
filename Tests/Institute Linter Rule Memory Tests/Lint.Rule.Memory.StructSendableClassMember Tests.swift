@@ -50,10 +50,37 @@ extension Lint.Rule.`sendable struct with class member Tests`.Unit {
   }
 
   @Test
-  func `struct unchecked Sendable with Class-suffix member is flagged`() {
+  func `struct unchecked Sendable with same-file class member is flagged`() {
     let source = """
-      struct Wrapper: @unchecked Sendable {
-          var inner: PayloadClass
+      final class Storage {}
+      struct Box: @unchecked Sendable {
+          var storage: Storage
+      }
+      """
+    let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `struct unchecked Swift dot Sendable with same-file class member is flagged`() {
+    let source = """
+      final class Storage {}
+      struct Box: @unchecked Swift.Sendable {
+          var storage: Storage
+      }
+      """
+    let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `struct unchecked Sendable with same-file dotted-path class member is flagged`() {
+    let source = """
+      enum Foo {
+          final class Storage {}
+      }
+      struct Box: @unchecked Sendable {
+          var storage: Foo.Storage
       }
       """
     let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
@@ -90,6 +117,46 @@ extension Lint.Rule.`sendable struct with class member Tests`.`Edge Case` {
       struct Wrapper: @unchecked Sendable {
           var count: Int
           var name: String
+      }
+      """
+    let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `struct unchecked Sendable with struct-typed Reference-suffix member is NOT flagged`() {
+    // The name-suffix heuristic ("Class"/"Reference") is deleted — a
+    // struct is not a class regardless of its name.
+    let source = """
+      struct ValueReference {}
+      struct Box: @unchecked Sendable {
+          var r: ValueReference
+      }
+      """
+    let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `struct unchecked Sendable with computed class-typed property is NOT flagged`() {
+    let source = """
+      final class Storage {}
+      struct Box: @unchecked Sendable {
+          var storage: Storage { Storage() }
+      }
+      """
+    let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `struct unchecked Sendable with imported class not in the allowlist is NOT flagged`() {
+    // A class declared in another module and absent from
+    // `memoryStructSendableClassMemberKnownClassNames` is a real per-file
+    // limit: this rule cannot resolve it.
+    let source = """
+      struct Box: @unchecked Sendable {
+          var connection: NetworkConnection
       }
       """
     let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)

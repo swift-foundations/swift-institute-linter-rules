@@ -15,10 +15,18 @@ internal import SwiftSyntax
 /// `for (i, _) in <expr>.enumerated()` followed by `<expr>[i]` silently
 /// breaks semantics on custom Collections whose Index is not a 0-based
 /// offset. Citation: `[PATTERN-058]`.
+///
+/// Demoted to `.warning` under `Lint.Rule.Bundle.institute`'s
+/// severity-tier policy (2026-07-30): the receiver comparison is
+/// currently textual (`idiomTrimmed(base.description)` equality), which
+/// fails the policy's structural-predicate criterion for `.error`
+/// outright — `self.buffer` and `buffer` are different receivers, and
+/// any interior trivia breaks the match. Promote back to `.error` once
+/// the receiver comparison is structural.
 extension Lint.Rule {
   public static let `enumerated with subscript` = Lint.Rule(
     id: "enumerated with subscript",
-    default: .error,
+    default: .warning,
     findings: { source, severity in
       let visitor = IdiomEnumeratedSubscriptVisitor(
         source: source.file,
