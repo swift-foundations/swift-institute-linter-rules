@@ -50,11 +50,7 @@ internal let testingFunctionNamingMessage: Swift.String =
   + "forms and plain non-CamelCase identifiers pass."
 
 private func functionNamingHasTestAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
-  for attribute in attributes {
-    guard let attr = attribute.as(AttributeSyntax.self) else { continue }
-    if attr.attributeName.trimmedDescription == "Test" { return true }
-  }
-  return false
+  testingHasAttribute(attributes, named: "Test")
 }
 
 internal final class TestingFunctionNamingVisitor: SyntaxVisitor {

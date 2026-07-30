@@ -63,7 +63,8 @@ internal final class TestingBenchmarkTimedRequiredVisitor: SyntaxVisitor {
   private func testAttribute(_ attributes: AttributeListSyntax) -> AttributeSyntax? {
     for attribute in attributes {
       guard let attr = attribute.as(AttributeSyntax.self) else { continue }
-      if attr.attributeName.trimmedDescription == "Test" { return attr }
+      let attributeName = attr.attributeName.trimmedDescription
+      if attributeName == "Test" || attributeName.hasSuffix(".Test") { return attr }
     }
     return nil
   }

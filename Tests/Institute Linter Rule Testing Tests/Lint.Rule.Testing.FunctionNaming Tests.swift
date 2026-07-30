@@ -64,6 +64,16 @@ extension Lint.Rule.`test function naming Tests`.Unit {
   }
 
   @Test
+  func `qualified @Testing_Test func with camelCase name is flagged`() {
+    let source = """
+      @Testing.Test
+      func testInitCreatesEmptyBuffer() {}
+      """
+    let findings = Lint.Rule.`test function naming Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `Test func with multi-word backticked name is permitted`() {
     let source = """
       @Test

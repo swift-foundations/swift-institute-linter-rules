@@ -59,6 +59,18 @@ extension Lint.Rule.`benchmark timed required Tests`.Unit {
   }
 
   @Test
+  func `qualified @Testing_Test inside Performance suite without timed is flagged`() {
+    let source = """
+      @Suite(.serialized) struct Performance {
+          @Testing.Test
+          func `runs fast`() {}
+      }
+      """
+    let findings = Lint.Rule.`benchmark timed required Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `Test outside Performance suite is not flagged`() {
     let source = """
       @Suite struct Unit {
