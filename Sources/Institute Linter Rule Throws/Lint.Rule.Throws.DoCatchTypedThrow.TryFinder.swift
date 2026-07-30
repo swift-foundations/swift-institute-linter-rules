@@ -11,7 +11,7 @@
 
 internal import SwiftSyntax
 
-internal final class ThrowsDoCatchTryFinder2: SyntaxVisitor {
+internal final class ThrowsDoCatchTypedThrowTryFinder: SyntaxVisitor {
   var found = false
   override func visit(_ node: TryExprSyntax) -> SyntaxVisitorContinueKind {
     guard node.questionOrExclamationMark == nil else {

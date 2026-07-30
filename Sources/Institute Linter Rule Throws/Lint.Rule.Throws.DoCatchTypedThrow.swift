@@ -55,7 +55,7 @@ internal final class ThrowsDoCatchTypedThrowVisitor: SyntaxVisitor {
     let throwFinder = ThrowsDoCatchThrowFinder(viewMode: .sourceAccurate)
     throwFinder.walk(node.body)
     guard throwFinder.found else { return .visitChildren }
-    let tryFinder = ThrowsDoCatchTryFinder2(viewMode: .sourceAccurate)
+    let tryFinder = ThrowsDoCatchTypedThrowTryFinder(viewMode: .sourceAccurate)
     tryFinder.walk(node.body)
     guard !tryFinder.found else { return .visitChildren }
     let location = converter.location(for: node.doKeyword.positionAfterSkippingLeadingTrivia)

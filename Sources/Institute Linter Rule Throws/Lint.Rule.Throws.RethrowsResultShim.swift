@@ -14,6 +14,14 @@ internal import SwiftSyntax
 
 /// `try` inside stdlib `rethrows` higher-order methods MUST be adapted via
 /// the `Result<T, E>` shim. Citation: `[IMPL-109]`.
+///
+/// Coordination note: the same site can also fire `closure typed throws
+/// annotation` ([API-ERR-004]) when the closure sits inside a `throws(E)`
+/// context, since an un-shimmed `try` on a rethrows method also lacks the
+/// explicit annotation that rule wants. The remedies conflict — apply this
+/// rule's `Result<T, E>` materialisation first; it removes the bare `try`
+/// the annotation rule keys on, so the two do not both need to be
+/// satisfied independently at the same site.
 extension Lint.Rule {
   public static let `result wrapper for rethrows shim` = Lint.Rule(
     id: "result wrapper for rethrows shim",

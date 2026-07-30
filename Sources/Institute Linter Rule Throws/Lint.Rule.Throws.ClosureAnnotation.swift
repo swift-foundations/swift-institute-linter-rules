@@ -14,6 +14,17 @@ internal import SwiftSyntax
 
 /// Closures inside a `throws(E)` context MUST carry an explicit
 /// `throws(E)` annotation when they contain `try`. Citation: `[API-ERR-004]`.
+///
+/// Coordination note: a `try` on a stdlib `rethrows` higher-order method
+/// inside a `throws(E)` closure can also fire `result wrapper for rethrows
+/// shim` ([IMPL-109]) on the same site. The two remedies conflict — this
+/// rule's fix is "add `throws(E)` to the closure," the shim's fix is
+/// "materialise `Result<T, E>` and stop the `try` from propagating
+/// unadapted." Applying only one leaves the other rule's finding
+/// unresolved; there is currently no suppression or precedence between
+/// them, so a site hitting both must apply the shim first (which removes
+/// the bare `try` this rule keys on) and only annotate remaining,
+/// non-rethrows `try`s.
 extension Lint.Rule {
   public static let `closure typed throws annotation` = Lint.Rule(
     id: "closure typed throws annotation",
