@@ -99,9 +99,10 @@ internal func platformConventionCRepresentabilityIsUnsafePointerToUserType(_ typ
       || identifier.name.text == "UnsafePointer"
   else { return false }
   guard let genericArgs = identifier.genericArgumentClause,
-    let argument = genericArgs.arguments.first
+    let argument = genericArgs.arguments.first,
+    let argumentType = argument.argument.as(TypeSyntax.self)
   else { return false }
-  return !platformConventionCRepresentabilityIsCInteropReference(argument.argument)
+  return !platformConventionCRepresentabilityIsCInteropReference(argumentType)
 }
 
 /// True when `type` is a `MemberTypeSyntax` rooted at a recognized
