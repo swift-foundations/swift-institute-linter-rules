@@ -76,7 +76,8 @@ internal let memoryUncheckedSendableRevalidationAnchorMessage: Swift.String =
   + "compiler-limitation-justified, drop the limitation-citing language from "
   + "the comment block — this rule fires only when limitation indicators "
   + "(`compiler`, `until Swift`, `Sendable workaround`, `Category D`, "
-  + "`@_rawLayout`, `WORKAROUND`) are present in the adjacent trivia."
+  + "`@_rawLayout`, `WORKAROUND`) are present in the declaration's full "
+  + "leading trivia (not just the line immediately above it)."
 
 internal final class MemoryUncheckedSendableRevalidationAnchorVisitor: SyntaxVisitor {
   let source: Source.File
