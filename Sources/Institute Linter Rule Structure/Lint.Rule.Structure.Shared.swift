@@ -74,6 +74,26 @@ internal let structureSyntaxVisitorFamilyNames: Swift.Set<Swift.String> = [
 /// both `IdentifierTypeSyntax` (bare `SyntaxVisitor`) and
 /// `MemberTypeSyntax` (qualified `SwiftSyntax.SyntaxVisitor`) resolve
 /// to the visitor's name.
+/// Returns true if `node` is an `AccessorBlockSyntax` in its shorthand-
+/// getter form (`var x: Int { 0 }`, with no explicit `get { }`).
+///
+/// A short-form computed-property or subscript getter parses as
+/// `AccessorBlockSyntax.getter(CodeBlockItemListSyntax)` — there is no
+/// `AccessorDeclSyntax` node at all. Rules that track a function-like
+/// body boundary (init body, explicit accessor body, closure body,
+/// deinit body, subscript body) by testing `AccessorDeclSyntax` alone
+/// miss this shorthand form entirely.
+///
+/// Pack-local duplicate of `namingIsShorthandGetterAccessorBlock` from
+/// `Lint.Rule.Naming.Shared.swift` (institute pack) — cross-pack
+/// visibility isn't available across the universal/institute tier
+/// boundary, so the helper is duplicated; semantics match.
+internal func structureIsShorthandGetterAccessorBlock(_ node: Syntax) -> Swift.Bool {
+  guard let block = node.as(AccessorBlockSyntax.self) else { return false }
+  if case .getter = block.accessors { return true }
+  return false
+}
+
 internal func structureExtendsSyntaxVisitor(_ clause: InheritanceClauseSyntax?) -> Swift.Bool {
   guard let clause else { return false }
   for inherited in clause.inheritedTypes {

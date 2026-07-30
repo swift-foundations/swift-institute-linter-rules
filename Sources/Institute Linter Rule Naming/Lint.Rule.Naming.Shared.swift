@@ -567,3 +567,26 @@ extension Naming {
     token.trimmedDescription.hasPrefix("`")
   }
 }
+
+/// Returns true if `node` is an `AccessorBlockSyntax` in its shorthand-
+/// getter form (`var x: Int { 0 }`, with no explicit `get { }`).
+///
+/// A short-form computed-property or subscript getter parses as
+/// `AccessorBlockSyntax.getter(CodeBlockItemListSyntax)` — there is no
+/// `AccessorDeclSyntax` node at all. Rules that walk the parent chain
+/// looking for a function-like body boundary (init body, explicit
+/// accessor body, closure body, deinit body, subscript body) via
+/// `candidate.is(AccessorDeclSyntax.self)` alone miss this shorthand
+/// form entirely, since the walk never encounters an `AccessorDeclSyntax`
+/// for it — it passes straight through to the enclosing
+/// `VariableDeclSyntax`/`SubscriptDeclSyntax` and beyond.
+///
+/// Pack-local duplicate of `structureIsShorthandGetterAccessorBlock`
+/// from `Lint.Rule.Structure.Shared.swift` — cross-pack visibility isn't
+/// available across the universal/institute tier boundary, so the
+/// helper is duplicated; semantics match.
+internal func namingIsShorthandGetterAccessorBlock(_ node: Syntax) -> Swift.Bool {
+  guard let block = node.as(AccessorBlockSyntax.self) else { return false }
+  if case .getter = block.accessors { return true }
+  return false
+}

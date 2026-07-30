@@ -97,13 +97,42 @@ extension Lint.Rule.`raw value access Tests`.Unit {
 extension Lint.Rule.`raw value access Tests`.`Edge Case` {
   @Test
   func `rawValue at top-level type scope is NOT flagged`() {
+    // `bodyDepth == 0`: the access sits directly in a stored-property
+    // initializer at type scope, outside any function-like body, so the
+    // gate exempts it regardless of accessor name.
     let source = """
       struct Foo {
-          static let max = MyTag.maxRawValue
+          static let max = MyTag.rawValue
       }
       """
     let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
     #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `rawValue access inside a shorthand computed getter is flagged`() {
+    // A short-form getter (`{ tag.rawValue }`, no explicit `get { }`)
+    // parses as `AccessorBlockSyntax.getter` — there is no
+    // `AccessorDeclSyntax` node. The rule must not depend on which of the
+    // two equivalent spellings the author used.
+    let source = """
+      struct Wrapper {
+          var stripped: Int32 { tag.rawValue }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `rawValue access inside a shorthand subscript getter is flagged`() {
+    let source = """
+      struct Wrapper {
+          subscript(index: Int) -> Int32 { tags[index].rawValue }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
   }
 
   @Test

@@ -398,6 +398,7 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
       if candidate.is(FunctionDeclSyntax.self)
         || candidate.is(InitializerDeclSyntax.self)
         || candidate.is(AccessorDeclSyntax.self)
+        || namingIsShorthandGetterAccessorBlock(candidate)
         || candidate.is(ClosureExprSyntax.self)
         || candidate.is(DeinitializerDeclSyntax.self)
         || candidate.is(SubscriptDeclSyntax.self)

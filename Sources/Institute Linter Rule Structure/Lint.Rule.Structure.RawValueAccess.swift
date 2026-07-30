@@ -96,6 +96,22 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
   override func visitPost(_: AccessorDeclSyntax) {
     bodyDepth -= 1
   }
+  override func visit(_ node: AccessorBlockSyntax) -> SyntaxVisitorContinueKind {
+    // A short-form getter (`var x: Int { tag.rawValue }`) parses as
+    // `.getter`, with no `AccessorDeclSyntax` at all — the override above
+    // never fires for it. Without this, `.rawValue` access inside a
+    // shorthand computed property or subscript getter silently escapes
+    // the rule.
+    if structureIsShorthandGetterAccessorBlock(Syntax(node)) {
+      bodyDepth += 1
+    }
+    return .visitChildren
+  }
+  override func visitPost(_ node: AccessorBlockSyntax) {
+    if structureIsShorthandGetterAccessorBlock(Syntax(node)) {
+      bodyDepth -= 1
+    }
+  }
 
   override func visit(_ node: MemberAccessExprSyntax) -> SyntaxVisitorContinueKind {
     guard bodyDepth > 0 else { return .visitChildren }
@@ -159,6 +175,7 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
       if candidate.is(InitializerDeclSyntax.self) { return true }
       if candidate.is(FunctionDeclSyntax.self)
         || candidate.is(AccessorDeclSyntax.self)
+        || structureIsShorthandGetterAccessorBlock(candidate)
         || candidate.is(ClosureExprSyntax.self)
         || candidate.is(DeinitializerDeclSyntax.self)
         || candidate.is(SubscriptDeclSyntax.self)

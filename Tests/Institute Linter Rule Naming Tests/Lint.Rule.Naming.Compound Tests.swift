@@ -680,6 +680,54 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `local compound binding inside a shorthand getter is NOT flagged`() {
+    // A short-form computed-property getter (`{ ... }`, no explicit
+    // `get { }`) parses as `AccessorBlockSyntax.getter` — there is no
+    // `AccessorDeclSyntax` node. A local binding scoped to that body is
+    // function-scope-local exactly like one inside an explicit `get { }`
+    // or a plain function body, and has no consumer-observable API
+    // surface.
+    let source = """
+      extension Buffer {
+          public var summary: String {
+              let byteCount = 0
+              return "\\(byteCount)"
+          }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `nested function inside a shorthand getter is NOT flagged`() {
+    let source = """
+      extension Buffer {
+          public var value: Int {
+              func computeStuff() -> Int { 0 }
+              return computeStuff()
+          }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `local compound binding inside a shorthand subscript getter is NOT flagged`() {
+    let source = """
+      extension Buffer {
+          public subscript(index: Int) -> Int {
+              let rawIndex = index
+              return rawIndex
+          }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }
 
 // #16 Option C ledger, Entry III.d (DECISION 2026-07-23): the witness
