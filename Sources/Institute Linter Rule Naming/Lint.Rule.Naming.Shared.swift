@@ -107,8 +107,7 @@ extension Naming.Visitor {
     return false
   }
 
-  fileprivate static func inheritanceLeaves(_ clause: InheritanceClauseSyntax?) -> [Swift.String]
-  {
+  fileprivate static func inheritanceLeaves(_ clause: InheritanceClauseSyntax?) -> [Swift.String] {
     guard let clause else { return [] }
     var names: [Swift.String] = []
     for inherited in clause.inheritedTypes {

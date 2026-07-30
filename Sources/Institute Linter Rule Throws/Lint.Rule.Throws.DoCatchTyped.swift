@@ -30,6 +30,12 @@ extension Lint.Rule {
   )
 }
 
+// swiftlint:disable no_existential_throws
+// REASON: this rule's own diagnostic message must literally cite
+// `do throws(any Error)` as the dead-end construct it names in the untyped-callee
+// carve-out — self-referential fixture shape (rule-exemptions skill); the
+// regex-based no_existential_throws rule cannot distinguish prose citation from
+// live code. Re-enabled immediately after the message declaration.
 @usableFromInline
 internal let throwsDoCatchTypedMessage: Swift.String =
   "[do throws for typed catch] [IMPL-075]: bare `do { try ... } catch { }` "
@@ -42,6 +48,7 @@ internal let throwsDoCatchTypedMessage: Swift.String =
   + "`// swift-linter:disable:next do throws for typed catch` with a `// REASON:` "
   + "naming the untyped callee. Where a typed `E` DOES exist both rules are "
   + "satisfiable together, so this rule is not softened for the typed case."
+// swiftlint:enable no_existential_throws
 
 internal final class ThrowsDoCatchTypedVisitor: SyntaxVisitor {
   let source: Source.File

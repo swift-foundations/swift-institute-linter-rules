@@ -12,10 +12,12 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
-// swiftlint:disable no_try_optional
+// swiftlint:disable no_try_optional no_existential_throws
 // REASON: this rule's own doc comment and diagnostic message must literally cite the
-// `try?` pattern it detects — self-referential fixture shape (rule-exemptions skill);
-// the regex-based no_try_optional rule cannot distinguish prose citation from live code.
+// `try?` pattern it detects, and (in the untyped-callee carve-out) the
+// `do throws(any Error)` dead end it names — self-referential fixture shape
+// (rule-exemptions skill); the regex-based no_try_optional and
+// no_existential_throws rules cannot distinguish prose citation from live code.
 /// `try?` swallows typed errors.
 ///
 /// `try?` converts a thrown error into a `nil` Optional, erasing both the
@@ -59,7 +61,7 @@ internal let tryOptionalMessage: Swift.String =
   + "Keep the `try?` and apply `// swift-linter:disable:next try optional` with a "
   + "`// REASON:` naming the untyped callee — that case is the author's to judge, "
   + "because a per-file rule can prove a callee typed but never untyped."
-// swiftlint:enable no_try_optional
+// swiftlint:enable no_try_optional no_existential_throws
 
 internal final class TryOptionalVisitor: SyntaxVisitor {
   let source: Source.File

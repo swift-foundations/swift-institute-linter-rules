@@ -43,30 +43,30 @@ internal import SwiftSyntax
 /// was a nested-package-mechanism proof and is intentionally dropped —
 /// the predicate is purely syntactic.
 extension Lint.Rule {
-    /// Flags `Tagged<…>(_unchecked:)` construction sites that should use a typed alternative.
-    public static let `tagged unchecked with typed alternative` = Lint.Rule(
-        id: "tagged unchecked with typed alternative",
-        default: .warning,
-        findings: { source, severity in
-            let visitor = RawValueTaggedUncheckedVisitor(
-                source: source.file,
-                severity: severity,
-                converter: source.converter
-            )
-            visitor.walk(source.tree)
-            return visitor.matches
-        }
-    )
+  /// Flags `Tagged<…>(_unchecked:)` construction sites that should use a typed alternative.
+  public static let `tagged unchecked with typed alternative` = Lint.Rule(
+    id: "tagged unchecked with typed alternative",
+    default: .warning,
+    findings: { source, severity in
+      let visitor = RawValueTaggedUncheckedVisitor(
+        source: source.file,
+        severity: severity,
+        converter: source.converter
+      )
+      visitor.walk(source.tree)
+      return visitor.matches
+    }
+  )
 }
 
 @usableFromInline
 internal let rawValueTaggedUncheckedMessage: Swift.String =
-    "[tagged unchecked with typed alternative] [CONV-015]: "
-    + "`Tagged<…>(_unchecked: …)` bypasses tagged-primitives' typed-init alternatives "
-    + "(ExpressibleBy*Literal conformances in the Standard Library Integration target). "
-    + "Prefer a literal-typed init when the underlying type's literal protocol fits; "
-    + "reach for `_unchecked` only when the underlying value is already validated upstream "
-    + "and a typed init is genuinely unavailable."
+  "[tagged unchecked with typed alternative] [CONV-015]: "
+  + "`Tagged<…>(_unchecked: …)` bypasses tagged-primitives' typed-init alternatives "
+  + "(ExpressibleBy*Literal conformances in the Standard Library Integration target). "
+  + "Prefer a literal-typed init when the underlying type's literal protocol fits; "
+  + "reach for `_unchecked` only when the underlying value is already validated upstream "
+  + "and a typed init is genuinely unavailable."
 
 /// Functions whose `_unchecked:` use is structurally authorized — the
 /// underlying value is either opaque-by-construction (transform-closure
@@ -81,8 +81,8 @@ internal let rawValueTaggedUncheckedMessage: Swift.String =
 /// decl; if its name matches an entry, exempt the use.
 @usableFromInline
 internal let rawValueTaggedUncheckedExemptOperations: [Swift.String: Swift.String] = [
-    "map": "preserve-shape transform; closure output is opaque-by-construction",
-    "retag": "phantom-tag swap; underlying validated upstream by Tagged construction invariant",
+  "map": "preserve-shape transform; closure output is opaque-by-construction",
+  "retag": "phantom-tag swap; underlying validated upstream by Tagged construction invariant",
 ]
 
 /// Attribute names whose presence on the enclosing function decl exempts
@@ -103,117 +103,117 @@ internal let rawValueTaggedUncheckedExemptOperations: [Swift.String: Swift.Strin
 /// rule's recommendation does not apply.
 @usableFromInline
 internal let rawValueTaggedUncheckedExemptAttributes: [Swift.String: Swift.String] = [
-    "Test": "swift-testing test function; tests exercise the full API surface including _unchecked"
+  "Test": "swift-testing test function; tests exercise the full API surface including _unchecked"
 ]
 
 internal final class RawValueTaggedUncheckedVisitor: SyntaxVisitor {
-    let source: Source.File
-    let severity: Diagnostic.Severity
-    let converter: SourceLocationConverter
-    var matches: [Diagnostic.Record] = []
+  let source: Source.File
+  let severity: Diagnostic.Severity
+  let converter: SourceLocationConverter
+  var matches: [Diagnostic.Record] = []
 
-    init(
-        source: Source.File,
-        severity: Diagnostic.Severity,
-        converter: SourceLocationConverter
-    ) {
-        self.source = source
-        self.severity = severity
-        self.converter = converter
-        super.init(viewMode: .sourceAccurate)
+  init(
+    source: Source.File,
+    severity: Diagnostic.Severity,
+    converter: SourceLocationConverter
+  ) {
+    self.source = source
+    self.severity = severity
+    self.converter = converter
+    super.init(viewMode: .sourceAccurate)
+  }
+
+  override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
+    guard Self.calleeIsTagged(node.calledExpression) else {
+      return .visitChildren
     }
-
-    override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
-        guard Self.calleeIsTagged(node.calledExpression) else {
-            return .visitChildren
-        }
-        // Exempt enclosing-function contexts (function-name or attribute):
-        // - preserve-shape transforms (`map`, `retag`) per
-        //   `rawValueTaggedUncheckedExemptOperations` — opaque-by-construction
-        //   or validated-upstream cases
-        // - `@Test`-attributed test functions per
-        //   `rawValueTaggedUncheckedExemptAttributes` — tests exercise the
-        //   full API surface including `_unchecked`
-        if Self.isInsideExemptOperation(Syntax(node)) {
-            return .visitChildren
-        }
-        for argument in node.arguments {
-            guard
-                let label = argument.label,
-                label.tokenKind == .identifier("_unchecked")
-            else { continue }
-            let location = converter.location(
-                for: argument.positionAfterSkippingLeadingTrivia
-            )
-            matches.append(
-                Diagnostic.Record(
-                    location: Source.Location(
-                        fileID: source.fileID,
-                        filePath: source.filePath,
-                        line: location.line,
-                        column: location.column
-                    ),
-                    severity: severity,
-                    identifier: "tagged unchecked with typed alternative",
-                    message: rawValueTaggedUncheckedMessage
-                )
-            )
-            break  // one finding per call site
-        }
-        return .visitChildren
+    // Exempt enclosing-function contexts (function-name or attribute):
+    // - preserve-shape transforms (`map`, `retag`) per
+    //   `rawValueTaggedUncheckedExemptOperations` — opaque-by-construction
+    //   or validated-upstream cases
+    // - `@Test`-attributed test functions per
+    //   `rawValueTaggedUncheckedExemptAttributes` — tests exercise the
+    //   full API surface including `_unchecked`
+    if Self.isInsideExemptOperation(Syntax(node)) {
+      return .visitChildren
     }
+    for argument in node.arguments {
+      guard
+        let label = argument.label,
+        label.tokenKind == .identifier("_unchecked")
+      else { continue }
+      let location = converter.location(
+        for: argument.positionAfterSkippingLeadingTrivia
+      )
+      matches.append(
+        Diagnostic.Record(
+          location: Source.Location(
+            fileID: source.fileID,
+            filePath: source.filePath,
+            line: location.line,
+            column: location.column
+          ),
+          severity: severity,
+          identifier: "tagged unchecked with typed alternative",
+          message: rawValueTaggedUncheckedMessage
+        )
+      )
+      break  // one finding per call site
+    }
+    return .visitChildren
+  }
 
-    private static func isInsideExemptOperation(_ node: Syntax) -> Swift.Bool {
-        var current: Syntax? = node.parent
-        while let candidate = current {
-            if let fn = candidate.as(FunctionDeclSyntax.self) {
-                if rawValueTaggedUncheckedExemptOperations[fn.name.text] != nil {
-                    return true
-                }
-                if Self.hasExemptAttribute(fn.attributes) {
-                    return true
-                }
-                return false
-            }
-            current = candidate.parent
+  private static func isInsideExemptOperation(_ node: Syntax) -> Swift.Bool {
+    var current: Syntax? = node.parent
+    while let candidate = current {
+      if let fn = candidate.as(FunctionDeclSyntax.self) {
+        if rawValueTaggedUncheckedExemptOperations[fn.name.text] != nil {
+          return true
+        }
+        if Self.hasExemptAttribute(fn.attributes) {
+          return true
         }
         return false
+      }
+      current = candidate.parent
     }
+    return false
+  }
 
-    private static func hasExemptAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
-        for element in attributes {
-            guard case .attribute(let attribute) = element else { continue }
-            let name: Swift.String
-            if let ident = attribute.attributeName.as(IdentifierTypeSyntax.self) {
-                name = ident.name.text
-            } else if let member = attribute.attributeName.as(MemberTypeSyntax.self) {
-                name = member.name.text
-            } else {
-                continue
-            }
-            if rawValueTaggedUncheckedExemptAttributes[name] != nil {
-                return true
-            }
-        }
-        return false
+  private static func hasExemptAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
+    for element in attributes {
+      guard case .attribute(let attribute) = element else { continue }
+      let name: Swift.String
+      if let ident = attribute.attributeName.as(IdentifierTypeSyntax.self) {
+        name = ident.name.text
+      } else if let member = attribute.attributeName.as(MemberTypeSyntax.self) {
+        name = member.name.text
+      } else {
+        continue
+      }
+      if rawValueTaggedUncheckedExemptAttributes[name] != nil {
+        return true
+      }
     }
+    return false
+  }
 
-    /// Domain-narrowing: the rule fires only when the call's callee
-    /// identifier is `Tagged` (bare, generic-specialized, or
-    /// member-accessed).
-    ///
-    /// Non-Tagged `_unchecked:` call sites are out
-    /// of scope.
-    private static func calleeIsTagged(_ expression: ExprSyntax) -> Bool {
-        if let decl = expression.as(DeclReferenceExprSyntax.self) {
-            return decl.baseName.text == "Tagged"
-        }
-        if let generic = expression.as(GenericSpecializationExprSyntax.self) {
-            return calleeIsTagged(generic.expression)
-        }
-        if let member = expression.as(MemberAccessExprSyntax.self) {
-            return member.declName.baseName.text == "Tagged"
-        }
-        return false
+  /// Domain-narrowing: the rule fires only when the call's callee
+  /// identifier is `Tagged` (bare, generic-specialized, or
+  /// member-accessed).
+  ///
+  /// Non-Tagged `_unchecked:` call sites are out
+  /// of scope.
+  private static func calleeIsTagged(_ expression: ExprSyntax) -> Bool {
+    if let decl = expression.as(DeclReferenceExprSyntax.self) {
+      return decl.baseName.text == "Tagged"
     }
+    if let generic = expression.as(GenericSpecializationExprSyntax.self) {
+      return calleeIsTagged(generic.expression)
+    }
+    if let member = expression.as(MemberAccessExprSyntax.self) {
+      return member.declName.baseName.text == "Tagged"
+    }
+    return false
+  }
 }

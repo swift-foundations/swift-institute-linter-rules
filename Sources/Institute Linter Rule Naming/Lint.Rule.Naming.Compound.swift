@@ -186,43 +186,56 @@ private let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.String
 /// implausible.
 private let namingCompoundProtocolWitnessMethodCitations:
   [Swift.String: (citation: Swift.String, conformanceGated: Swift.Bool)] = [
-  "encodeAtomicRepresentation": ("Swift.AtomicRepresentable.encodeAtomicRepresentation(_:)", true),
-  "decodeAtomicRepresentation": ("Swift.AtomicRepresentable.decodeAtomicRepresentation(_:)", true),
-  "makeIterator": ("Swift.Sequence.makeIterator()", true),
-  // Identity.OAuth.Provider witnesses (swift-identities-types,
-  // `Identity.OAuth.swift` — protocol requirements verified at source).
-  // Ratified per #16 Option C Entry III.d (0205e7f seeded the 7 sites).
-  // The property witnesses sit in the conformance-declaring extension
-  // (`Identity.OAuth.GitHub+Identity.OAuth.Provider.swift`) and are
-  // conformance-gated; the method witnesses live in per-method extension
-  // files (`Identity.OAuth.GitHub+exchangeCode.swift` etc.) whose
-  // conformance is declared in the sibling witness file, so they are
-  // name-only per the gate rationale above.
-  "displayName": ("Identity.OAuth.Provider.displayName", true),
-  "requiresTokenStorage": ("Identity.OAuth.Provider.requiresTokenStorage", true),
-  "supportsRefresh": ("Identity.OAuth.Provider.supportsRefresh", true),
-  "authorizationURL": ("Identity.OAuth.Provider.authorizationURL(state:redirectURI:)", false),
-  "exchangeCode": ("Identity.OAuth.Provider.exchangeCode(_:redirectURI:)", false),
-  "getUserInfo": ("Identity.OAuth.Provider.getUserInfo(accessToken:)", false),
-  "refreshToken": ("Identity.OAuth.Provider.refreshToken(_:)", false),
-  // Institute Sequence.Iterator.`Protocol` sole protocol requirement.
-  // Span-based primitive (`mutating func nextSpan(maximumCount:) -> Span<Element>`)
-  // is the institute counterpart to Swift.IteratorProtocol's `next()`;
-  // see `swift-primitives/swift-sequence-primitives/Sources/Sequence Primitives Core/Sequence.Iterator.Protocol.swift`.
-  "nextSpan":
-    ("Sequence.Iterator.`Protocol`.nextSpan(maximumCount:) — institute span-based iterator primitive aligned with Swift.IteratorProtocol vocabulary", true),
-  // Swift.Sequence/RangeReplaceableCollection vocabulary aligned, plus
-  // institute Sequence.`Clearable` requirement (`mutating func removeAll()`).
-  "removeAll":
-    ("Swift.RangeReplaceableCollection.removeAll() / Swift.Sequence.removeAll(where:) / Sequence.`Clearable`.removeAll()", true),
-  // Institute Collection.Remove.Last requirement (`static func removeLast(_:)`),
-  // preserving drop-in vocabulary alignment with Swift.Array.removeLast() and
-  // Swift.RangeReplaceableCollection.removeLast(). Institute syntax is additive
-  // on top: `.remove.last()` is the fluent View accessor; consumers may also
-  // expose `removeLast()` instance form for stdlib-compatibility.
-  "removeLast":
-    ("Swift.RangeReplaceableCollection.removeLast() / Swift.Array.removeLast() / Collection.Remove.Last.removeLast(_:) — drop-in stdlib replacement vocabulary", true),
-]
+    "encodeAtomicRepresentation": (
+      "Swift.AtomicRepresentable.encodeAtomicRepresentation(_:)", true
+    ),
+    "decodeAtomicRepresentation": (
+      "Swift.AtomicRepresentable.decodeAtomicRepresentation(_:)", true
+    ),
+    "makeIterator": ("Swift.Sequence.makeIterator()", true),
+    // Identity.OAuth.Provider witnesses (swift-identities-types,
+    // `Identity.OAuth.swift` — protocol requirements verified at source).
+    // Ratified per #16 Option C Entry III.d (0205e7f seeded the 7 sites).
+    // The property witnesses sit in the conformance-declaring extension
+    // (`Identity.OAuth.GitHub+Identity.OAuth.Provider.swift`) and are
+    // conformance-gated; the method witnesses live in per-method extension
+    // files (`Identity.OAuth.GitHub+exchangeCode.swift` etc.) whose
+    // conformance is declared in the sibling witness file, so they are
+    // name-only per the gate rationale above.
+    "displayName": ("Identity.OAuth.Provider.displayName", true),
+    "requiresTokenStorage": ("Identity.OAuth.Provider.requiresTokenStorage", true),
+    "supportsRefresh": ("Identity.OAuth.Provider.supportsRefresh", true),
+    "authorizationURL": ("Identity.OAuth.Provider.authorizationURL(state:redirectURI:)", false),
+    "exchangeCode": ("Identity.OAuth.Provider.exchangeCode(_:redirectURI:)", false),
+    "getUserInfo": ("Identity.OAuth.Provider.getUserInfo(accessToken:)", false),
+    "refreshToken": ("Identity.OAuth.Provider.refreshToken(_:)", false),
+    // Institute Sequence.Iterator.`Protocol` sole protocol requirement.
+    // Span-based primitive (`mutating func nextSpan(maximumCount:) -> Span<Element>`)
+    // is the institute counterpart to Swift.IteratorProtocol's `next()`;
+    // see `swift-primitives/swift-sequence-primitives/Sources/Sequence Primitives Core/Sequence.Iterator.Protocol.swift`.
+    "nextSpan":
+      (
+        "Sequence.Iterator.`Protocol`.nextSpan(maximumCount:) — institute span-based iterator primitive aligned with Swift.IteratorProtocol vocabulary",
+        true
+      ),
+    // Swift.Sequence/RangeReplaceableCollection vocabulary aligned, plus
+    // institute Sequence.`Clearable` requirement (`mutating func removeAll()`).
+    "removeAll":
+      (
+        "Swift.RangeReplaceableCollection.removeAll() / Swift.Sequence.removeAll(where:) / Sequence.`Clearable`.removeAll()",
+        true
+      ),
+    // Institute Collection.Remove.Last requirement (`static func removeLast(_:)`),
+    // preserving drop-in vocabulary alignment with Swift.Array.removeLast() and
+    // Swift.RangeReplaceableCollection.removeLast(). Institute syntax is additive
+    // on top: `.remove.last()` is the fluent View accessor; consumers may also
+    // expose `removeLast()` instance form for stdlib-compatibility.
+    "removeLast":
+      (
+        "Swift.RangeReplaceableCollection.removeLast() / Swift.Array.removeLast() / Collection.Remove.Last.removeLast(_:) — drop-in stdlib replacement vocabulary",
+        true
+      ),
+  ]
 
 internal final class NamingCompoundVisitor: SyntaxVisitor {
   let source: Source.File

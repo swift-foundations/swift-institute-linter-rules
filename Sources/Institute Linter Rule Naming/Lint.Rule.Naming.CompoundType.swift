@@ -91,7 +91,8 @@ private let namingCompoundTypeStdlibMethodMirrorCitations: [Swift.String: Swift.
 /// citation is indefensible at review time. Entries match the full type
 /// name token only — `GitHubClient` (a genuine compound) still fires.
 private let namingCompoundTypeBrandTokenCitations: [Swift.String: Swift.String] = [
-  "GitHub": "github.com brand orthography — ecosystem canonical `GitHub.Owner.ID` (swift-github-standard)",
+  "GitHub":
+    "github.com brand orthography — ecosystem canonical `GitHub.Owner.ID` (swift-github-standard)",
   "OAuth": "RFC 6749 (The OAuth 2.0 Authorization Framework) — spec's own token spelling",
   "IPv4": "RFC 791 — protocol-version orthography (`IPv4.Address`, swift-rfc-791)",
   "IPv6": "RFC 8200 — protocol-version orthography",
