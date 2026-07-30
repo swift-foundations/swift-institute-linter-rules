@@ -34,6 +34,16 @@ extension Lint.Rule.`bitpattern rawvalue chain Tests` {
     let parsed = Lint.Source.parsed(from: source, file: file)
     return Lint.Rule.`bitpattern rawvalue chain`.findings(parsed, .warning)
   }
+
+  /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`
+  /// (#23 finding 21: `Lint.Brand.owned` whole-run self-suppression).
+  static func findings(
+    in source: Swift.String,
+    declaredTypeNames: Swift.Set<Swift.String>
+  ) -> [Diagnostic.Record] {
+    let parsed = Lint.Source.parsed(from: source, declaredTypeNames: declaredTypeNames)
+    return Lint.Rule.`bitpattern rawvalue chain`.findings(parsed, .warning)
+  }
 }
 
 extension Lint.Rule.`bitpattern rawvalue chain Tests`.Unit {
@@ -205,5 +215,23 @@ extension Lint.Rule.`bitpattern rawvalue chain Tests`.`Edge Case` {
     if findings.count == 1 {
       #expect(findings[0].severity == .error)
     }
+  }
+
+  @Test
+  func `Cardinal brand-owner run self-suppresses`() {
+    let findings = Lint.Rule.`bitpattern rawvalue chain Tests`.findings(
+      in: "let i = Int(bitPattern: x.rawValue)",
+      declaredTypeNames: ["Cardinal"]
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a non-brand-owner consumer run still fires`() {
+    let findings = Lint.Rule.`bitpattern rawvalue chain Tests`.findings(
+      in: "let i = Int(bitPattern: x.rawValue)",
+      declaredTypeNames: ["SomeConsumerType"]
+    )
+    #expect(findings.count == 1)
   }
 }

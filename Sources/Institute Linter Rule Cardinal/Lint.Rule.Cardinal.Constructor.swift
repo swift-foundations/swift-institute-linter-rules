@@ -81,7 +81,12 @@ internal final class CardinalConstructorVisitor: SyntaxVisitor {
     guard lit.literal.text == "0" || lit.literal.text == "1" else {
       return .visitChildren
     }
-    let token = node.calledExpression.firstToken(viewMode: .sourceAccurate) ?? lit.literal
+    // A `calledExpression` always has at least one token, so the `??
+    // lit.literal` fallback was unreachable — an honest early return
+    // replaces the dead alternative (#23 nit 2).
+    guard let token = node.calledExpression.firstToken(viewMode: .sourceAccurate) else {
+      return .visitChildren
+    }
     let location = converter.location(for: token.positionAfterSkippingLeadingTrivia)
     matches.append(
       Diagnostic.Record(

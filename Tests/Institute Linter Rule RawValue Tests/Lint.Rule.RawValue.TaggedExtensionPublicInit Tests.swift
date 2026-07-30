@@ -32,6 +32,17 @@ extension Lint.Rule.`tagged extension public init Tests` {
     let parsed = Lint.Source.parsed(from: source, file: file)
     return Lint.Rule.`tagged extension public init`.findings(parsed, .warning)
   }
+
+  /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`
+  /// (#23 finding 21: `Lint.Brand.owned` whole-run self-suppression).
+  static func findings(
+    in source: Swift.String,
+    declaredTypeNames: Swift.Set<Swift.String>
+  ) -> [Diagnostic.Record] {
+    let parsed = Lint.Source.parsed(
+      from: source, file: "Sources/X/Test.swift", declaredTypeNames: declaredTypeNames)
+    return Lint.Rule.`tagged extension public init`.findings(parsed, .warning)
+  }
 }
 
 extension Lint.Rule.`tagged extension public init Tests`.Unit {
@@ -346,6 +357,34 @@ extension Lint.Rule.`tagged extension public init Tests`.`Edge Case` {
     // are free generically, but the absence of Underlying ==
     // signals this is not a deliberate domain bridge — the rule
     // should still fire to surface the bypass.
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Cardinal brand-owner run self-suppresses`() {
+    let source = """
+      extension Tagged {
+          public init(rawValue: String) { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`tagged extension public init Tests`.findings(
+      in: source,
+      declaredTypeNames: ["Cardinal"]
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a non-brand-owner consumer run still fires`() {
+    let source = """
+      extension Tagged {
+          public init(rawValue: String) { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`tagged extension public init Tests`.findings(
+      in: source,
+      declaredTypeNames: ["SomeConsumerType"]
+    )
     #expect(findings.count == 1)
   }
 }

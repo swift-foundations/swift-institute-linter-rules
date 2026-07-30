@@ -70,6 +70,53 @@ extension Lint.Rule.`uint8 ascii extension Tests`.Unit {
     let result = Lint.Rule.`uint8 ascii extension Tests`.findings(in: source)
     #expect(result.count == 1)
   }
+
+  // MARK: - #23 nit 5: decl-kind coverage and visibility indifference
+
+  @Test
+  func `extension UInt8 with nested ASCII class is flagged`() {
+    let source = """
+      extension UInt8 {
+          public class ASCII {}
+      }
+      """
+    let result = Lint.Rule.`uint8 ascii extension Tests`.findings(in: source)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `extension UInt8 with nested ASCII actor is flagged`() {
+    let source = """
+      extension UInt8 {
+          actor ASCII {}
+      }
+      """
+    let result = Lint.Rule.`uint8 ascii extension Tests`.findings(in: source)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `extension UInt8 with ASCII typealias is flagged`() {
+    let source = """
+      extension UInt8 {
+          typealias ASCII = ASCIINamespace
+      }
+      """
+    let result = Lint.Rule.`uint8 ascii extension Tests`.findings(in: source)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `non-public static var ascii is still flagged`() {
+    // The rule is about namespace shape, not visibility.
+    let source = """
+      extension UInt8 {
+          static var ascii: Int { 0 }
+      }
+      """
+    let result = Lint.Rule.`uint8 ascii extension Tests`.findings(in: source)
+    #expect(result.count == 1)
+  }
 }
 
 extension Lint.Rule.`uint8 ascii extension Tests`.`Edge Case` {

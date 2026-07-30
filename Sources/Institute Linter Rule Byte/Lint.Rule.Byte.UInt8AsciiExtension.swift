@@ -113,8 +113,11 @@ private func extensionExtendsUInt8DotASCII(_ type: TypeSyntax) -> Swift.Bool {
 }
 
 /// Returns true when the extension on `UInt8` declares any member under
-/// the `.ascii` name (static var, static func, or nested type named
-/// `ASCII`).
+/// the `.ascii` name (static var, static func, or nested type/typealias
+/// named `ASCII`).
+///
+/// Visibility is not consulted: the rule is about namespace SHAPE, not
+/// access level — a non-`public static var ascii` still counts (#23 nit 5).
 private func memberBlockDeclaresAsciiNamespaceMember(_ block: MemberBlockSyntax) -> Swift.Bool {
   for member in block.members {
     if let variable = member.decl.as(VariableDeclSyntax.self) {
@@ -140,23 +143,27 @@ private func memberBlockDeclaresAsciiNamespaceMember(_ block: MemberBlockSyntax)
         return true
       }
     }
+    if let nestedClass = member.decl.as(ClassDeclSyntax.self) {
+      if Lint.Syntax.Identifier.unescaped(nestedClass.name.text) == "ASCII" {
+        return true
+      }
+    }
+    if let nestedActor = member.decl.as(ActorDeclSyntax.self) {
+      if Lint.Syntax.Identifier.unescaped(nestedActor.name.text) == "ASCII" {
+        return true
+      }
+    }
+    if let alias = member.decl.as(TypeAliasDeclSyntax.self) {
+      // `typealias ASCII = …` — the idiomatic namespace-adoption spelling.
+      if Lint.Syntax.Identifier.unescaped(alias.name.text) == "ASCII" {
+        return true
+      }
+    }
   }
   return false
 }
 
-/// Local `extensionIsOnUInt8` re-implementation (the public one in
-/// `Lint.Rule.Byte.UInt8ConformsToByteProtocol.swift` is `private`).
-private func extensionIsOnUInt8(_ type: TypeSyntax) -> Swift.Bool {
-  if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "UInt8"
-  }
-  if let memberType = type.as(MemberTypeSyntax.self) {
-    let leaf = Lint.Syntax.Identifier.unescaped(memberType.name.text)
-    guard leaf == "UInt8" else { return false }
-    if let base = memberType.baseType.as(IdentifierTypeSyntax.self) {
-      return Lint.Syntax.Identifier.unescaped(base.name.text) == "Swift"
-    }
-    return false
-  }
-  return false
-}
+// `extensionIsOnUInt8` is now `internal` in
+// `Lint.Rule.Byte.UInt8ConformsToByteProtocol.swift` (same target) and
+// reused directly — the duplicated copy that lived here is deleted
+// (#23 nit 3).

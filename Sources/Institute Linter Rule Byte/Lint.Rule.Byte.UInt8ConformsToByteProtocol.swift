@@ -82,8 +82,11 @@ internal final class ByteUInt8ConformsToByteProtocolVisitor: SyntaxVisitor {
   }
 }
 
-/// Returns true when `type` is `UInt8` or `Swift.UInt8`.
-private func extensionIsOnUInt8(_ type: TypeSyntax) -> Swift.Bool {
+/// Returns true when `type` is `UInt8` or `Swift.UInt8`. `internal`, not
+/// `private`: shared with `Lint.Rule.Byte.UInt8AsciiExtension.swift` in the
+/// same target — the visibility, not a real target boundary, was the
+/// obstacle to reuse (#23 nit 3).
+internal func extensionIsOnUInt8(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
     return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "UInt8"
   }

@@ -105,6 +105,6 @@ internal final class RawValueBitPatternVisitor: SyntaxVisitor {
   private static func containsRawValueAccess(_ expr: ExprSyntax) -> Swift.Bool {
     let finder = RawValueBitPatternFinder(viewMode: .sourceAccurate)
     finder.walk(expr)
-    return finder.match != nil
+    return finder.found
   }
 }

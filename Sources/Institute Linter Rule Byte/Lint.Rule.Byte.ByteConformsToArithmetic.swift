@@ -80,8 +80,8 @@ internal final class ByteConformsToArithmeticVisitor: SyntaxVisitor {
     guard let inheritance = node.inheritanceClause else { return .visitChildren }
     guard extensionIsOnByte(node.extendedType) else { return .visitChildren }
     for inherited in inheritance.inheritedTypes {
-      guard let arithmeticName = arithmeticProtocolLeafName(inherited.type) else { continue }
-      emit(at: inherited.positionAfterSkippingLeadingTrivia, protocolName: arithmeticName)
+      guard arithmeticProtocolLeafName(inherited.type) != nil else { continue }
+      emit(at: inherited.positionAfterSkippingLeadingTrivia)
     }
     return .visitChildren
   }
@@ -94,13 +94,13 @@ internal final class ByteConformsToArithmeticVisitor: SyntaxVisitor {
     guard let inheritance = node.inheritanceClause else { return .visitChildren }
     guard Lint.Syntax.Identifier.unescaped(node.name.text) == "Byte" else { return .visitChildren }
     for inherited in inheritance.inheritedTypes {
-      guard let arithmeticName = arithmeticProtocolLeafName(inherited.type) else { continue }
-      emit(at: inherited.positionAfterSkippingLeadingTrivia, protocolName: arithmeticName)
+      guard arithmeticProtocolLeafName(inherited.type) != nil else { continue }
+      emit(at: inherited.positionAfterSkippingLeadingTrivia)
     }
     return .visitChildren
   }
 
-  private func emit(at position: AbsolutePosition, protocolName: Swift.String) {
+  private func emit(at position: AbsolutePosition) {
     let location = converter.location(for: position)
     matches.append(
       Diagnostic.Record(
@@ -114,7 +114,6 @@ internal final class ByteConformsToArithmeticVisitor: SyntaxVisitor {
         identifier: "byte conforms to arithmetic protocol",
         message: byteConformsToArithmeticMessage
       ))
-    _ = protocolName  // retained for diagnostic enrichment hooks
   }
 }
 
