@@ -229,4 +229,140 @@ extension Lint.Rule.`typealiased namespace bridge Tests`.`Edge Case` {
     let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  @Test
+  func `sibling conformance under an if-guarded extension is still visible`() {
+    // #21 defect 6: the file-scope conformance walk and the member
+    // walks must both see through `#if`, or a `#if`-guarded sibling
+    // conformance is invisible and the typealias false-positives.
+    let source = """
+      struct Container {
+          let value: Int
+      }
+
+      #if os(Linux)
+      extension Container: Sequence {
+          // ... conformance witnesses
+      }
+      #endif
+
+      extension Container {
+          typealias Element = Underlying.Element
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // #21 defect 8: the previous protocol-body fixture (`typealias
+  // Default = Array.Element`) has an LHS name (`Default`) that never
+  // equals its RHS leaf (`Element`), so the `guard member.name.text
+  // == aliasName` short-circuits before the exemption branch under
+  // test is ever reached. These fixtures make the alias name equal
+  // the RHS leaf so each declaration-kind branch is actually
+  // exercised, with a struct control proving the branch is
+  // load-bearing.
+
+  @Test
+  func `alias-equals-leaf in protocol body is exempt`() {
+    let source = """
+      protocol Codec {
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `alias-equals-leaf in conforming struct is exempt`() {
+    let source = """
+      struct Codec: Equatable {
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `alias-equals-leaf in non-conforming struct still fires`() {
+    // Control: without an inheritance clause the exemption branch
+    // must not apply, proving the two tests above are load-bearing.
+    let source = """
+      struct Codec {
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `alias-equals-leaf in conforming class is exempt`() {
+    let source = """
+      class Codec: Equatable {
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `alias-equals-leaf in non-conforming class still fires`() {
+    let source = """
+      class Codec {
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `alias-equals-leaf in conforming enum is exempt`() {
+    let source = """
+      enum Codec: Equatable {
+          case a
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `alias-equals-leaf in non-conforming enum still fires`() {
+    let source = """
+      enum Codec {
+          case a
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `alias-equals-leaf in conforming actor is exempt`() {
+    let source = """
+      actor Codec: Equatable {
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `alias-equals-leaf in non-conforming actor still fires`() {
+    let source = """
+      actor Codec {
+          typealias Kernel = Foreign.Kernel
+      }
+      """
+    let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

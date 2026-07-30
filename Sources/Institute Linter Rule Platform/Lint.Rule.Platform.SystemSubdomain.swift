@@ -44,21 +44,28 @@ internal let platformSystemSubdomainMessage: Swift.String =
   + "published per [PLAT-ARCH-027]; the variant `@_exported` re-"
   + "export carries the namespace without that publication step."
 
-internal let platformSystemSubdomainPlatformNamespaces: Swift.Set<Swift.String> = [
-  "Darwin",
-  "Linux",
-  "Windows",
-]
+/// Walks a (possibly multi-segment) `MemberTypeSyntax` chain down to its
+/// root identifier, e.g. `Darwin.Kernel.System` → `Darwin`, so a deeply
+/// qualified extension is still recognised (#21 defect 10).
+private func platformSystemSubdomainRootIdentifier(_ type: TypeSyntax) -> Swift.String? {
+  if let identifier = type.as(IdentifierTypeSyntax.self) {
+    return identifier.name.text
+  }
+  if let member = type.as(MemberTypeSyntax.self) {
+    return platformSystemSubdomainRootIdentifier(member.baseType)
+  }
+  return nil
+}
 
 internal func platformSystemSubdomainIsPlatformSystemMemberType(
   _ type: TypeSyntax
 ) -> AbsolutePosition? {
   guard let member = type.as(MemberTypeSyntax.self) else { return nil }
   guard member.name.text == "System" else { return nil }
-  guard let base = member.baseType.as(IdentifierTypeSyntax.self) else {
+  guard let root = platformSystemSubdomainRootIdentifier(member.baseType) else {
     return nil
   }
-  guard platformSystemSubdomainPlatformNamespaces.contains(base.name.text) else { return nil }
+  guard platformPlatformTokens.contains(root) else { return nil }
   return member.name.positionAfterSkippingLeadingTrivia
 }
 
@@ -113,32 +120,41 @@ internal final class PlatformSystemSubdomainVisitor: SyntaxVisitor {
   }
   override func visitPost(_: ExtensionDeclSyntax) { nameStack.removeLast() }
 
+  /// Shared by every nominal-type visit (#21 defect 10): the stack
+  /// machinery below exists solely to serve this check, and previously
+  /// only the `EnumDeclSyntax` visit called it, leaving `struct` /
+  /// `class` / `actor` `System` nested types entirely unchecked.
+  private func checkSystemName(_ name: TokenSyntax) {
+    guard name.text == "System" else { return }
+    guard let last = nameStack.last,
+      platformPlatformTokens.contains(last)
+    else { return }
+    emit(at: name.positionAfterSkippingLeadingTrivia)
+  }
+
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-    if node.name.text == "System" {
-      if let last = nameStack.last,
-        platformSystemSubdomainPlatformNamespaces.contains(last)
-      {
-        emit(at: node.name.positionAfterSkippingLeadingTrivia)
-      }
-    }
+    checkSystemName(node.name)
     nameStack.append(node.name.text)
     return .visitChildren
   }
   override func visitPost(_: EnumDeclSyntax) { nameStack.removeLast() }
 
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+    checkSystemName(node.name)
     nameStack.append(node.name.text)
     return .visitChildren
   }
   override func visitPost(_: StructDeclSyntax) { nameStack.removeLast() }
 
   override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    checkSystemName(node.name)
     nameStack.append(node.name.text)
     return .visitChildren
   }
   override func visitPost(_: ClassDeclSyntax) { nameStack.removeLast() }
 
   override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    checkSystemName(node.name)
     nameStack.append(node.name.text)
     return .visitChildren
   }

@@ -81,6 +81,98 @@ extension Lint.Rule.`c type in public api Tests`.Unit {
     let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // #21 defect 9: every additional shape a C type can hide in.
+
+  @Test
+  func `public func with generic member-type C type is flagged`() {
+    let source = """
+      public func register(pointer: Swift.UnsafePointer<kevent>) {}
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with C type callback parameter is flagged`() {
+    let source = """
+      public func onEvent(_ handler: (kevent) -> Void) {}
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with C type callback return is flagged`() {
+    let source = """
+      public func makeHandler() -> () -> kevent { fatalError() }
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with C type in tuple is flagged`() {
+    let source = """
+      public func poll() -> (Int, kevent) { fatalError() }
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with C type array element is flagged`() {
+    let source = """
+      public func register(events: [kevent]) {}
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with C type dictionary key is flagged`() {
+    let source = """
+      public func register(table: [kevent: Int]) {}
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with C type dictionary value is flagged`() {
+    let source = """
+      public func register(table: [Int: kevent]) {}
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with C type metatype is flagged`() {
+    let source = """
+      public func register(type: kevent.Type) {}
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with implicitly unwrapped optional C type is flagged`() {
+    let source = """
+      public func register(event: kevent!) {}
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public func with any-constrained C type is flagged`() {
+    let source = """
+      public func register(event: any kevent) {}
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`c type in public api Tests`.`Edge Case` {

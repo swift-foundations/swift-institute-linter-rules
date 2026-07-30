@@ -159,7 +159,7 @@ internal final class PlatformTypealiasedNamespaceVisitor: SyntaxVisitor {
     var current: Syntax? = origin
     while let candidate = current {
       if let file = candidate.as(SourceFileSyntax.self) {
-        for statement in file.statements {
+        for statement in Lint.Syntax.IfConfig.statements(file.statements) {
           if Self.declConformsToProtocol(
             statement.item,
             targetPath: targetPath,
@@ -198,7 +198,7 @@ internal final class PlatformTypealiasedNamespaceVisitor: SyntaxVisitor {
       // Descend into the extension's members looking for nested
       // type / extension declarations whose composed path equals
       // `targetPath` and which carry an inheritance clause.
-      for member in ext.memberBlock.members {
+      for member in Lint.Syntax.IfConfig.members(ext.memberBlock) {
         if Self.memberConformsToProtocol(
           member.decl,
           targetPath: targetPath,
@@ -256,29 +256,10 @@ internal final class PlatformTypealiasedNamespaceVisitor: SyntaxVisitor {
     targetPath: Swift.String,
     currentPrefix: Swift.String
   ) -> Swift.Bool {
-    if let ext = decl.as(ExtensionDeclSyntax.self) {
-      // Extensions don't legally appear inside member blocks in
-      // current Swift, but handle defensively in case the rule is
-      // re-used in a context that permits them.
-      let extendedType = ext.extendedType.trimmedDescription
-      let fullPath: Swift.String =
-        currentPrefix.isEmpty
-        ? extendedType
-        : currentPrefix + "." + extendedType
-      if fullPath == targetPath, ext.inheritanceClause != nil {
-        return true
-      }
-      for member in ext.memberBlock.members {
-        if Self.memberConformsToProtocol(
-          member.decl,
-          targetPath: targetPath,
-          currentPrefix: fullPath
-        ) {
-          return true
-        }
-      }
-      return false
-    }
+    // No `ExtensionDeclSyntax` arm here: an extension cannot legally
+    // appear inside a member block in Swift, unlike the top-level
+    // `declConformsToProtocol` case above, so there is nothing
+    // defensive to guard (#21 nit 4).
     if let structDecl = decl.as(StructDeclSyntax.self) {
       return Self.typeDeclConformsToProtocol(
         name: structDecl.name.text,
@@ -332,7 +313,7 @@ internal final class PlatformTypealiasedNamespaceVisitor: SyntaxVisitor {
     if fullPath == targetPath, inheritanceClause != nil {
       return true
     }
-    for member in memberBlock.members {
+    for member in Lint.Syntax.IfConfig.members(memberBlock) {
       if Self.memberConformsToProtocol(
         member.decl,
         targetPath: targetPath,

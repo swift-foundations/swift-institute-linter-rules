@@ -83,8 +83,14 @@ internal func platformSwiftQualificationIsInsideStdlibExtension(_ node: Syntax) 
       {
         return true
       }
+      // #21 defect 14: the extended type must actually BE the stdlib
+      // type, not merely share its leaf name with one — an unqualified
+      // `MemberTypeSyntax` leaf match alone would let `MyNamespace.Set`
+      // masquerade as `Swift.Set` and wrongly exempt it.
       if let member = ext.extendedType.as(MemberTypeSyntax.self),
-        platformSwiftQualificationStdlibShadowingTypes.contains(member.name.text)
+        platformSwiftQualificationStdlibShadowingTypes.contains(member.name.text),
+        let base = member.baseType.as(IdentifierTypeSyntax.self),
+        base.name.text == "Swift"
       {
         return true
       }

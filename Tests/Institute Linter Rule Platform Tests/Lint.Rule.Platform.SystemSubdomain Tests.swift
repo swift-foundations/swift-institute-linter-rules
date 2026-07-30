@@ -81,6 +81,65 @@ extension Lint.Rule.`system subdomain Tests`.Unit {
     let findings = Lint.Rule.`system subdomain Tests`.findings(in: source)
     #expect(findings.count == 2)
   }
+
+  // #21 defect 10: the nested-`System` check was previously wired only
+  // to the `EnumDeclSyntax` visit, even though `struct` / `class` /
+  // `actor` fed the same `nameStack`.
+
+  @Test
+  func `extension Darwin with nested struct System is flagged`() {
+    let source = """
+      extension Darwin {
+          public struct System {}
+      }
+      """
+    let findings = Lint.Rule.`system subdomain Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `extension Linux with nested class System is flagged`() {
+    let source = """
+      extension Linux {
+          public class System {}
+      }
+      """
+    let findings = Lint.Rule.`system subdomain Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `extension Windows with nested actor System is flagged`() {
+    let source = """
+      extension Windows {
+          public actor System {}
+      }
+      """
+    let findings = Lint.Rule.`system subdomain Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `deeply qualified extension Darwin dot Kernel dot System is flagged`() {
+    let source = """
+      extension Darwin.Kernel.System {
+          public static func op() {}
+      }
+      """
+    let findings = Lint.Rule.`system subdomain Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `extension Android with nested enum System is flagged`() {
+    let source = """
+      extension Android {
+          public enum System {}
+      }
+      """
+    let findings = Lint.Rule.`system subdomain Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`system subdomain Tests`.`Edge Case` {

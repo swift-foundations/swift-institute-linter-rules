@@ -77,31 +77,24 @@ internal let platformPlatformConditionalCLibraryModules: Swift.Set<Swift.String>
   "CRT",
 ]
 
-internal let platformPlatformConditionalPlatformPrefixes: Swift.Set<Swift.String> = [
-  "Darwin",
-  "Linux",
-  "Windows",
-  "Glibc",
-  "Musl",
-  "Bionic",
-  "WinSDK",
-  // Regression fix: bare `Android` / `WASILibc` were already
-  // remembered in the C-library-modules EXEMPTION set above but
-  // forgotten here in the DETECTION set, so a platform-prefixed
-  // module built on one of them (`Android_Kernel_Standard`,
-  // `WASI_System`, `FreeBSD_Kernel`) was never flagged — the rule was
-  // strictly weaker on exactly the platforms most likely to carry
-  // sloppy `canImport` gating, in direct conflict with the cross-
-  // platform mandate. Note `platformPlatformConditionalIsPlatformModuleName`
-  // still checks the C-library-modules exemption FIRST, so the bare
-  // module names themselves (`Android`, `WASILibc`) remain exempt —
-  // only the `<Prefix>_`-suffixed platform-identity shape is newly
-  // detected.
-  "Android",
-  "WASI",
-  "FreeBSD",
-  "BSD",
-]
+/// Sourced from the pack's single platform-identity vocabulary
+/// (`platformPlatformTokens` in `Lint.Rule.Platform.Shared.swift`) plus
+/// the libc-module prefixes this rule also needs to recognise as a
+/// platform-prefixed module root (`Glibc_Kernel`, `Musl_Kernel`, etc.).
+/// Previously a hand-maintained copy of `platformPlatformTokens` that
+/// forgot bare `Android` / `WASILibc` in this DETECTION set while they
+/// were remembered in the C-library-modules EXEMPTION set above — the
+/// rule was strictly weaker on exactly the platforms most likely to
+/// carry sloppy `canImport` gating, in direct conflict with the cross-
+/// platform mandate. Routing through the shared vocabulary closes that
+/// drift permanently: a platform added to `platformPlatformTokens` is
+/// automatically covered here too. Note
+/// `platformPlatformConditionalIsPlatformModuleName` still checks the
+/// C-library-modules exemption FIRST, so the bare module names
+/// themselves (`Android`, `WASILibc`) remain exempt — only the
+/// `<Prefix>_`-suffixed platform-identity shape is detected.
+internal let platformPlatformConditionalPlatformPrefixes: Swift.Set<Swift.String> =
+  platformPlatformTokens.union(["Glibc", "Musl", "Bionic", "WinSDK"])
 
 internal func platformPlatformConditionalIsPlatformModuleName(_ name: Swift.String) -> Swift.Bool {
   // Exempt the raw C-library / system-SDK modules (#16 Entry II.2):
@@ -133,18 +126,33 @@ internal final class PlatformPlatformConditionalVisitor: SyntaxVisitor {
     return .visitChildren
   }
 
+  /// Resolves a `canImport(...)` argument's root base identifier: a
+  /// bare `Darwin_Kernel` is a `DeclReferenceExprSyntax`; a qualified
+  /// `Darwin.POSIX` is a `MemberTypeSyntax`-shaped `MemberAccessExprSyntax`
+  /// whose leftmost base is the module actually being imported (#21
+  /// defect 13) — the exemption/detection vocabulary must be checked
+  /// against that root, not the leaf.
+  private func rootModuleIdentifier(of expression: ExprSyntax) -> TokenSyntax? {
+    if let identifier = expression.as(DeclReferenceExprSyntax.self) {
+      return identifier.baseName
+    }
+    if let member = expression.as(MemberAccessExprSyntax.self) {
+      guard let base = member.base else { return nil }
+      return rootModuleIdentifier(of: base)
+    }
+    return nil
+  }
+
   private func checkCondition(_ expression: ExprSyntax) {
     if let call = expression.as(FunctionCallExprSyntax.self) {
       if let callee = call.calledExpression.as(DeclReferenceExprSyntax.self),
         callee.baseName.text == "canImport"
       {
         if let argument = call.arguments.first,
-          let identifier = argument.expression.as(DeclReferenceExprSyntax.self)
+          let root = rootModuleIdentifier(of: argument.expression)
         {
-          if platformPlatformConditionalIsPlatformModuleName(
-            identifier.baseName.text
-          ) {
-            let position = identifier.baseName.positionAfterSkippingLeadingTrivia
+          if platformPlatformConditionalIsPlatformModuleName(root.text) {
+            let position = root.positionAfterSkippingLeadingTrivia
             let location = converter.location(for: position)
             matches.append(
               Diagnostic.Record(
@@ -167,6 +175,13 @@ internal final class PlatformPlatformConditionalVisitor: SyntaxVisitor {
         checkCondition(element)
       }
     }
+    // Defensive: `#if` conditions arrive unfolded from the parser, so
+    // this branch is not reachable from `visit(_: IfConfigClauseSyntax)`
+    // today. Kept per the pack's established dual-shape convention for
+    // fold/unfold differences (20a77b9's `Naming.BoolParameter`
+    // precedent) rather than deleted — no fixture, since a test would
+    // have to hand-construct the folded shape and would assert nothing
+    // about the rule.
     if let infix = expression.as(InfixOperatorExprSyntax.self) {
       checkCondition(infix.leftOperand)
       checkCondition(infix.rightOperand)

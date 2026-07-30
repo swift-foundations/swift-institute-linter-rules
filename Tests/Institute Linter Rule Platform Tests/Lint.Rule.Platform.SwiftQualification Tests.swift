@@ -198,4 +198,32 @@ extension Lint.Rule.`swift protocol qualification Tests`.`Edge Case` {
     let findings = Lint.Rule.`swift protocol qualification Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // #21 defect 14: the `MemberTypeSyntax` arm of the stdlib-shadow
+  // check must verify the extended type actually IS the stdlib type
+  // (qualified `Swift.Array`), not merely share a leaf name with one.
+
+  @Test
+  func `Sequence inside qualified Swift dot Array extension is exempt`() {
+    let source = """
+      extension Swift.Array {
+          func process<T>(_ items: some Sequence<T>) {}
+      }
+      """
+    let findings = Lint.Rule.`swift protocol qualification Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `Sequence inside foreign namespace dot Set extension still fires`() {
+    // `MyNamespace.Set` shares the leaf name `Set` with the stdlib
+    // type but is not it — the exemption must not apply.
+    let source = """
+      extension MyNamespace.Set {
+          func process<T>(_ items: some Sequence<T>) {}
+      }
+      """
+    let findings = Lint.Rule.`swift protocol qualification Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
