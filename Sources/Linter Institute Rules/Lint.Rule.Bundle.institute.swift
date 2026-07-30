@@ -78,7 +78,7 @@ extension Lint.Rule.Bundle {
       .enable(.`suite categories`),
       // Byte pack (Wave 1 of Post-W2 swift-linter arc, 2026-05-19)
       // — encodes the W2 UInt8/Byte discrimination rubric per
-      // broader-l2-l3-byte-typing-gap-plan.md § Wave 2.
+      // the L2/L3 byte-typing gap plan note § Wave 2.
       .enable(.`uint8 conforms to byte protocol`),
       .enable(.`byte conforms to arithmetic protocol`),
       .enable(.`binary serializable uint8 witness`),
@@ -194,8 +194,10 @@ extension Lint.Rule.Bundle {
       // [CONV-015] — promoted 2026-07-07 (principal ruling, option a)
       // from swift-tagged-primitives' nested Lint/ PoC
       // (Lint.Rule.TaggedDomainAudit); map/retag/@Test exemptions
-      // preserved. Receipt:
-      // Research/promote-tagged-unchecked-validation-2026-07-07.md.
+      // preserved. NOTE: the validation receipt this promotion cites is
+      // not committed to Research/ in this repository (see issue #16) —
+      // treat the citation as unresolved until the receipt is either
+      // committed here or the citation is corrected upstream.
       .enable(.`tagged unchecked with typed alternative`),
     ]
 }

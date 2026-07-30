@@ -154,7 +154,7 @@ internal let byteWitnessFunctionNames: Swift.Set<Swift.String> = [
 /// `MemberTypeSyntax`.
 ///
 /// Coverage extension landed 2026-05-20 (Arc G Phase 7 addendum) per
-/// `swift-institute/Research/broader-l2-l3-byte-typing-gap-plan.md`
+/// the L2/L3 byte-typing gap plan note
 /// § "Post-W2 Arc G".
 internal func extensionConformsToSerializableLike(_ node: ExtensionDeclSyntax) -> Swift.Bool {
   // Path 1 — conformer-extension shape: inheritance clause names the protocol.

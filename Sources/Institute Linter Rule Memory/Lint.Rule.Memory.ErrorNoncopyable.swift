@@ -15,7 +15,7 @@ internal import SwiftSyntax
 /// Wave 2b finalization (2026-05-10) — `Error`-conforming types MUST
 /// NOT also suppress `Copyable`.
 ///
-/// Citation: `[MEM-COPY-002]` (memory-safety skill, ownership.md).
+/// Citation: `[MEM-COPY-002]` (memory-safety skill, the ownership note).
 ///
 /// `Swift.Error` requires `Copyable` (the protocol's existential
 /// boxing relies on the value being copyable). A type declared

@@ -21,7 +21,7 @@ internal import SwiftSyntax
 /// argument is the integer literal `0` or `1`.
 ///
 /// References:
-/// - `swift-institute/Research/cardinal-ordinal-vector-enforcement-design.md`
+/// - the cardinal/ordinal/vector enforcement design note
 ///   §"R2. `Cardinal(0)` and `Cardinal(1)`"
 extension Lint.Rule {
   /// Flags `Cardinal(0)` / `Cardinal(1)` constructor calls with a literal argument; the canonical accessors are `.zero` / `.one` ([INFRA-101]).

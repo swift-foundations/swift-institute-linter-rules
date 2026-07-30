@@ -53,9 +53,9 @@ internal import SwiftSyntax
 /// reaches them.
 ///
 /// References:
-/// - `swift-institute/Research/cardinal-ordinal-vector-enforcement-design.md`
+/// - the cardinal/ordinal/vector enforcement design note
 ///   §"R1. `count - 1` and family"
-/// - `swift-institute/Research/swiftsyntax-based-custom-linter-investigation.md`
+/// - the SwiftSyntax-based custom-linter investigation note
 ///   §"Q3 — Deferred AST-rule unblocking matrix"
 extension Lint.Rule {
   /// Flags `<expr>.count - 1` and its semantic equivalents (paren-wrap, cast-outside, algebraic-flip, operand-reorder), which indicate an untyped `count: Int` ([INFRA-200]).

@@ -16,7 +16,7 @@ internal import SwiftSyntax
 /// in initializers or static methods on the target type, not as
 /// instance methods on the source.
 ///
-/// Citation: `[PATTERN-012]` (implementation skill, patterns.md).
+/// Citation: `[PATTERN-012]` (implementation skill, the patterns note).
 extension Lint.Rule {
   public static let `type transform placement` = Lint.Rule(
     id: "type transform placement",

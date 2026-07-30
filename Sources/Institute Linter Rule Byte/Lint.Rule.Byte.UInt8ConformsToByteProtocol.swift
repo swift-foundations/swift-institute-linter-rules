@@ -14,7 +14,7 @@ internal import SwiftSyntax
 
 /// `UInt8` MUST NOT conform to `Byte.\`Protocol\``. The stdlib arithmetic
 /// carrier and the institute byte-domain twin are sibling-form, not
-/// refinement-form (per `byte-protocol-capability-marker.md` v1.1.0
+/// refinement-form (per the byte-protocol capability-marker note v1.1.0
 /// RECOMMENDATION). Adding the conformance dissolves the separation,
 /// shadows `<` / `==` / `hash`, broadens the API surface, and pollutes
 /// `Tagged<_, UInt8>` composition.
@@ -40,7 +40,7 @@ internal let byteUInt8ConformsToByteProtocolMessage: Swift.String =
   "[uint8 conforms to byte protocol] [API-BYTE-001]: `UInt8` MUST NOT "
   + "conform to `Byte.\\`Protocol\\``. The stdlib raw arithmetic carrier "
   + "(`UInt8`) and the institute byte-domain twin (`Byte`) are sibling-"
-  + "form per byte-protocol-capability-marker.md v1.1.0; adding the "
+  + "form per the byte-protocol capability-marker note v1.1.0; adding the "
   + "conformance dissolves the separation. Either remove the conformance "
   + "or migrate consumers to `Byte` substrate."
 

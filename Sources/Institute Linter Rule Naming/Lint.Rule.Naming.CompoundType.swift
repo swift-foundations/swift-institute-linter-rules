@@ -42,7 +42,7 @@ private let namingCompoundTypeMessage: Swift.String =
   + "are exempt; `fileprivate`/`private` type declarations including "
   + "members whose effective visibility is reduced by an enclosing "
   + "fileprivate/private type are exempt per "
-  + "`Research/api-name-002-private-surface-applicability.md` "
+  + "the API-NAME-002 private-surface-applicability note "
   + "(symmetric extension of the 2026-05-11 [API-NAME-002] amendment "
   + "— consumer-observable surface is the rule's intent and "
   + "fileprivate/private types have none even within the module). "
@@ -123,7 +123,7 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
     // `CompoundVisitor`), which trips compound-name even though
     // the suffix is dictated by the framework's idiom. Helper
     // lives in `Lint.Rule.Naming.Shared.swift`. See
-    // `swift-institute/Skills/rule-exemptions/SKILL.md`.
+    // the rule-exemptions skill.
     if Naming.Visitor.extends(node.inheritanceClause) {
       return .visitChildren
     }
@@ -157,7 +157,7 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
     // fileprivate even when its own modifier list is empty).
     // Symmetric with the [API-NAME-002] visibility-scope amendment
     // (2026-05-11, Option B) — see
-    // `Research/api-name-002-private-surface-applicability.md`.
+    // the API-NAME-002 private-surface-applicability note.
     if Naming.hasFileprivateOrPrivateEffective(syntax, modifiers: modifiers) {
       return
     }

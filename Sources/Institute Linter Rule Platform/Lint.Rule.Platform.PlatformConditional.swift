@@ -53,7 +53,7 @@ internal let platformPlatformConditionalMessage: Swift.String =
 /// `#if canImport(Darwin) || canImport(Glibc) || canImport(Musl)` cannot
 /// be expressed with `os()` without losing the Musl arm (`os(Linux)` is
 /// true for both Glibc and Musl), so the skill's own determinism table
-/// (`platform/compilation.md` [PATTERN-004a]) does not condemn it. Each
+/// (the platform compilation note [PATTERN-004a]) does not condemn it. Each
 /// entry is an importable C-interop module shipped by a toolchain/SDK:
 ///
 ///   - `Darwin` — Apple libSystem clang module

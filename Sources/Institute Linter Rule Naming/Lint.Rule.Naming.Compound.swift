@@ -48,7 +48,7 @@ private let namingCompoundMessage: Swift.String =
   + "declarations per `feedback_compound_package_scope`; `fileprivate`/`private` "
   + "declarations including members whose effective visibility is reduced "
   + "by an enclosing fileprivate/private type per "
-  + "`Research/api-name-002-private-surface-applicability.md`; documented "
+  + "the API-NAME-002 private-surface-applicability note; documented "
   + "stdlib-vocabulary names (`rawValue`, `flatMap`, `swapAt`, `storeBytes`, "
   + "`withUnsafeBufferPointer`, etc. — see "
   + "`namingCompoundSwiftNativeIdiomCitations` in this rule's source for "
@@ -259,7 +259,7 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
     // walk-up captures effective visibility (a member of a
     // fileprivate type is effectively fileprivate even when its
     // own modifier list is empty). See
-    // `Research/api-name-002-private-surface-applicability.md`
+    // the API-NAME-002 private-surface-applicability note
     // (DECISION 2026-05-11, Option B).
     if Naming.hasFileprivateOrPrivateEffective(Syntax(node), modifiers: node.modifiers) {
       return .visitChildren
@@ -344,7 +344,7 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
     // walk-up captures effective visibility (a member of a
     // fileprivate type is effectively fileprivate even when its
     // own modifier list is empty). See
-    // `Research/api-name-002-private-surface-applicability.md`
+    // the API-NAME-002 private-surface-applicability note
     // (DECISION 2026-05-11, Option B).
     if Naming.hasFileprivateOrPrivateEffective(Syntax(node), modifiers: node.modifiers) {
       return .visitChildren

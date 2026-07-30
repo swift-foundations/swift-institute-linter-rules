@@ -16,7 +16,7 @@ internal import SwiftSyntax
 /// is `try base.init(...)` and nothing else MUST also validate the
 /// wrapper's stricter invariant.
 ///
-/// Citation: `[PATTERN-020]` (implementation skill, patterns.md —
+/// Citation: `[PATTERN-020]` (implementation skill, the patterns note —
 /// throwing init on wrapper MUST NOT validate only base invariant).
 extension Lint.Rule {
   public static let `throwing wrapper init` = Lint.Rule(

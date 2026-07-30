@@ -44,7 +44,7 @@ let package = Package(
             targets: ["Institute Linter Rule Conformance"]
         ),
         // Wave 3 (2026-05-15) — relocated from swift-linter-rules per
-        // three-tier-linter-rules-partition.md.
+        // the three-tier linter-rules partition note.
         .library(
             name: "Institute Linter Rule Closure",
             targets: ["Institute Linter Rule Closure"]

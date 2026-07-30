@@ -15,7 +15,7 @@ internal import SwiftSyntax
 /// Wave 4 (mechanization-program) — `.rawValue` and `.position` accesses
 /// at consumer call sites bypass typed-conversion ladders.
 ///
-/// Citation: `[PATTERN-017]` (implementation skill, patterns.md).
+/// Citation: `[PATTERN-017]` (implementation skill, the patterns note).
 extension Lint.Rule {
   public static let `raw value access` = Lint.Rule(
     id: "raw value access",
@@ -141,7 +141,7 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
     // they are `RawRepresentable.rawValue` access, outside the rule's
     // Tagged-newtype-targeting scope. The known false-negative on
     // `Module.staticTagInstance.rawValue` is accepted (uncommon for
-    // Tagged consumer access). See Research/2026-05-12-foundation-up-dogfeed-triage.md
+    // Tagged consumer access). See the 2026-05-12 foundation-up dogfeed triage note
     // §A2 for the architectural rationale.
     if let receiver = node.base, receiverLooksLikeEnumCaseAccess(receiver) {
       return .visitChildren

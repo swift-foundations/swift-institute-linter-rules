@@ -23,9 +23,9 @@ internal import SwiftSyntax
 /// This rule visits only the former.
 ///
 /// References:
-/// - `swift-institute/Research/cardinal-ordinal-vector-enforcement-design.md`
+/// - the cardinal/ordinal/vector enforcement design note
 ///   §"R5. `__unchecked:` use at call sites" — the original DEFER rationale.
-/// - `swift-institute/Research/swiftsyntax-based-custom-linter-investigation.md`
+/// - the SwiftSyntax-based custom-linter investigation note
 ///   §"Q3 — Deferred AST-rule unblocking matrix" — R5 is unblocked by this tool.
 extension Lint.Rule {
   public static let `unchecked call site` = Lint.Rule(

@@ -26,9 +26,9 @@ internal import SwiftSyntax
 /// predicate doesn't constrain the callee, so all spellings hit.
 ///
 /// References:
-/// - `swift-institute/Research/cardinal-ordinal-vector-enforcement-design.md`
+/// - the cardinal/ordinal/vector enforcement design note
 ///   §"R4. `Int(bitPattern: <something>.rawValue ...)`"
-/// - `swift-institute/Research/swiftsyntax-based-custom-linter-investigation.md`
+/// - the SwiftSyntax-based custom-linter investigation note
 ///   §"Q2 — Evasion-class closure matrix" (typename-swap row)
 extension Lint.Rule {
   /// Flags `init(bitPattern:)` calls whose argument chains through `.rawValue`, bypassing the typed conversion hierarchy ([CONV-016]).

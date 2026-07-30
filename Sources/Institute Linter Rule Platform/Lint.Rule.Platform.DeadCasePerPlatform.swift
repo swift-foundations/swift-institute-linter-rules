@@ -16,7 +16,7 @@ internal import SwiftSyntax
 /// platforms (POSIX / Windows, or UTF8 / UTF16) is the dead-case anti-
 /// pattern in disguise.
 ///
-/// Citation: `[PATTERN-056]` (implementation skill, patterns.md).
+/// Citation: `[PATTERN-056]` (implementation skill, the patterns note).
 extension Lint.Rule {
   public static let `dead case per platform` = Lint.Rule(
     id: "dead case per platform",

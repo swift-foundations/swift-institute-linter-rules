@@ -19,7 +19,7 @@ internal import SwiftSyntax
 ///
 /// Citation: `[MEM-SAFE-025b]` (admits `@safe`) and `[MEM-SAFE-025c]`
 /// (the disclosure requirement); both in the memory-safety skill,
-/// safety-isolation.md.
+/// the safety-isolation note.
 ///
 /// Inverted from `Lint.Rule.Memory.SafeForbidden` (Wave 3 Thread 7 +
 /// Wave 4 absorber-pattern carve-out). The pre-Option-B rule fired
@@ -35,7 +35,7 @@ internal import SwiftSyntax
 /// pair): safety claims use both a machine-checkable attribute and a
 /// human-auditable explanation. This rule policies the explanation
 /// half; SE-0458 polices the claim half. See
-/// `swift-institute/Research/safe-attribute-absorber-pattern-fundamentals.md`
+/// the safe-attribute absorber pattern fundamentals note
 /// v1.1.0 DECISION (Option B) for the full prior-art survey and the
 /// rationale for the inversion.
 ///

@@ -18,7 +18,7 @@ internal import SwiftSyntax
 /// make a compiler-limitation justification falsifiable on toolchain
 /// bumps; without them the justification ages silently into folklore.
 ///
-/// Citation: `[MEM-SEND-006]` (memory-safety skill, concurrency.md).
+/// Citation: `[MEM-SEND-006]` (memory-safety skill, the concurrency note).
 ///
 /// Detection algorithm:
 ///

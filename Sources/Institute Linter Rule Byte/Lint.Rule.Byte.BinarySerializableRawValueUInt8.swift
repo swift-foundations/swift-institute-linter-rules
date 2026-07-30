@@ -15,7 +15,7 @@ internal import SwiftSyntax
 /// Conformers to `Binary.Serializable` / `Binary.Parseable` with a
 /// `rawValue: UInt8` storage property surface a per-site discrimination
 /// decision per the W2 discrimination rubric
-/// (`broader-l2-l3-byte-typing-gap-plan.md` § Wave 2). Two patterns:
+/// (the L2/L3 byte-typing gap plan note § Wave 2). Two patterns:
 ///
 /// 1. *Byte-domain* — rawValue is pure bit-field / kind-tag / opaque-byte
 ///    (no arithmetic). RETYPE storage to `Byte`.

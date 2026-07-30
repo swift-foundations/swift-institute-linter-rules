@@ -87,7 +87,7 @@ internal final class ThrowsExistentialVisitor: SyntaxVisitor {
     // protocol IS the gate — the typed-throws constraint is
     // structurally inexpressible. Tuple-valued dict form lets one
     // witness key satisfy multiple protocols (Decodable, Codable).
-    // Skill: swift-institute/Skills/rule-exemptions/SKILL.md.
+    // Skill: the rule-exemptions skill.
     if isStdlibProtocolWitnessThrows(Syntax(node)) {
       return .visitChildren
     }

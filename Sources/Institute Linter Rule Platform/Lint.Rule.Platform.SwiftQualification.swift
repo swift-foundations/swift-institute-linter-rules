@@ -48,7 +48,7 @@ internal let platformSwiftQualificationShadowedProtocols: Swift.Set<Swift.String
 /// in this context; the rule exempts.
 ///
 /// Citation: [RULE-EXEMPT-6] (stdlib-shadow) in
-/// `swift-institute/Skills/rule-exemptions/SKILL.md`.
+/// the rule-exemptions skill.
 @usableFromInline
 internal let platformSwiftQualificationStdlibShadowingTypes: Swift.Set<Swift.String> = [
   "Set",

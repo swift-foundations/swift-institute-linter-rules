@@ -15,7 +15,7 @@ internal import SwiftSyntax
 /// Wave 2b finalization (2026-05-10) — extensions on `Tagged` MUST NOT
 /// expose public initializers.
 ///
-/// Citation: `[PATTERN-019]` (implementation skill, patterns.md).
+/// Citation: `[PATTERN-019]` (implementation skill, the patterns note).
 ///
 /// `Tagged<Tag, RawValue>` carries bounded invariants in its `Tag` —
 /// brand-newtypes encode "this `String` is a `User.ID`, not a free
@@ -90,7 +90,7 @@ private let taggedExtensionPublicInitMessage: Swift.String =
 /// init contract justifies the exemption. Adding an entry without a
 /// citation is indefensible at review time.
 ///
-/// Skill home: swift-institute/Skills/rule-exemptions/SKILL.md.
+/// Skill home: the rule-exemptions skill.
 private let taggedExtensionPublicInitProtocolWitnessCitations: [Swift.String: Swift.String] = [
   "ExpressibleByIntegerLiteral":
     "Swift.ExpressibleByIntegerLiteral — init(integerLiteral:) protocol witness",
@@ -218,7 +218,7 @@ internal final class RawValueTaggedExtensionPublicInitVisitor: SyntaxVisitor {
     // via the `"Protocol"` / `` "`Protocol`" `` dict entries,
     // covering the institute hoisted-protocol pattern
     // ([API-IMPL-009] / [PKG-NAME-001]). Skill home:
-    // swift-institute/Skills/rule-exemptions/SKILL.md.
+    // the rule-exemptions skill.
     let conformingProtocols = inheritanceLeafNames(node.inheritanceClause)
     let isProtocolWitnessExtension = conformingProtocols.contains { proto in
       taggedExtensionPublicInitProtocolWitnessCitations[proto] != nil

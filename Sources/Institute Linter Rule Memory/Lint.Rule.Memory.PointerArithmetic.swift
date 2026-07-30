@@ -46,7 +46,7 @@ internal import SwiftSyntax
 /// `[LINT-EXCLUDE-003]`, not here: the rule corpus is brand-form-agnostic by
 /// design (`[API-BRAND-001]`).
 ///
-/// Citation: `[MEM-SPAN-003]` (memory-safety skill, span.md — Span family
+/// Citation: `[MEM-SPAN-003]` (memory-safety skill, the Span note — Span family
 /// selection); composes with `[MEM-SAFE-012]`, `[MEM-SAFE-015]`,
 /// `[MEM-SAFE-025a]`, `[IMPL-011]`.
 extension Lint.Rule {

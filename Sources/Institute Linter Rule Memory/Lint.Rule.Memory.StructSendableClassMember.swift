@@ -15,7 +15,7 @@ internal import SwiftSyntax
 /// Wave 4 (mechanization-program) — `struct: @unchecked Sendable`
 /// wrapping a class stored property is the anti-pattern.
 ///
-/// Citation: `[IMPL-076]` (implementation skill, concurrency.md — no
+/// Citation: `[IMPL-076]` (implementation skill, the concurrency note — no
 /// @unchecked Sendable on struct-wrapping-class).
 extension Lint.Rule {
   public static let `sendable struct with class member` = Lint.Rule(

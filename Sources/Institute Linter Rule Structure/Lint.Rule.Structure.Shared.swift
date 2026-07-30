@@ -54,7 +54,7 @@ internal func structureFlattenTopLevelItems(
 /// signal the same intent.
 ///
 /// Citation: [RULE-EXEMPT-5] (Protocol-sentinel) in
-/// `swift-institute/Skills/rule-exemptions/SKILL.md`.
+/// the rule-exemptions skill.
 ///
 /// Pack-local duplicate of `namingIsProtocolSentinelName` from
 /// `Lint.Rule.Naming.Shared.swift` (institute pack) — cross-pack
@@ -104,7 +104,7 @@ internal let structureSyntaxVisitorFamilyNames: Swift.Set<Swift.String> = [
 /// hooks are protocol-shaped members dictated by the base class.
 ///
 /// Citation: [RULE-EXEMPT-7] (syntax-visitor-subclass) in
-/// `swift-institute/Skills/rule-exemptions/SKILL.md`.
+/// the rule-exemptions skill.
 ///
 /// Leaf-name lookup mirrors `namingInheritanceLeafNames` semantics —
 /// both `IdentifierTypeSyntax` (bare `SyntaxVisitor`) and

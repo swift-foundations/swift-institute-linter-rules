@@ -17,8 +17,8 @@ internal import SwiftSyntax
 /// etc.). The `UInt8+ASCII.swift` wrapper is being phased out in Wave 4
 /// of the broader L2/L3 byte-typing arc; consumers MUST route through
 /// `ASCII.Code` (the canonical typed substrate per
-/// `byte-protocol-capability-marker.md` v1.1.0 and
-/// `byte-arithmetic-conformance.md` v1.0.0).
+/// the byte-protocol capability-marker note v1.1.0 and
+/// the byte-arithmetic conformance note v1.0.0).
 ///
 /// Detection covers two shapes:
 /// - `extension UInt8 { static var ascii ... }` (or `static func ascii`)

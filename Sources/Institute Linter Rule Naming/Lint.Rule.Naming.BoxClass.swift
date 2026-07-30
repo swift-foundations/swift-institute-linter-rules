@@ -15,7 +15,7 @@ internal import SwiftSyntax
 /// Wave 4 (mechanization-program) — ad-hoc `_Box` (or `Box` / `_Storage`)
 /// reference wrappers reach for ecosystem primitives that already exist.
 ///
-/// Citation: `[IMPL-107]` (implementation skill, ownership.md).
+/// Citation: `[IMPL-107]` (implementation skill, the ownership note).
 extension Lint.Rule {
   public static let `ad hoc box class` = Lint.Rule(
     id: "ad hoc box class",

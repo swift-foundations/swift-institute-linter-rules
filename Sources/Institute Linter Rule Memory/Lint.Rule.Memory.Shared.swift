@@ -18,7 +18,7 @@ internal import SwiftSyntax
 /// as an authoritative opt-in, not silent shrinkage.
 ///
 /// Citation: [RULE-EXEMPT-1] (positive-Copyable) in
-/// `swift-institute/Skills/rule-exemptions/SKILL.md`.
+/// the rule-exemptions skill.
 ///
 /// Matches both:
 ///   - Standalone form: `where Base: Copyable`

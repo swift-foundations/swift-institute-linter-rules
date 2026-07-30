@@ -82,7 +82,7 @@ extension Naming.Visitor {
   /// naming is dictated by the SwiftSyntax framework's idiom.
   ///
   /// Citation: [RULE-EXEMPT-7] (syntax-visitor-subclass) in
-  /// `swift-institute/Skills/rule-exemptions/SKILL.md`.
+  /// the rule-exemptions skill.
   ///
   /// Leaf-name lookup mirrors `Naming.Visitor.inheritanceLeaves`
   /// semantics — both `IdentifierTypeSyntax` (bare `SyntaxVisitor`)
@@ -466,7 +466,7 @@ extension Naming {
   /// forms signal the same intent.
   ///
   /// Citation: [RULE-EXEMPT-5] (Protocol-sentinel) in
-  /// `swift-institute/Skills/rule-exemptions/SKILL.md`.
+  /// the rule-exemptions skill.
   ///
   /// Used by name-shape rules that would otherwise flag the sentinel
   /// as a rename-bridge typealias (`UnificationTypealias`) or as a

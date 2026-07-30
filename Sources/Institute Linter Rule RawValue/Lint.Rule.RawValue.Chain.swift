@@ -26,9 +26,9 @@ internal import SwiftSyntax
 /// `MemberAccessExprSyntax(base: x, name: rawValue)` shape.
 ///
 /// References:
-/// - `swift-institute/Research/cardinal-ordinal-vector-enforcement-design.md`
+/// - the cardinal/ordinal/vector enforcement design note
 ///   §"R3. `.rawValue.` chains"
-/// - `swift-institute/Research/swiftsyntax-based-custom-linter-investigation.md`
+/// - the SwiftSyntax-based custom-linter investigation note
 ///   §"Q2 — Evasion-class closure matrix" (paren-wrap row)
 extension Lint.Rule {
   /// Flags chained `.rawValue.member` access, including the paren-wrapped `(x.rawValue).member` form, which escapes the typed system ([CONV-016]).

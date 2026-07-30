@@ -16,7 +16,7 @@ internal import SwiftSyntax
 /// generic types MUST include explicit `where ... ~Copyable`
 /// constraints.
 ///
-/// Citation: `[MEM-COPY-004]` (memory-safety skill, ownership.md).
+/// Citation: `[MEM-COPY-004]` (memory-safety skill, the ownership note).
 ///
 /// Without an explicit `where Element: ~Copyable` clause, an extension
 /// is implicitly constrained to `where Element: Copyable` — silently

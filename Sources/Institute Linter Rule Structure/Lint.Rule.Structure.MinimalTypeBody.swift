@@ -186,7 +186,7 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
   /// `Lint.Rule.Naming.Shared.swift` — cross-pack visibility isn't
   /// available across the universal/institute tier boundary, so the
   /// helper is duplicated; semantics match. See
-  /// swift-institute/Skills/rule-exemptions/SKILL.md.
+  /// the rule-exemptions skill.
   private func hasExtensionPatternAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
     for attribute in attributes {
       guard let attr = attribute.as(AttributeSyntax.self) else { continue }
@@ -219,7 +219,7 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
     // extension yields stored-properties + extension-of-overrides
     // for zero semantic gain. Helper lives in
     // `Lint.Rule.Structure.Shared.swift`. See
-    // `swift-institute/Skills/rule-exemptions/SKILL.md`.
+    // the rule-exemptions skill.
     if structureExtendsSyntaxVisitor(node.inheritanceClause) {
       return .visitChildren
     }

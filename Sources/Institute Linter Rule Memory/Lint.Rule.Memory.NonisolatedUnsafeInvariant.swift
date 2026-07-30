@@ -16,12 +16,12 @@ internal import SwiftSyntax
 /// MUST carry an adjacent `// SAFETY: ...` or `// WHY: ...` invariant
 /// comment that cites the encapsulation guarantee in prose.
 ///
-/// Citation: `[MEM-SAFE-025a]` (memory-safety skill, safety-isolation.md).
+/// Citation: `[MEM-SAFE-025a]` (memory-safety skill, the safety-isolation note).
 ///
 /// Replaces `Lint.Rule.Memory.NonisolatedUnsafeSafe` (the original
 /// `[MEM-SAFE-025]` rule, SUPERSEDED 2026-05-11 by the
 /// invariant-comment + `@safe`-forbidden split per
-/// `swift-institute/Research/mem-safe-025-reconciliation.md`).
+/// the MEM-SAFE-025 reconciliation note).
 ///
 /// The comment MUST be immediately adjacent to the declaration: a
 /// blank line between the comment and the `nonisolated(unsafe)` token

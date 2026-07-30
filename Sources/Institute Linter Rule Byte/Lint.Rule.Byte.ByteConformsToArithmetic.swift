@@ -13,13 +13,13 @@ public import Linter_Primitives
 internal import SwiftSyntax
 
 /// `Byte` MUST NOT gain stdlib arithmetic conformances. Per
-/// `byte-arithmetic-conformance.md` v1.0.0 RECOMMENDATION ζ (2026-05-19),
+/// the byte-arithmetic conformance note v1.0.0 RECOMMENDATION ζ (2026-05-19),
 /// `Byte` carries byte-domain identity, NOT arithmetic identity. The
 /// arithmetic surface (`+`, `-`, `*`, `/`, increment, `BinaryInteger`,
 /// `Numeric`, `AdditiveArithmetic`, `Strideable`, `SignedInteger`,
 /// `UnsignedInteger`, `FixedWidthInteger`) lives on `UInt8` only.
 /// Arithmetic-domain byte storage MUST stay `UInt8` per the W2
-/// discrimination rubric (`broader-l2-l3-byte-typing-gap-plan.md`).
+/// discrimination rubric (the L2/L3 byte-typing gap plan note).
 /// Citation: `[API-BYTE-002]`.
 extension Lint.Rule {
   public static let `byte conforms to arithmetic protocol` = Lint.Rule(
@@ -40,8 +40,8 @@ extension Lint.Rule {
 @usableFromInline
 internal let byteConformsToArithmeticMessage: Swift.String =
   "[byte conforms to arithmetic protocol] [API-BYTE-002]: `Byte` MUST "
-  + "NOT conform to a stdlib arithmetic protocol. Per byte-arithmetic-"
-  + "conformance.md v1.0.0, `Byte` carries byte-domain identity, NOT "
+  + "NOT conform to a stdlib arithmetic protocol. Per the byte-arithmetic "
+  + "conformance note v1.0.0, `Byte` carries byte-domain identity, NOT "
   + "arithmetic. Migration paths: (a) if the rawValue participates in "
   + "arithmetic (`- 1`, `* 4`, modular roll-over), keep `rawValue: UInt8` "
   + "and bridge via `.underlying`; (b) if the rawValue is a bit-field / "
