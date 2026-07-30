@@ -111,13 +111,62 @@ extension Lint.Rule.`string utf8 scanning Tests`.`Edge Case` {
   @Test
   func `unrelated member named unicodeScalars on non-String is still flagged`() {
     // The rule cannot resolve type info per-file; it flags by member
-    // name. Authors can silence a false positive with a scoped
-    // SwiftLint suppression directive when the context is unambiguous.
+    // name. This is a known, documented limitation (no type checker
+    // in a syntax-only rule) — authors silence a confirmed false
+    // positive with THIS engine's own suppression directive, not a
+    // SwiftLint one (the message names it explicitly).
     let source = """
       struct Custom {
           var unicodeScalars: Int { 0 }
       }
       let x = Custom().unicodeScalars
+      """
+    let findings = Lint.Rule.`string utf8 scanning Tests`.findings(in: source)
+    #expect(findings.count == 1)
+    if findings.count == 1 {
+      #expect(findings[0].message.contains("swift-linter:disable:next string utf8 scanning"))
+      #expect(!findings[0].message.contains("SwiftLint"))
+    }
+  }
+
+  @Test
+  func `file importing Foundation is out of scope - no findings at all`() {
+    // Scoping: "Foundation-free" is the rule's own stated scope. A
+    // file that imports Foundation is not attempting Foundation-free
+    // scanning, so its unicodeScalars use isn't the harm this rule
+    // targets.
+    let source = """
+      import Foundation
+
+      func find(in content: String) -> String.Index? {
+          content.unicodeScalars.firstIndex(of: "\\n")
+      }
+      """
+    let findings = Lint.Rule.`string utf8 scanning Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `file importing FoundationEssentials is out of scope`() {
+    let source = """
+      import FoundationEssentials
+
+      func find(in content: String) -> String.Index? {
+          content.unicodeScalars.firstIndex(of: "\\n")
+      }
+      """
+    let findings = Lint.Rule.`string utf8 scanning Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `file with no Foundation import is still in scope`() {
+    let source = """
+      import SwiftSyntax
+
+      func find(in content: String) -> String.Index? {
+          content.unicodeScalars.firstIndex(of: "\\n")
+      }
       """
     let findings = Lint.Rule.`string utf8 scanning Tests`.findings(in: source)
     #expect(findings.count == 1)
