@@ -137,6 +137,34 @@ private let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.String
   "span": "SE-0517 Span / MutableSpan — Swift.Array.span (canonical span getter)",
   "mutableSpan":
     "SE-0517 Span / MutableSpan — Swift.Array.mutableSpan (canonical mutable-span getter)",
+  // Scoped-access counterparts to the `span` / `mutableSpan` computed
+  // properties above — the stdlib `withX` scoped-borrow idiom applied to
+  // the same SE-0517 non-copyable Span access. Ratified per the
+  // swift-array-primitives#9 adjudication (comment 5134794606,
+  // 2026-07-30), Escalation item 1; six-name #32 batch.
+  "withSpan": "SE-0517 Span scoped-access counterpart to the allowlisted `span` getter",
+  "withMutableSpan":
+    "SE-0517 MutableSpan scoped-access counterpart to the allowlisted `mutableSpan` getter",
+  // Swift.Array bulk-mutation vocabulary the front-door institute
+  // container types mirror to preserve their `Swift.Array`-shadowing
+  // source-compatibility contract ([DS-028]). Ratified per the
+  // swift-array-primitives#9 adjudication (comment 5134794606,
+  // 2026-07-30), Escalation item 1; six-name #32 batch.
+  "removeAll": "Swift.Array.removeAll(keepingCapacity:)",
+  "reserveCapacity": "Swift.Array.reserveCapacity(_:)",
+  // Stdlib `withX` scoped-borrow family, applied to a single-element
+  // scoped access. Declared across 8 packages in swift-primitives.
+  // Ratified per the swift-array-primitives#9 adjudication (comment
+  // 5134794606, 2026-07-30), Escalation item 1; six-name #32 batch.
+  "withElement": "stdlib withX scoped-borrow family — 8 declaring packages across swift-primitives",
+  // L1 container-family vocabulary: the identical member exists on
+  // `SlotMap` (swift-slot-map-primitives), `Queue`
+  // (swift-queue-primitives), and `Queue.DoubleEnded`
+  // (swift-deque-primitives) in addition to `Array` — 4 declaring
+  // packages. Ratified per the swift-array-primitives#9 adjudication
+  // (comment 5134794606, 2026-07-30), Escalation item 1; six-name
+  // #32 batch.
+  "freeCapacity": "L1 container-family vocabulary — 4 declaring packages across swift-primitives",
   // SE-0253 callable values of user-defined nominal types: the compiler
   // recognises a method literally named `callAsFunction` and synthesises
   // `instance(args)` call-site syntax against it. The compound name is

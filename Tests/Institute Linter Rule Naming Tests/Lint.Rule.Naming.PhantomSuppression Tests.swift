@@ -215,4 +215,49 @@ extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
     let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `same-signature where-clause container binding is NOT flagged`() {
+    // #33 regression fixture — the swift-array-primitives#9 shape
+    // (adjudication comment 5134794606, 2026-07-30): `E` looks like an
+    // `Index<E>` phantom discriminator by the text heuristic, but the
+    // init's own `where` clause binds the ENCLOSING type's `S` parameter
+    // to a concrete storage type that nests `E` as `Contiguous<E>`'s
+    // generic argument — `E` is the stored element type, not a phantom.
+    // Negative control for `usedAsWhereClauseContainerBinding`.
+    let source = """
+      struct Container<S: ~Copyable> {
+          init<E: ~Copyable, Resource: ~Copyable>(initialCapacity: Index<E>.Count)
+          where S == Buffer<Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear {
+              fatalError()
+          }
+      }
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `where-clause binding on an unrelated parameter still flags the true phantom`() {
+    // The container-binding exemption is scoped to the SPECIFIC parameter
+    // reached by the where-clause nesting — a sibling phantom parameter
+    // with no such binding must still fire.
+    let source = """
+      struct Container<S: ~Copyable> {
+          init<E: ~Copyable, Tag: ~Copyable, Resource: ~Copyable>(
+              initialCapacity: Index<E>.Count, x: Tagged<Tag, Ordinal>
+          )
+          where S == Buffer<Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear {
+              fatalError()
+          }
+      }
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    // Exactly one finding: `Tag` (no container binding fires); `E` (which
+    // has one) stays exempt.
+    #expect(findings.count == 1)
+    if findings.count == 1 {
+      #expect(findings[0].identifier == "phantom suppression")
+    }
+  }
 }

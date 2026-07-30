@@ -25,7 +25,15 @@ internal import SwiftSyntax
 ///      `<P: ~Copyable>` that appears as the FIRST type-argument of a
 ///      `Tagged<P,…>` / `Index<P>` / `Property<P,…>` in the declaration AND
 ///      never as a stored / by-value position (`: P`, `[P]`, `-> P`, `P?`,
-///      `consuming`/`borrowing`/`inout P`).
+///      `consuming`/`borrowing`/`inout P`) AND never bound into a
+///      value-storing container through a same-type `where`-clause
+///      requirement on another generic parameter (e.g. `where S ==
+///      Buffer<Storage<Allocator<Resource>>.Contiguous<P>>.Linear` — `P`
+///      reaches the storage type as a nested generic argument of the
+///      requirement's concrete type, not through a `: P` text position).
+///      Same-signature column-generic L1 shape; see [API-NAME-010b]
+///      outcome record, swift-array-primitives#9 adjudication (comment
+///      5134794606, 2026-07-30).
 /// The bare-`<P>` form and the `extension Tagged where … Tag: ~Copyable`
 /// associatedtype/conditional-conformance companions are intentionally out of
 /// this conservative scope — see the outcome record.
@@ -92,23 +100,43 @@ internal final class NamingPhantomSuppressionVisitor: SyntaxVisitor {
   // Shape 2 — generic parameter `<P: ~Copyable>` used as a Tagged/Index/Property
   // first-arg discriminator and never stored.
   override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-    checkGenericParameters(node.genericParameterClause, in: Syntax(node))
+    checkGenericParameters(
+      node.genericParameterClause,
+      whereClause: node.genericWhereClause,
+      in: Syntax(node)
+    )
     return .visitChildren
   }
   override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-    checkGenericParameters(node.genericParameterClause, in: Syntax(node))
+    checkGenericParameters(
+      node.genericParameterClause,
+      whereClause: node.genericWhereClause,
+      in: Syntax(node)
+    )
     return .visitChildren
   }
   override func visit(_ node: SubscriptDeclSyntax) -> SyntaxVisitorContinueKind {
-    checkGenericParameters(node.genericParameterClause, in: Syntax(node))
+    checkGenericParameters(
+      node.genericParameterClause,
+      whereClause: node.genericWhereClause,
+      in: Syntax(node)
+    )
     return .visitChildren
   }
   override func visit(_ node: TypeAliasDeclSyntax) -> SyntaxVisitorContinueKind {
-    checkGenericParameters(node.genericParameterClause, in: Syntax(node))
+    checkGenericParameters(
+      node.genericParameterClause,
+      whereClause: node.genericWhereClause,
+      in: Syntax(node)
+    )
     return .visitChildren
   }
 
-  private func checkGenericParameters(_ clause: GenericParameterClauseSyntax?, in decl: Syntax) {
+  private func checkGenericParameters(
+    _ clause: GenericParameterClauseSyntax?,
+    whereClause: GenericWhereClauseSyntax?,
+    in decl: Syntax
+  ) {
     guard let clause else { return }
     // `trimmedDescription`, not `description` — the latter includes leading
     // trivia (the declaration's own doc comment), and the text heuristics
@@ -122,7 +150,9 @@ internal final class NamingPhantomSuppressionVisitor: SyntaxVisitor {
       guard let inherited = parameter.inheritedType, constraintIsCopyableOnly(inherited) else {
         continue
       }
-      guard usedAsPhantomDiscriminator(name, in: body), !usedAsStoredValue(name, in: body) else {
+      guard usedAsPhantomDiscriminator(name, in: body), !usedAsStoredValue(name, in: body),
+        !usedAsWhereClauseContainerBinding(name, in: whereClause)
+      else {
         continue
       }
       emit(at: parameter.name.positionAfterSkippingLeadingTrivia)
@@ -215,6 +245,83 @@ private func usedAsStoredValue(_ name: Swift.String, in body: Swift.String) -> S
     "consuming " + name, "borrowing " + name, "inout " + name,
   ] where body.contains(marker) {
     return true
+  }
+  return false
+}
+
+/// True when `name` is bound into a value-storing container through a
+/// same-type `where`-clause requirement on a DIFFERENT generic parameter —
+/// e.g. `where S == Buffer<Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear`
+/// binds `E` as a nested generic argument of `Contiguous`, which stores
+/// values of `E`. Citation: [API-NAME-010b] outcome record,
+/// swift-array-primitives#9 adjudication (comment 5134794606, 2026-07-30).
+///
+/// This is a same-signature shape the text-based ``usedAsStoredValue(_:in:)``
+/// heuristic cannot see: `name` never appears at a `: E` / `[E]` / `-> E`
+/// text position — it only appears nested inside the CONCRETE TYPE bound to
+/// another generic parameter (`S`) by the declaration's own `where` clause.
+/// A generic parameter that only ever surfaces this way is, structurally,
+/// exactly as much a stored value as one spelled `: E` directly — the
+/// `where`-clause substitution is how the container's element type reaches
+/// the storage type, not a phantom-discriminator position.
+private func usedAsWhereClauseContainerBinding(
+  _ name: Swift.String,
+  in whereClause: GenericWhereClauseSyntax?
+) -> Swift.Bool {
+  guard let whereClause else { return false }
+  for requirement in whereClause.requirements {
+    guard case .sameTypeRequirement(let sameType) = requirement.requirement else { continue }
+    if let leftType = sameType.leftType.as(TypeSyntax.self),
+      usedAsGenericArgument(name, in: leftType)
+    {
+      return true
+    }
+    if let rightType = sameType.rightType.as(TypeSyntax.self),
+      usedAsGenericArgument(name, in: rightType)
+    {
+      return true
+    }
+  }
+  return false
+}
+
+/// True when `name` occurs as a nested generic type-argument anywhere
+/// inside `type` — never as `type`'s own bare leaf name, only inside one
+/// of its (or an ancestor member segment's) generic-argument list. Detects
+/// container bindings like `Storage<Memory.Allocator<Resource>>.Contiguous<E>`,
+/// where `E` is the sole generic argument of the `.Contiguous` member
+/// segment, nested two levels below the requirement's top-level type.
+private func usedAsGenericArgument(_ name: Swift.String, in type: TypeSyntax) -> Swift.Bool {
+  if let identifier = type.as(IdentifierTypeSyntax.self) {
+    return genericArgumentsBind(name, identifier.genericArgumentClause)
+  }
+  if let member = type.as(MemberTypeSyntax.self) {
+    if genericArgumentsBind(name, member.genericArgumentClause) { return true }
+    return usedAsGenericArgument(name, in: member.baseType)
+  }
+  if let optional = type.as(OptionalTypeSyntax.self) {
+    return usedAsGenericArgument(name, in: optional.wrappedType)
+  }
+  if let attributed = type.as(AttributedTypeSyntax.self) {
+    return usedAsGenericArgument(name, in: attributed.baseType)
+  }
+  return false
+}
+
+/// True when any argument of `clause` either IS `name` (a direct generic
+/// argument, e.g. the `E` in `Contiguous<E>`) or itself nests `name` deeper
+/// (e.g. the `E` in `Wrapper<Contiguous<E>>`).
+private func genericArgumentsBind(
+  _ name: Swift.String,
+  _ clause: GenericArgumentClauseSyntax?
+) -> Swift.Bool {
+  guard let clause else { return false }
+  for argument in clause.arguments {
+    guard let argumentType = argument.argument.as(TypeSyntax.self) else { continue }
+    if let identifier = argumentType.as(IdentifierTypeSyntax.self), identifier.name.text == name {
+      return true
+    }
+    if usedAsGenericArgument(name, in: argumentType) { return true }
   }
   return false
 }

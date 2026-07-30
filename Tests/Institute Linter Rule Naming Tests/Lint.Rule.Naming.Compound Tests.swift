@@ -579,6 +579,93 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     #expect(findings.isEmpty)
   }
 
+  // MARK: - #32 six-name allowlist batch (swift-array-primitives#9 adjudication)
+
+  @Test
+  func `removeAll(keepingCapacity:) is NOT flagged`() {
+    // Swift.Array.removeAll(keepingCapacity:) — front-door shadowing
+    // contract [DS-028].
+    let source = """
+      extension MyArray {
+          public mutating func removeAll(keepingCapacity: Bool = false) {}
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `reserveCapacity is NOT flagged`() {
+    // Swift.Array.reserveCapacity(_:).
+    let source = """
+      extension MyArray {
+          public mutating func reserveCapacity(_ n: Index<Element>.Count) {}
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `withSpan is NOT flagged`() {
+    // Scoped-access counterpart to the already-allowlisted `span` getter.
+    let source = """
+      extension MyArray {
+          public func withSpan<R: ~Copyable, E: Error>(_ body: (Span<Element>) throws(E) -> R) throws(E) -> R {
+              try body(span)
+          }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `withMutableSpan is NOT flagged`() {
+    // Scoped-access counterpart to the already-allowlisted `mutableSpan` getter.
+    let source = """
+      extension MyArray {
+          public mutating func withMutableSpan<R: ~Copyable, E: Error>(
+              _ body: (inout MutableSpan<Element>) throws(E) -> R
+          ) throws(E) -> R {
+              try body(&mutableSpan)
+          }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `withElement is NOT flagged`() {
+    // Stdlib withX scoped-borrow family — 8 declaring packages across
+    // swift-primitives.
+    let source = """
+      extension MyArray {
+          public func withElement<R: ~Copyable, E: Error>(
+              at index: Index<Element>, _ body: (borrowing Element) throws(E) -> R
+          ) throws(E) -> R {
+              try body(storage[index])
+          }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `freeCapacity is NOT flagged`() {
+    // L1 container-family vocabulary — 4 declaring packages across
+    // swift-primitives (Array, SlotMap, Queue, Queue.DoubleEnded).
+    let source = """
+      extension MyArray {
+          public var freeCapacity: Index<Element>.Count { capacity - count }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
   // MARK: - Backtick-escape exemption
 
   @Test
