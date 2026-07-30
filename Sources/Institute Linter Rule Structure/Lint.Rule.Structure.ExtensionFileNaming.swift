@@ -1,0 +1,252 @@
+// ===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-institute-linter-rules open source project
+//
+// Copyright (c) 2026 Coen ten Thije Boonkkamp and the swift-institute-linter-rules project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE for license information
+//
+// ===----------------------------------------------------------------------===//
+
+public import Linter_Primitives
+internal import SwiftSyntax
+
+/// Extension-only files name their base type plus a discriminator:
+/// `Array.Dynamic+Sequence.swift` (conformance addition),
+/// `Array.Dynamic where Element Comparable.swift` (constraint-
+/// discriminated extension), or `Array.Dynamic+Iteration.swift`
+/// (`+<Topic>` for member-only extensions).
+///
+/// Citation: `[API-IMPL-007]`. Adjudicated on
+/// swift-institute-linter-rules#6 (ruling D2, 2026-07-30); implemented
+/// per swift-institute-linter-rules#9. Every design decision below
+/// mirrors that issue verbatim.
+///
+/// The rule's surface is a source file under `Sources/` whose
+/// top-level declarations are exclusively `extension` declarations
+/// (zero primary nominal types — `[API-IMPL-006]`'s surface,
+/// including its cascade suppression, is excluded here). For each
+/// such file:
+///
+/// 1. Every extension must extend the same dotted base-type path;
+///    otherwise the rule fires once — a mixed-base extension file has
+///    no lawful name.
+/// 2. Else, if any extension adds a conformance, the required
+///    basename is `<Base>+<Conformance>.swift`, naming one of the
+///    added conformances (matching ANY added conformance satisfies
+///    the rule — a conditional conformance restated on a conditional
+///    extension, `extension T: P where …`, still classifies here, not
+///    under 3).
+/// 3. Else, if any extension carries a `where` clause, the required
+///    basename is the `<Base> where <discriminator>.swift` shape: the
+///    segment after ` where ` must be non-empty and the basename must
+///    begin with `<Base> where `. The discriminator's exact text is
+///    repository-owned and not further constrained.
+/// 4. Else (member-only extensions), the required basename is
+///    `<Base>+<Topic>.swift`: `<Base>` followed by `+` and a
+///    non-empty topic segment. The topic's wording is repository-
+///    owned; the rule checks shape, not vocabulary.
+///
+/// The rule fires when the basename does not satisfy the classified
+/// shape.
+///
+/// Excluded from the surface: files with any top-level primary
+/// nominal type (`[API-IMPL-006]`'s surface); `Tests`, `Experiments`,
+/// and `Examples` path scope.
+///
+/// The diagnostic is located at the file's first extension
+/// declaration. The canonical fix is a rename to the classified
+/// shape; no source edit.
+extension Lint.Rule {
+  public static let `extension file naming` = Lint.Rule(
+    id: "extension file naming",
+    default: .warning,
+    findings: { source, severity in
+      let path = source.file.filePath
+      for excluded in ["Tests", "Experiments", "Examples"] {
+        if path == excluded
+          || path.hasPrefix("\(excluded)/")
+          || path.contains("/\(excluded)/")
+        {
+          return []
+        }
+      }
+      return structureExtensionFileNamingFindings(
+        path: path,
+        source: source.file,
+        severity: severity,
+        converter: source.converter,
+        tree: source.tree
+      )
+    }
+  )
+}
+
+private func structureExtensionFileNamingFindings(
+  path: Swift.String,
+  source: Source.File,
+  severity: Diagnostic.Severity,
+  converter: SourceLocationConverter,
+  tree: SourceFileSyntax
+) -> [Diagnostic.Record] {
+  let filename: Swift.String
+  if let slashIndex = path.lastIndex(of: "/") {
+    filename = Swift.String(path[path.index(after: slashIndex)...])
+  } else {
+    filename = path
+  }
+  guard filename.hasSuffix(".swift") else { return [] }
+  let basename = Swift.String(filename.dropLast(".swift".count))
+
+  let collector = StructureExtensionFileNamingCollector()
+  collector.walk(tree)
+
+  // Excluded from the surface — [API-IMPL-006]'s surface (any
+  // top-level primary nominal type present).
+  guard !collector.hasPrimaryType else { return [] }
+  guard let first = collector.extensions.first else { return [] }
+
+  let location = converter.location(for: first.extendedType.positionAfterSkippingLeadingTrivia)
+
+  func record(_ message: Swift.String) -> [Diagnostic.Record] {
+    [
+      Diagnostic.Record(
+        location: Source.Location(
+          fileID: source.fileID,
+          filePath: source.filePath,
+          line: location.line,
+          column: location.column
+        ),
+        severity: severity,
+        identifier: "extension file naming",
+        message: message
+      )
+    ]
+  }
+
+  let bases = Swift.Set(
+    collector.extensions.compactMap { structureHoistedProtocolAliasDottedName(of: $0.extendedType) }
+  )
+  guard let base = structureHoistedProtocolAliasDottedName(of: first.extendedType) else {
+    return []
+  }
+  guard bases.count == 1 else {
+    return record(structureExtensionFileNamingMixedBaseMessage(basename: basename, bases: bases))
+  }
+
+  let conformances = collector.extensions.flatMap { extensionDecl -> [Swift.String] in
+    guard let clause = extensionDecl.inheritanceClause else { return [] }
+    return clause.inheritedTypes.compactMap {
+      structureHoistedProtocolAliasDottedName(of: $0.type).map(structureStripBackticks)
+    }
+  }
+  let hasWhere = collector.extensions.contains { $0.genericWhereClause != nil }
+
+  if !conformances.isEmpty {
+    let conformancePrefix = "\(base)+"
+    if basename.hasPrefix(conformancePrefix) {
+      let candidate = Swift.String(basename.dropFirst(conformancePrefix.count))
+      if conformances.contains(candidate) { return [] }
+    }
+    return record(
+      structureExtensionFileNamingConformanceMessage(
+        basename: basename,
+        base: base,
+        conformance: conformances[0]
+      )
+    )
+  }
+
+  if hasWhere {
+    let prefix = "\(base) where "
+    if basename.hasPrefix(prefix), basename.count > prefix.count {
+      return []
+    }
+    return record(structureExtensionFileNamingWhereMessage(basename: basename, base: base))
+  }
+
+  // Member-only: `<Base>+<Topic>`.
+  let prefix = "\(base)+"
+  if basename.hasPrefix(prefix), basename.count > prefix.count {
+    return []
+  }
+  return record(structureExtensionFileNamingTopicMessage(basename: basename, base: base))
+}
+
+@usableFromInline
+internal func structureExtensionFileNamingMixedBaseMessage(
+  basename: Swift.String,
+  bases: Swift.Set<Swift.String>
+) -> Swift.String {
+  let sorted = bases.sorted().joined(separator: "', '")
+  return "[extension file naming] [API-IMPL-007]: extension file '\(basename).swift' mixes "
+    + "extensions on different base types ('\(sorted)'); a mixed-base extension file has "
+    + "no lawful name — split into one file per base type."
+}
+
+@usableFromInline
+internal func structureExtensionFileNamingConformanceMessage(
+  basename: Swift.String,
+  base: Swift.String,
+  conformance: Swift.String
+) -> Swift.String {
+  "[extension file naming] [API-IMPL-007]: extension file '\(basename).swift' must be named "
+    + "'\(base)+\(conformance).swift' for the conformance it adds"
+}
+
+@usableFromInline
+internal func structureExtensionFileNamingWhereMessage(
+  basename: Swift.String,
+  base: Swift.String
+) -> Swift.String {
+  "[extension file naming] [API-IMPL-007]: extension file '\(basename).swift' must use the "
+    + "'\(base) where <discriminator>.swift' shape"
+}
+
+@usableFromInline
+internal func structureExtensionFileNamingTopicMessage(
+  basename: Swift.String,
+  base: Swift.String
+) -> Swift.String {
+  "[extension file naming] [API-IMPL-007]: extension file '\(basename).swift' must carry a "
+    + "'+<Topic>' segment naming the member group (e.g. '\(base)+Topic.swift')"
+}
+
+/// Walks top-level statements only, collecting every top-level
+/// `extension` declaration and noting whether the file also declares
+/// any top-level primary nominal type (`[API-IMPL-006]`'s surface,
+/// including a type nested via a top-level extension shell — the same
+/// predicate `single type per file` and `file name nested path` use).
+private final class StructureExtensionFileNamingCollector: SyntaxVisitor {
+  var extensions: [ExtensionDeclSyntax] = []
+  var hasPrimaryType: Swift.Bool = false
+
+  init() { super.init(viewMode: .sourceAccurate) }
+
+  override func visit(_ node: SourceFileSyntax) -> SyntaxVisitorContinueKind {
+    for item in node.statements {
+      guard case .decl(let decl) = item.item else { continue }
+      if let extensionDecl = decl.as(ExtensionDeclSyntax.self) {
+        extensions.append(extensionDecl)
+        for member in extensionDecl.memberBlock.members
+        where structureExtensionFileNamingIsPrimaryTypeDecl(member.decl) {
+          hasPrimaryType = true
+        }
+        continue
+      }
+      if structureExtensionFileNamingIsPrimaryTypeDecl(decl) {
+        hasPrimaryType = true
+      }
+    }
+    return .skipChildren
+  }
+}
+
+private func structureExtensionFileNamingIsPrimaryTypeDecl(_ decl: DeclSyntax) -> Swift.Bool {
+  decl.is(StructDeclSyntax.self)
+    || decl.is(ClassDeclSyntax.self)
+    || decl.is(EnumDeclSyntax.self)
+    || decl.is(ActorDeclSyntax.self)
+    || decl.is(ProtocolDeclSyntax.self)
+}

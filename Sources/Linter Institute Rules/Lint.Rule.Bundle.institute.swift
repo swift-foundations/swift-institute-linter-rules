@@ -139,6 +139,11 @@ extension Lint.Rule.Bundle {
       // swift-institute-linter-rules#8. Advisory at introduction; error
       // only after the standing graduation gate.
       .enable(.`file name nested path`),
+      // [API-IMPL-007] — adjudicated swift-institute-linter-rules#6
+      // (ruling D2, 2026-07-30); implemented per
+      // swift-institute-linter-rules#9. Advisory at introduction; error
+      // only after the standing graduation gate.
+      .enable(.`extension file naming`),
       .enable(.`throwing wrapper init`),
       .enable(.`type transform placement`),
       .enable(.`wrapper backing exposed`),
