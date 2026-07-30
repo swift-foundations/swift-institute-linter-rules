@@ -113,6 +113,28 @@ internal final class ByteBinarySerializableUInt8WitnessVisitor: SyntaxVisitor {
     return .visitChildren
   }
 
+  // `"init"` is listed in `byteWitnessFunctionNames`, but an initializer
+  // witness (`Binary.Parseable`'s `init(parsing:)`) is an
+  // `InitializerDeclSyntax`, not a `FunctionDeclSyntax` — its keyword is
+  // `initKeyword`, not a `name` token, so the `FunctionDeclSyntax`
+  // visitor above can never reach it. Without this visitor, "init" in
+  // the set is unreachable and initializer witnesses go unchecked at
+  // `.error` severity.
+  override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard contextStack.last == true else { return .visitChildren }
+    if byteFunctionHasDisfavoredOverload(node.attributes) {
+      return .visitChildren
+    }
+    guard let whereClause = node.genericWhereClause else { return .visitChildren }
+    for requirement in whereClause.requirements {
+      if byteRequirementIsElementEqualsUInt8(requirement) {
+        emit(at: requirement.positionAfterSkippingLeadingTrivia)
+        return .visitChildren
+      }
+    }
+    return .visitChildren
+  }
+
   private func emit(at position: AbsolutePosition) {
     let location = converter.location(for: position)
     matches.append(
@@ -175,19 +197,31 @@ internal func extensionConformsToSerializableLike(_ node: ExtensionDeclSyntax) -
 private func byteTypeMatchesSerializableLike(_ type: TypeSyntax) -> Swift.Bool {
   guard let memberType = type.as(MemberTypeSyntax.self) else { return false }
   let trailingName = byteStripBackticks(memberType.name.text)
-  let baseName: Swift.String
-  if let identifier = memberType.baseType.as(IdentifierTypeSyntax.self) {
-    baseName = byteStripBackticks(identifier.name.text)
-  } else if let nestedMember = memberType.baseType.as(MemberTypeSyntax.self) {
-    baseName = byteStripBackticks(nestedMember.name.text)
-  } else {
-    return false
-  }
+  // Walk to the OUTERMOST root identifier, not just the immediate parent
+  // leaf — `Binary.ASCII.Serializable`'s immediate base leaf is `ASCII`,
+  // but the family's host is `Binary`. `byteSerializableLikeProtocolPairs`
+  // matches on (host, trailing-name), so the root must be resolved all
+  // the way down regardless of how many interior segments a sibling-
+  // family spelling carries.
+  guard let rootName = byteRootIdentifierName(memberType.baseType) else { return false }
   for pair in byteSerializableLikeProtocolPairs
-  where pair.host == baseName && pair.name == trailingName {
+  where pair.host == rootName && pair.name == trailingName {
     return true
   }
   return false
+}
+
+/// Returns the outermost root identifier's (backtick-stripped) name for
+/// a possibly multi-segment qualified type, e.g. `Binary` for
+/// `Binary.ASCII.Serializable`'s base `Binary.ASCII`.
+private func byteRootIdentifierName(_ type: TypeSyntax) -> Swift.String? {
+  if let identifier = type.as(IdentifierTypeSyntax.self) {
+    return byteStripBackticks(identifier.name.text)
+  }
+  if let memberType = type.as(MemberTypeSyntax.self) {
+    return byteRootIdentifierName(memberType.baseType)
+  }
+  return nil
 }
 
 /// Returns true if a function carries `@_disfavoredOverload`.

@@ -182,6 +182,41 @@ extension Lint.Rule.`byte conforms to arithmetic protocol Tests`.Unit {
     let result = findings(in: source, rule: Lint.Rule.`byte conforms to arithmetic protocol`)
     #expect(result.count == 1)
   }
+
+  @Test
+  func `Byte primary declaration conforming to AdditiveArithmetic is flagged`() {
+    // `Byte` is a real struct declaration — the conformance can be
+    // adopted directly on the primary declaration, not only via a
+    // later `extension`.
+    let source = """
+      public struct Byte: AdditiveArithmetic {}
+      """
+    let result = findings(in: source, rule: Lint.Rule.`byte conforms to arithmetic protocol`)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `Byte_Primitives-qualified extension conforming to Numeric is flagged`() {
+    let source = """
+      extension Byte_Primitives.Byte: Numeric {}
+      """
+    let result = findings(in: source, rule: Lint.Rule.`byte conforms to arithmetic protocol`)
+    #expect(result.count == 1)
+  }
+}
+
+extension Lint.Rule.`byte conforms to arithmetic protocol Tests`.`Edge Case` {
+  @Test
+  func `unrelated namespace's nested Byte type is NOT flagged`() {
+    // `RFC_1234.Byte` is an unrelated nested type in a consumer
+    // namespace, not `Byte_Primitives.Byte` — the rule must not accept
+    // any qualified type whose leaf happens to be `Byte`.
+    let source = """
+      extension RFC_1234.Byte: AdditiveArithmetic {}
+      """
+    let result = findings(in: source, rule: Lint.Rule.`byte conforms to arithmetic protocol`)
+    #expect(result.isEmpty)
+  }
 }
 
 extension Lint.Rule.`byte conforms to arithmetic protocol Tests`.`Edge Case` {
@@ -323,6 +358,62 @@ extension Lint.Rule.`binary serializable uint8 witness Tests`.Unit {
       """
     let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
     #expect(result.count == 1)
+  }
+
+  @Test
+  func `initializer witness where Source Element equals UInt8 is flagged`() {
+    // `Binary.Parseable` is idiomatically satisfied by an initializer,
+    // not only a static `parse` function — `"init"` is listed in
+    // `byteWitnessFunctionNames` but was unreachable because the visitor
+    // only overrode `FunctionDeclSyntax`.
+    let source = """
+      extension Foo: Binary.Parseable {
+          public init<Source: Collection>(parsing s: Source) where Source.Element == UInt8 {}
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `sibling-family Binary ASCII Serializable witness is flagged`() {
+    // `Binary.ASCII.Serializable` reduces to base leaf `ASCII`, not the
+    // family host `Binary` — matching must resolve to the outermost
+    // root identifier, not just the immediate parent segment.
+    let source = """
+      extension Foo: Binary.ASCII.Serializable {
+          public static func serialize<Buffer: RangeReplaceableCollection>(
+              _ x: Self, into buffer: inout Buffer
+          ) where Buffer.Element == UInt8 {}
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+    #expect(result.count == 1)
+  }
+}
+
+extension Lint.Rule.`binary serializable uint8 witness Tests`.`Edge Case` {
+  @Test
+  func `initializer witness where Source Element equals Byte is NOT flagged`() {
+    let source = """
+      extension Foo: Binary.Parseable {
+          public init<Source: Collection>(parsing s: Source) where Source.Element == Byte {}
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+    #expect(result.isEmpty)
+  }
+
+  @Test
+  func `disfavored UInt8 initializer witness is NOT flagged`() {
+    let source = """
+      extension Foo: Binary.Parseable {
+          @_disfavoredOverload
+          public init<Source: Collection>(parsing s: Source) where Source.Element == UInt8 {}
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`binary serializable uint8 witness`)
+    #expect(result.isEmpty)
   }
 }
 
@@ -684,6 +775,64 @@ extension Lint.Rule.`uint8 forwarder missing disfavored Tests`.Unit {
     let result = findings(in: source, rule: Lint.Rule.`uint8 forwarder missing disfavored`)
     #expect(result.count == 1)
   }
+
+  @Test
+  func `protocol extension using Self dot Element equals Byte is flagged`() {
+    // The idiomatic protocol-extension spelling of the byte-domain gate
+    // is `where Self.Element == Byte`, which yields the requirement
+    // text `Self.Element`, not bare `Element`.
+    let source = """
+      extension Sequence where Self.Element == Byte {
+          public func append(_ value: UInt8) {}
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`uint8 forwarder missing disfavored`)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `reversed Byte equals Element gate is flagged`() {
+    let source = """
+      extension Array where Byte == Element {
+          public func append(_ value: UInt8) {}
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`uint8 forwarder missing disfavored`)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `function returning a some Collection of UInt8 is flagged`() {
+    let source = """
+      extension Array where Element == Byte {
+          public func raw() -> some Collection<UInt8> { [] }
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`uint8 forwarder missing disfavored`)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `function taking a UInt8 tuple parameter is flagged`() {
+    let source = """
+      extension Array where Element == Byte {
+          public func pair(_ value: (UInt8, UInt8)) {}
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`uint8 forwarder missing disfavored`)
+    #expect(result.count == 1)
+  }
+
+  @Test
+  func `function taking a UInt8 callback parameter is flagged`() {
+    let source = """
+      extension Array where Element == Byte {
+          public func onByte(_ handler: (UInt8) -> Void) {}
+      }
+      """
+    let result = findings(in: source, rule: Lint.Rule.`uint8 forwarder missing disfavored`)
+    #expect(result.count == 1)
+  }
 }
 
 extension Lint.Rule.`uint8 forwarder missing disfavored Tests`.`Edge Case` {
@@ -771,6 +920,28 @@ extension Lint.Rule {
 }
 
 extension Lint.Rule.`stdlib forwarder outside sli Tests`.Unit {
+  @Test
+  func `disfavored init taking a qualified Swift Array of UInt8 in primary module is flagged`() {
+    // The house convention module-qualifies stdlib collections
+    // (`Swift.Array<UInt8>`); the type-mention detector must descend
+    // into a `MemberTypeSyntax`'s generic-argument clause, not just an
+    // `IdentifierTypeSyntax`'s.
+    let source = """
+      extension Array where Element == UInt8 {
+          @_disfavoredOverload
+          public init(bytes: Swift.Array<UInt8>) {
+              self = []
+          }
+      }
+      """
+    let result = findings(
+      in: source,
+      rule: Lint.Rule.`stdlib forwarder outside sli`,
+      file: "/pkg/Sources/Foo/Bar.swift"
+    )
+    #expect(result.count == 1)
+  }
+
   @Test
   func `disfavored Array UInt8 init in primary module is flagged`() {
     let source = """

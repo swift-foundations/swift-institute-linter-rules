@@ -198,9 +198,16 @@ private func byteRequirementIsElementEqualsByte(_ requirement: GenericRequiremen
     return false
   }
   let left = byteStripBackticks(sameType.leftType.trimmedDescription)
-  guard left == "Element" else { return false }
   let right = byteStripBackticks(sameType.rightType.trimmedDescription)
-  return right == "Byte" || right.hasSuffix(".Byte")
+  // Accept both bare `Element` and the idiomatic protocol-extension
+  // spelling `Self.Element` (and, defensively, any `<Prefix>.Element`).
+  // Also accept the reversed spelling `Byte == Element` — a same-type
+  // requirement's operand order is not semantically meaningful.
+  func isElement(_ text: Swift.String) -> Swift.Bool { text == "Element" || text.hasSuffix(".Element") }
+  func isByte(_ text: Swift.String) -> Swift.Bool { text == "Byte" || text.hasSuffix(".Byte") }
+  if isElement(left), isByte(right) { return true }
+  if isByte(left), isElement(right) { return true }
+  return false
 }
 
 /// Returns true when `node` has any parameter typed `UInt8` (or `[UInt8]`
@@ -249,10 +256,20 @@ private func byteTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.Bool {
     if byteStripBackticks(memberType.name.text) == "UInt8" {
       return true
     }
+    if let genericArgs = memberType.genericArgumentClause {
+      for arg in genericArgs.arguments {
+        if let inner = arg.argument.as(TypeSyntax.self), byteTypeMentionsUInt8(inner) {
+          return true
+        }
+      }
+    }
     return false
   }
   if let arrayType = type.as(ArrayTypeSyntax.self) {
     return byteTypeMentionsUInt8(arrayType.element)
+  }
+  if let dictionaryType = type.as(DictionaryTypeSyntax.self) {
+    return byteTypeMentionsUInt8(dictionaryType.key) || byteTypeMentionsUInt8(dictionaryType.value)
   }
   if let optionalType = type.as(OptionalTypeSyntax.self) {
     return byteTypeMentionsUInt8(optionalType.wrappedType)
@@ -262,6 +279,21 @@ private func byteTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.Bool {
   }
   if let attributedType = type.as(AttributedTypeSyntax.self) {
     return byteTypeMentionsUInt8(attributedType.baseType)
+  }
+  if let someOrAny = type.as(SomeOrAnyTypeSyntax.self) {
+    return byteTypeMentionsUInt8(someOrAny.constraint)
+  }
+  if let tupleType = type.as(TupleTypeSyntax.self) {
+    for element in tupleType.elements where byteTypeMentionsUInt8(element.type) {
+      return true
+    }
+    return false
+  }
+  if let functionType = type.as(FunctionTypeSyntax.self) {
+    for parameter in functionType.parameters where byteTypeMentionsUInt8(parameter.type) {
+      return true
+    }
+    return byteTypeMentionsUInt8(functionType.returnClause.type)
   }
   return false
 }

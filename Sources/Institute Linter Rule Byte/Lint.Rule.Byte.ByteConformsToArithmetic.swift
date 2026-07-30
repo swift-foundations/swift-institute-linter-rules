@@ -86,6 +86,20 @@ internal final class ByteConformsToArithmeticVisitor: SyntaxVisitor {
     return .visitChildren
   }
 
+  // `Byte` is a real struct declaration — a conformance can be adopted
+  // directly on the primary declaration (`public struct Byte:
+  // AdditiveArithmetic { … }`), not only via a later `extension`. The
+  // `ExtensionDeclSyntax` visitor above is blind to this shape.
+  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard let inheritance = node.inheritanceClause else { return .visitChildren }
+    guard byteStripBackticks(node.name.text) == "Byte" else { return .visitChildren }
+    for inherited in inheritance.inheritedTypes {
+      guard let arithmeticName = arithmeticProtocolLeafName(inherited.type) else { continue }
+      emit(at: inherited.positionAfterSkippingLeadingTrivia, protocolName: arithmeticName)
+    }
+    return .visitChildren
+  }
+
   private func emit(at position: AbsolutePosition, protocolName: Swift.String) {
     let location = converter.location(for: position)
     matches.append(
@@ -105,13 +119,20 @@ internal final class ByteConformsToArithmeticVisitor: SyntaxVisitor {
 }
 
 /// Returns true when `type` is `Byte` (with optional `Byte_Primitives.Byte`
-/// module qualification).
+/// module qualification). The qualified form requires the base to
+/// actually be `Byte_Primitives` — an arbitrary consumer namespace that
+/// happens to nest an unrelated type named `Byte` (e.g.
+/// `RFC_1234.Byte`) must not match.
 internal func extensionIsOnByte(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
     return byteStripBackticks(identifier.name.text) == "Byte"
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    return byteStripBackticks(memberType.name.text) == "Byte"
+    guard byteStripBackticks(memberType.name.text) == "Byte" else { return false }
+    if let base = memberType.baseType.as(IdentifierTypeSyntax.self) {
+      return byteStripBackticks(base.name.text) == "Byte_Primitives"
+    }
+    return false
   }
   return false
 }

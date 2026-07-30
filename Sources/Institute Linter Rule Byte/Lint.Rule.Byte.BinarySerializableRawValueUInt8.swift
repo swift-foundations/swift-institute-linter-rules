@@ -61,11 +61,17 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
   let converter: SourceLocationConverter
   var matches: [Diagnostic.Record] = []
 
-  /// Set of nominal-type names whose declaration carries a
-  /// `Binary.Serializable` (or sibling) conformance on the type-decl
-  /// header. Populated in pass 1; queried in pass 2.
-  private var conformingTypeNames: Swift.Set<Swift.String> = []
-  private var typesWithRawValueUInt8: [(name: Swift.String, position: AbsolutePosition)] = []
+  /// Set of nominal-type QUALIFIED paths (e.g. `RFC_791.Flags`, not the
+  /// bare leaf `Flags`) whose declaration carries a `Binary.Serializable`
+  /// (or sibling) conformance on the type-decl header, or whose
+  /// extension names that conformance. Populated in pass 1; queried in
+  /// pass 2. Keying on the qualified path (not the bare leaf) avoids
+  /// attributing one type's conformance to an unrelated same-leaf type
+  /// declared elsewhere in the file (e.g. `RFC_791.Flags` vs. an
+  /// unrelated `Wire.Flags`).
+  private var conformingTypePaths: Swift.Set<Swift.String> = []
+  private var typesWithRawValueUInt8: [(path: Swift.String, position: AbsolutePosition)] = []
+  private var enclosingPath: [Swift.String] = []
 
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
     self.source = source
@@ -74,37 +80,64 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
+  private var currentQualifiedPath: Swift.String { enclosingPath.joined(separator: ".") }
+
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    recordTypeDecl(name: node.name, inheritance: node.inheritanceClause)
-    recordRawValueUInt8(name: node.name, members: node.memberBlock)
+    enclosingPath.append(byteStripBackticks(node.name.text))
+    recordTypeDecl(inheritance: node.inheritanceClause)
+    recordRawValueUInt8(members: node.memberBlock)
     return .visitChildren
   }
+  override func visitPost(_: StructDeclSyntax) { _ = enclosingPath.popLast() }
 
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-    recordTypeDecl(name: node.name, inheritance: node.inheritanceClause)
-    recordRawValueUInt8(name: node.name, members: node.memberBlock)
+    enclosingPath.append(byteStripBackticks(node.name.text))
+    recordTypeDecl(inheritance: node.inheritanceClause)
+    recordRawValueUInt8(members: node.memberBlock)
     return .visitChildren
   }
+  override func visitPost(_: EnumDeclSyntax) { _ = enclosingPath.popLast() }
+
+  // Conformers are not restricted to struct/enum — `final class` and
+  // `actor` conformers to `Binary.Serializable` are equally in scope.
+  override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    enclosingPath.append(byteStripBackticks(node.name.text))
+    recordTypeDecl(inheritance: node.inheritanceClause)
+    recordRawValueUInt8(members: node.memberBlock)
+    return .visitChildren
+  }
+  override func visitPost(_: ClassDeclSyntax) { _ = enclosingPath.popLast() }
+
+  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    enclosingPath.append(byteStripBackticks(node.name.text))
+    recordTypeDecl(inheritance: node.inheritanceClause)
+    recordRawValueUInt8(members: node.memberBlock)
+    return .visitChildren
+  }
+  override func visitPost(_: ActorDeclSyntax) { _ = enclosingPath.popLast() }
 
   override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
     if let inheritance = node.inheritanceClause,
       inheritanceContainsSerializableLikeProtocol(inheritance),
       let typeName = byteExtensionExtendedLeafName(node.extendedType)
     {
-      conformingTypeNames.insert(typeName)
+      // An extension's extended-type path is independent of lexical
+      // nesting (`extension RFC_791.Flags { ... }` names its full path
+      // directly), so use the extended type's own qualified spelling
+      // rather than the visitor's current lexical `enclosingPath`.
+      conformingTypePaths.insert(typeName)
     }
     return .visitChildren
   }
 
-  private func recordTypeDecl(name: TokenSyntax, inheritance: InheritanceClauseSyntax?) {
-    let typeName = byteStripBackticks(name.text)
+  private func recordTypeDecl(inheritance: InheritanceClauseSyntax?) {
     if let inheritance, inheritanceContainsSerializableLikeProtocol(inheritance) {
-      conformingTypeNames.insert(typeName)
+      conformingTypePaths.insert(currentQualifiedPath)
     }
   }
 
-  private func recordRawValueUInt8(name: TokenSyntax, members: MemberBlockSyntax) {
-    let typeName = byteStripBackticks(name.text)
+  private func recordRawValueUInt8(members: MemberBlockSyntax) {
+    let path = currentQualifiedPath
     for member in members.members {
       guard let variable = member.decl.as(VariableDeclSyntax.self) else { continue }
       for binding in variable.bindings {
@@ -113,7 +146,7 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
         guard let typeAnnotation = binding.typeAnnotation else { continue }
         if byteTypeAnnotationIsUInt8(typeAnnotation.type) {
           typesWithRawValueUInt8.append(
-            (typeName, pattern.identifier.positionAfterSkippingLeadingTrivia))
+            (path, pattern.identifier.positionAfterSkippingLeadingTrivia))
         }
       }
     }

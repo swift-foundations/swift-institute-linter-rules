@@ -229,10 +229,23 @@ private func byteStdlibForwarderTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.B
     if leaf == "UInt8" {
       return true
     }
+    if let genericArgs = memberType.genericArgumentClause {
+      for arg in genericArgs.arguments {
+        if let inner = arg.argument.as(TypeSyntax.self),
+          byteStdlibForwarderTypeMentionsUInt8(inner)
+        {
+          return true
+        }
+      }
+    }
     return false
   }
   if let arrayType = type.as(ArrayTypeSyntax.self) {
     return byteStdlibForwarderTypeMentionsUInt8(arrayType.element)
+  }
+  if let dictionaryType = type.as(DictionaryTypeSyntax.self) {
+    return byteStdlibForwarderTypeMentionsUInt8(dictionaryType.key)
+      || byteStdlibForwarderTypeMentionsUInt8(dictionaryType.value)
   }
   if let optionalType = type.as(OptionalTypeSyntax.self) {
     return byteStdlibForwarderTypeMentionsUInt8(optionalType.wrappedType)
@@ -242,6 +255,23 @@ private func byteStdlibForwarderTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.B
   }
   if let attributedType = type.as(AttributedTypeSyntax.self) {
     return byteStdlibForwarderTypeMentionsUInt8(attributedType.baseType)
+  }
+  if let someOrAny = type.as(SomeOrAnyTypeSyntax.self) {
+    return byteStdlibForwarderTypeMentionsUInt8(someOrAny.constraint)
+  }
+  if let tupleType = type.as(TupleTypeSyntax.self) {
+    for element in tupleType.elements
+    where byteStdlibForwarderTypeMentionsUInt8(element.type) {
+      return true
+    }
+    return false
+  }
+  if let functionType = type.as(FunctionTypeSyntax.self) {
+    for parameter in functionType.parameters
+    where byteStdlibForwarderTypeMentionsUInt8(parameter.type) {
+      return true
+    }
+    return byteStdlibForwarderTypeMentionsUInt8(functionType.returnClause.type)
   }
   return false
 }
