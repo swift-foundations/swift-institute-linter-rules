@@ -92,4 +92,76 @@ extension Lint.Rule.`type transform placement Tests`.`Edge Case` {
     let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  // MARK: - #28 defect 6: protocol requirements have no body to relocate
+
+  @Test
+  func `toFoo requirement in a protocol is NOT flagged`() {
+    let source = """
+      protocol P {
+          func toFoo() -> Foo
+      }
+      """
+    let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `the same shape in a struct is still flagged (control)`() {
+    let source = """
+      struct S {
+          func toFoo() -> Foo { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // MARK: - #28 nit 5: IUO and any/some return-type leaf resolution
+
+  @Test
+  func `toFoo returning implicitly unwrapped optional Foo is flagged`() {
+    let source = """
+      extension Bar {
+          public func toFoo() -> Foo! { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `toFoo returning any Foo is flagged`() {
+    let source = """
+      extension Bar {
+          public func toFoo() -> any Foo { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // MARK: - test gap 2: the static-modifier branch was unreachable from its fixture
+
+  @Test
+  func `static func toFoo returning Foo is NOT flagged`() {
+    let source = """
+      extension Bar {
+          public static func toFoo() -> Foo { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `class func toFoo returning Foo is NOT flagged`() {
+    let source = """
+      class Bar {
+          public class func toFoo() -> Foo { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }

@@ -41,7 +41,6 @@ internal func structureIsProtocolSentinelName(_ name: Swift.String) -> Swift.Boo
 /// Leaf-name semantics: both bare (`SyntaxVisitor`) and qualified
 /// (`SwiftSyntax.SyntaxVisitor`) inheritance forms resolve to the
 /// same leaf string in the inheritance clause walk.
-@usableFromInline
 internal let structureSyntaxVisitorFamilyNames: Swift.Set<Swift.String> = [
   "SyntaxVisitor",
   "SyntaxAnyVisitor",

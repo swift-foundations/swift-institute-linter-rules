@@ -65,6 +65,14 @@ internal func structureTypeTransformPlacementReturnTypeLeafName(_ type: TypeSynt
   if let optional = type.as(OptionalTypeSyntax.self) {
     return structureTypeTransformPlacementReturnTypeLeafName(optional.wrappedType)
   }
+  // #28 nit 5: `-> Foo!` and `-> any Foo` were missed, mirroring the
+  // existing `OptionalTypeSyntax` arm.
+  if let iuo = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
+    return structureTypeTransformPlacementReturnTypeLeafName(iuo.wrappedType)
+  }
+  if let someOrAny = type.as(SomeOrAnyTypeSyntax.self) {
+    return structureTypeTransformPlacementReturnTypeLeafName(someOrAny.constraint)
+  }
   return nil
 }
 
@@ -127,5 +135,12 @@ internal final class StructureTypeTransformPlacementVisitor: SyntaxVisitor {
         message: structureTypeTransformPlacementMessage
       ))
     return .visitChildren
+  }
+
+  // #28 defect 6: a protocol requirement has no body to relocate, so this
+  // rule's prescribed fix cannot apply to it — a false positive with an
+  // inapplicable remedy, not a coverage gap.
+  override func visit(_: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
+    return .skipChildren
   }
 }

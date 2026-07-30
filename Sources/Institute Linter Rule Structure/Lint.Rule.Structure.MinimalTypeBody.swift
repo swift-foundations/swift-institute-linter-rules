@@ -242,8 +242,4 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
     checkMembers(node.memberBlock.members)
     return .visitChildren
   }
-
-  override func visit(_: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
-    return .visitChildren
-  }
 }

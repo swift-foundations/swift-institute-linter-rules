@@ -161,12 +161,13 @@ internal final class StructureThrowingWrapperInitVisitor: SyntaxVisitor {
   /// asymmetry where `self.x = try Base(...)` fired but the equally
   /// unvalidated `let base = try Base(raw)` did not.
   private func extractTryExpr(_ syntax: Syntax) -> TryExprSyntax? {
+    // #28 nit 1: casting `Syntax` → `ExprSyntax` → `TryExprSyntax` is
+    // unreachable once `Syntax` → `TryExprSyntax` (above) has already been
+    // tried — `as(_:)` does not change the underlying node kind, so the
+    // second cast can only re-match what the first already caught. Unlike
+    // the pack's genuinely defensive dual-shape branches (which guard a
+    // folded-vs-unfolded difference that CAN occur), this guards nothing.
     if let tryExpr = syntax.as(TryExprSyntax.self) {
-      return tryExpr
-    }
-    if let expression = syntax.as(ExprSyntax.self),
-      let tryExpr = expression.as(TryExprSyntax.self)
-    {
       return tryExpr
     }
     if let variableDecl = syntax.as(VariableDeclSyntax.self),
