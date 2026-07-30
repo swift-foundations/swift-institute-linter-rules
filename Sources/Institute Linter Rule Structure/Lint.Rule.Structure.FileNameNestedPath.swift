@@ -190,7 +190,7 @@ private func structureFileNameNestedPathFindings(
       severity: severity,
       identifier: "file name nested path",
       message: structureFileNameNestedPathMessage(basename: basename, dottedPath: dottedPath)
-    )
+    ),
   ]
 }
 

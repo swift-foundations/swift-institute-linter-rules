@@ -69,7 +69,7 @@ extension Lint.Rule {
           severity: severity,
           identifier: "test file suffix",
           message: testingFileSuffixMessage(basename: basename)
-        )
+        ),
       ]
     }
   )

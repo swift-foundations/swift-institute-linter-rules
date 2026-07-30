@@ -153,7 +153,7 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
   }
 
   override func visitPost(_ node: SourceFileSyntax) {
-    for entry in typesWithRawValueUInt8 where conformingTypeNames.contains(entry.name) {
+    for entry in typesWithRawValueUInt8 where conformingTypePaths.contains(entry.path) {
       let location = converter.location(for: entry.position)
       matches.append(
         Diagnostic.Record(

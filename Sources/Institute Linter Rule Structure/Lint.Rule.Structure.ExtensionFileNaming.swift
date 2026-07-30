@@ -128,7 +128,7 @@ private func structureExtensionFileNamingFindings(
         severity: severity,
         identifier: "extension file naming",
         message: message
-      )
+      ),
     ]
   }
 
