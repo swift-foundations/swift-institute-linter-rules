@@ -405,6 +405,19 @@ let package = Package(
                 .product(name: "SwiftParser", package: "swift-syntax"),
             ]
         ),
+        // #26 — the aggregate `Lint.Rule.Bundle.institute` had no test
+        // target of its own; every hand-verified fact from the #1 review
+        // (composition drift, the one deliberate exclusion, id
+        // uniqueness, no collision with the universal tier) is now a
+        // standing gate instead of a receipt.
+        .testTarget(
+            name: "Linter Institute Rules Tests",
+            dependencies: [
+                .target(name: "Linter Institute Rules"),
+                .product(name: "Linter Rules", package: "swift-linter-rules"),
+                .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
+            ]
+        ),
     ],
     swiftLanguageModes: [.v6]
 )
