@@ -64,6 +64,13 @@ extension Lint.Rule {
     default: .warning,
     findings: { source, severity in
       let path = source.file.filePath
+      // The rule's stated surface is "a source file under `Sources/`"
+      // (doc comment above); the predicate previously only excluded
+      // Tests/Experiments/Examples, leaving Benchmarks/, Plugins/,
+      // Snippets/, and the package root in scope by accident.
+      guard path.hasPrefix("Sources/") || path.contains("/Sources/") else {
+        return []
+      }
       for excluded in ["Tests", "Experiments", "Examples"] {
         if path == excluded
           || path.hasPrefix("\(excluded)/")
@@ -125,12 +132,19 @@ private func structureExtensionFileNamingFindings(
     ]
   }
 
+  // Mixed-base detection: every extension's extended-type must resolve to
+  // the same base key. `structureHoistedProtocolAliasDottedName` returns
+  // nil for anything that isn't an identifier/member/metatype type (sugar
+  // and tuple forms — `[Int]`, `Int?`, …); fall back to the type's own
+  // trimmed text so those extensions still contribute a distinguishing
+  // key instead of being silently dropped from the set (which could let
+  // a genuinely mixed-base file pass `bases.count == 1` undetected, or —
+  // when it was the FIRST extension that fell through — exempt the
+  // entire file even though the remaining extensions are misnamed).
   let bases = Swift.Set(
-    collector.extensions.compactMap { structureHoistedProtocolAliasDottedName(of: $0.extendedType) }
+    collector.extensions.map { structureExtensionFileNamingBaseKey($0.extendedType) }
   )
-  guard let base = structureHoistedProtocolAliasDottedName(of: first.extendedType) else {
-    return []
-  }
+  let base = structureExtensionFileNamingBaseKey(first.extendedType)
   guard bases.count == 1 else {
     return record(structureExtensionFileNamingMixedBaseMessage(basename: basename, bases: bases))
   }
@@ -147,7 +161,17 @@ private func structureExtensionFileNamingFindings(
     let conformancePrefix = "\(base)+"
     if basename.hasPrefix(conformancePrefix) {
       let candidate = Swift.String(basename.dropFirst(conformancePrefix.count))
-      if conformances.contains(candidate) { return [] }
+      // Accept the leaf component (and any dotted suffix) of a
+      // module-qualified conformance spelling, not just the verbatim
+      // fully-qualified path — `extension Array.Dynamic: Swift.Sequence`
+      // names its conformance `Swift.Sequence`, and the canonical
+      // `Array.Dynamic+Sequence.swift` must not be rejected in favor of
+      // `Array.Dynamic+Swift.Sequence.swift`, a name no repository uses.
+      if conformances.contains(where: {
+        structureExtensionFileNamingConformanceMatches(candidate: candidate, conformance: $0)
+      }) {
+        return []
+      }
     }
     return record(
       structureExtensionFileNamingConformanceMessage(
@@ -241,6 +265,30 @@ private final class StructureExtensionFileNamingCollector: SyntaxVisitor {
     }
     return .skipChildren
   }
+}
+
+/// Resolves an extended-type to a base key for mixed-base detection: the
+/// dotted path when resolvable, or the type's own trimmed source text
+/// otherwise (sugar / tuple / other forms `structureHoistedProtocolAliasDottedName`
+/// doesn't resolve). Every extension MUST contribute a key — silently
+/// dropping unresolvable ones (via `compactMap`) can hide a genuinely
+/// mixed-base file, or exempt the whole file when it was the first
+/// extension whose extended type fell through.
+private func structureExtensionFileNamingBaseKey(_ type: TypeSyntax) -> Swift.String {
+  structureHoistedProtocolAliasDottedName(of: type) ?? type.trimmedDescription
+}
+
+/// Returns true if `candidate` (the basename tail after `<Base>+`) names
+/// `conformance` — either verbatim, or as the leaf component (or any
+/// dotted suffix) of a module-qualified conformance spelling. A
+/// conformance recorded as `Swift.Sequence` must accept the basename tail
+/// `Sequence`, not just `Swift.Sequence`.
+private func structureExtensionFileNamingConformanceMatches(
+  candidate: Swift.String,
+  conformance: Swift.String
+) -> Swift.Bool {
+  if candidate == conformance { return true }
+  return conformance.hasSuffix(".\(candidate)")
 }
 
 private func structureExtensionFileNamingIsPrimaryTypeDecl(_ decl: DeclSyntax) -> Swift.Bool {

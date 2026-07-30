@@ -76,6 +76,13 @@ extension Lint.Rule {
     default: .warning,
     findings: { source, severity in
       let path = source.file.filePath
+      // The rule's stated surface is "a source file under `Sources/`"
+      // (doc comment above); the predicate previously only excluded
+      // Tests/Experiments/Examples, leaving Benchmarks/, Plugins/,
+      // Snippets/, and the package root in scope by accident.
+      guard path.hasPrefix("Sources/") || path.contains("/Sources/") else {
+        return []
+      }
       for excluded in ["Tests", "Experiments", "Examples"] {
         if path == excluded
           || path.hasPrefix("\(excluded)/")

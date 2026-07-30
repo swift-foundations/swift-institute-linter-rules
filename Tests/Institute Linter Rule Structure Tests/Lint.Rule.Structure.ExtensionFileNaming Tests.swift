@@ -100,6 +100,51 @@ extension Lint.Rule.`extension file naming Tests`.Positive {
       #expect(findings[0].message.contains("mixes extensions on different base types"))
     }
   }
+
+  @Test
+  func `mixed-base file with a sugared extended type is still detected`() {
+    // Regression guard: `structureHoistedProtocolAliasDottedName` returns
+    // nil for a sugared extended type (`[Int]`), and a `compactMap` over
+    // that would silently drop it from the base set, letting a
+    // genuinely mixed-base file pass `bases.count == 1` undetected.
+    let source = """
+      extension [Int] {
+          var doubled: [Int] { self }
+      }
+      extension Iterator {
+          func next() -> Element? { nil }
+      }
+      """
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: source,
+      file: "Sources/X/Wrong.swift"
+    )
+    #expect(findings.count == 1)
+    if findings.count == 1 {
+      #expect(findings[0].message.contains("mixes extensions on different base types"))
+    }
+  }
+
+  @Test
+  func `sugared first extended type does not exempt a misnamed remainder`() {
+    // Regression guard: when the FIRST extension's extended type falls
+    // through to nil, the old `guard let base = ... else { return [] }`
+    // exempted the whole file even though the remaining extension is on
+    // a different, resolvable base.
+    let source = """
+      extension [Int] {
+          var doubled: [Int] { self }
+      }
+      extension Cursor {
+          func advance() {}
+      }
+      """
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: source,
+      file: "Sources/X/Wrong.swift"
+    )
+    #expect(findings.count == 1)
+  }
 }
 
 // MARK: - Negative (one per class)
@@ -110,6 +155,43 @@ extension Lint.Rule.`extension file naming Tests`.Negative {
     let findings = Lint.Rule.`extension file naming Tests`.findings(
       in: "extension Iterator: Sendable {}",
       file: "Sources/X/Iterator+Sendable.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `module-qualified conformance accepts the leaf-component basename`() {
+    // `extension Array.Dynamic: Swift.Sequence` records its conformance
+    // as `Swift.Sequence`, but the canonical basename names only the
+    // leaf `Sequence` — no repository names files
+    // `Array.Dynamic+Swift.Sequence.swift`.
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: "extension Array.Dynamic: Swift.Sequence {}",
+      file: "Sources/X/Array.Dynamic+Sequence.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `module-qualified conformance basename still fires when genuinely wrong`() {
+    // Regression guard: the leaf-component acceptance must not turn into
+    // a blanket pass — a basename naming an unrelated conformance still
+    // fires.
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: "extension Array.Dynamic: Swift.Sequence {}",
+      file: "Sources/X/Array.Dynamic+Collection.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `file outside Sources is out of scope`() {
+    // The rule's stated surface is a source file under `Sources/`; a
+    // Benchmarks/ (or Plugins/, Snippets/, package-root) file must not be
+    // judged even though it isn't Tests/Experiments/Examples either.
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: "extension Iterator: Sendable {}",
+      file: "Benchmarks/X/Wrong.swift"
     )
     #expect(findings.isEmpty)
   }

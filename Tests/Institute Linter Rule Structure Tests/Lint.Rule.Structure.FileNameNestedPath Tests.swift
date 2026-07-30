@@ -200,6 +200,18 @@ extension Lint.Rule.`file name nested path Tests`.Edge {
 
 extension Lint.Rule.`file name nested path Tests`.Exemption {
   @Test
+  func `file outside Sources is out of scope`() {
+    // The rule's stated surface is a source file under `Sources/`; a
+    // Benchmarks/ (or Plugins/, Snippets/, package-root) file must not be
+    // judged even though it isn't Tests/Experiments/Examples either.
+    let findings = Lint.Rule.`file name nested path Tests`.findings(
+      in: "public struct Iterator {}",
+      file: "Benchmarks/X/Wrong.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `plus-conformance basename is 007's surface, not fired here`() {
     let findings = Lint.Rule.`file name nested path Tests`.findings(
       in: "public struct Iterator {}",
