@@ -94,7 +94,28 @@ extension Lint.Rule.`bare string dependency Tests`.Unit {
 
 extension Lint.Rule.`bare string dependency Tests`.`Edge Case` {
   @Test
-  func `string literals inside typed accessors do not fire`() {
+  func `string literal inside a path argument does not fire`() {
+    let source = """
+      let package = Package(
+        targets: [
+          .target(
+            name: "Consumer",
+            path: "Sources/Consumer",
+            dependencies: [.target(name: "Owner")]
+          )
+        ]
+      )
+      """
+    let findings = Lint.Rule.`bare string dependency Tests`.findings(source: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `dot byName dependency is flagged - same resolution ambiguity as a bare string`() {
+    // Regression fix: `.byName(name:)` is the EXACT harm the rule's
+    // own message names ("SwiftPM resolves a bare string as
+    // `.byName`, which binds to whatever it resolves first") — this
+    // previously passed clean, contradicting the message.
     let source = """
       let package = Package(
         targets: [
@@ -107,7 +128,7 @@ extension Lint.Rule.`bare string dependency Tests`.`Edge Case` {
       )
       """
     let findings = Lint.Rule.`bare string dependency Tests`.findings(source: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test

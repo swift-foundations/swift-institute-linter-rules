@@ -93,10 +93,22 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
     for argument in node.arguments where argument.label?.text == "dependencies" {
       guard let array = argument.expression.as(ArrayExprSyntax.self) else { continue }
       for element in array.elements {
-        guard let literal = element.expression.as(StringLiteralExprSyntax.self) else {
+        if let literal = element.expression.as(StringLiteralExprSyntax.self) {
+          emit(at: literal.positionAfterSkippingLeadingTrivia)
           continue
         }
-        emit(at: literal.positionAfterSkippingLeadingTrivia)
+        // `.byName(name: "Owner")` is the exact harm the rule's own
+        // message names ("SwiftPM resolves a bare string as
+        // `.byName`, which binds to whatever it resolves first") —
+        // an explicit spelling of the same resolution ambiguity a
+        // bare string produces, not a safer alternative to it.
+        if let call = element.expression.as(FunctionCallExprSyntax.self),
+          let member = call.calledExpression.as(MemberAccessExprSyntax.self),
+          member.declName.baseName.text == "byName"
+        {
+          emit(at: call.positionAfterSkippingLeadingTrivia)
+          continue
+        }
       }
     }
     return .visitChildren
