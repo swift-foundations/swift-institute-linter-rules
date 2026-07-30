@@ -36,10 +36,10 @@ extension Lint.Rule.`unsafe assignment granularity Tests` {
 
 extension Lint.Rule.`unsafe assignment granularity Tests`.Unit {
   @Test
-  func `self assignment with RHS-only unsafe is flagged`() {
+  func `pointee-destination assignment with RHS-only unsafe is flagged`() {
     let source = """
       func op() {
-          self.raw = unsafe Unmanaged.passRetained(x).toOpaque()
+          self.raw.pointee = unsafe Unmanaged.passRetained(x).toOpaque()
       }
       """
     let findings = Lint.Rule.`unsafe assignment granularity Tests`.findings(in: source)
@@ -51,10 +51,23 @@ extension Lint.Rule.`unsafe assignment granularity Tests`.Unit {
   }
 
   @Test
-  func `subscript assignment with RHS-only unsafe is flagged`() {
+  func `pointee assignment with RHS-only unsafe is flagged`() {
+    // The destination is a `.pointee` store — an unsafe destination — so
+    // the RHS-only `unsafe` leaves it uncovered.
     let source = """
       func op() {
-          buffer[i] = unsafe pointer.pointee
+          pointer.pointee = unsafe other.pointee
+      }
+      """
+    let findings = Lint.Rule.`unsafe assignment granularity Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `pointer subscript assignment with RHS-only unsafe is flagged`() {
+    let source = """
+      func op() {
+          pointer[i] = unsafe other.pointee
       }
       """
     let findings = Lint.Rule.`unsafe assignment granularity Tests`.findings(in: source)
@@ -65,8 +78,8 @@ extension Lint.Rule.`unsafe assignment granularity Tests`.Unit {
   func `multiple offending assignments each flagged`() {
     let source = """
       func op() {
-          self.a = unsafe x.deref()
-          self.b = unsafe y.deref()
+          pointer.pointee = unsafe x.deref()
+          pointer[0].pointee = unsafe y.deref()
       }
       """
     let findings = Lint.Rule.`unsafe assignment granularity Tests`.findings(in: source)
@@ -79,7 +92,53 @@ extension Lint.Rule.`unsafe assignment granularity Tests`.`Edge Case` {
   func `unsafe wrapping entire assignment is NOT flagged`() {
     let source = """
       func op() {
-          unsafe (self.raw = Unmanaged.passRetained(x).toOpaque())
+          unsafe (self.raw.pointee = Unmanaged.passRetained(x).toOpaque())
+      }
+      """
+    let findings = Lint.Rule.`unsafe assignment granularity Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `assignment to a safe destination with an unsafe RHS is NOT flagged`() {
+    // The classic SE-0458 shape: `count = unsafe pointer.pointee`. The
+    // destination `count` is plain safe storage — already fully covered
+    // by the RHS's own `unsafe` acknowledgment of the load. Only the
+    // destination determines whether the rule should widen the region.
+    let source = """
+      func op() {
+          count = unsafe pointer.pointee
+      }
+      """
+    let findings = Lint.Rule.`unsafe assignment granularity Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `assignment to an unannotated subscript with an unsafe RHS is NOT flagged`() {
+    // `buffer[i]` gives no syntactic signal that the destination is
+    // unsafe storage (it could equally be an Array/InlineArray element) —
+    // without a pointer-shaped base, the rule must not assume the
+    // destination needs covering.
+    let source = """
+      func op() {
+          buffer[i] = unsafe pointer.pointee
+      }
+      """
+    let findings = Lint.Rule.`unsafe assignment granularity Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `unsafe-destination assignment with LHS also unsafe-wrapped is NOT flagged`() {
+    // `unsafe pointer.pointee = unsafe other.pointee` — the destination's
+    // own `.pointee` access is separately acknowledged by its own leading
+    // `unsafe` keyword (SwiftParser attaches `unsafe` to the whole LHS
+    // member-access chain, not just its base). Expression granularity is
+    // satisfied independently on both sides, so nothing is left uncovered.
+    let source = """
+      func op() {
+          unsafe pointer.pointee = unsafe other.pointee
       }
       """
     let findings = Lint.Rule.`unsafe assignment granularity Tests`.findings(in: source)
