@@ -92,7 +92,7 @@ private final class NamingRedundantPrefixVisitor: SyntaxVisitor {
   override func visitPost(_: ExtensionDeclSyntax) { _ = enclosingStack.popLast() }
 
   private func checkPrefixIfNested(name token: TokenSyntax) {
-    guard let enclosing = enclosingStack.last else { return }
+    guard let enclosing = enclosingStack.last, !enclosing.isEmpty else { return }
     let declName = token.text
     guard declName.count > enclosing.count else { return }
     guard declName.hasPrefix(enclosing) else { return }

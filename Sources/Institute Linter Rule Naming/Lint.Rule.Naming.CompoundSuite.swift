@@ -78,17 +78,16 @@ internal final class NamingCompoundSuiteVisitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
-  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard compoundSuiteHasSuiteAttribute(node.attributes) else { return .visitChildren }
+  private func checkSuite(attributes: AttributeListSyntax, name: TokenSyntax) {
+    guard compoundSuiteHasSuiteAttribute(attributes) else { return }
     // Backtick-escape exemption: see `Naming.isBackticked` for the
     // full rationale. The cohort uses backticked narrative names
     // for @Suite scaffolds (`` struct `compound identifier Tests` ``,
     // `` struct `Edge Case` ``) per [SWIFT-TEST-002] / [TEST-005] —
     // those opt out of the compound-name convention this rule enforces.
-    if Naming.isBackticked(node.name) { return .visitChildren }
-    let name = node.name.text
-    guard compoundSuiteIsCompound(name) else { return .visitChildren }
-    let location = converter.location(for: node.name.positionAfterSkippingLeadingTrivia)
+    if Naming.isBackticked(name) { return }
+    guard compoundSuiteIsCompound(name.text) else { return }
+    let location = converter.location(for: name.positionAfterSkippingLeadingTrivia)
     matches.append(
       Diagnostic.Record(
         location: Source.Location(
@@ -101,6 +100,25 @@ internal final class NamingCompoundSuiteVisitor: SyntaxVisitor {
         identifier: "compound suite name",
         message: namingCompoundSuiteMessage
       ))
+  }
+
+  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+    checkSuite(attributes: node.attributes, name: node.name)
+    return .visitChildren
+  }
+
+  override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    checkSuite(attributes: node.attributes, name: node.name)
+    return .visitChildren
+  }
+
+  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    checkSuite(attributes: node.attributes, name: node.name)
+    return .visitChildren
+  }
+
+  override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+    checkSuite(attributes: node.attributes, name: node.name)
     return .visitChildren
   }
 }

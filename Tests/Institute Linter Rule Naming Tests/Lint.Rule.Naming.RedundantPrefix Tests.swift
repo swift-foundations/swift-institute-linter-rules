@@ -196,6 +196,31 @@ extension Lint.Rule.`redundant prefix Tests`.`Edge Case` {
   }
 
   @Test
+  func `sugar-typed extension (array) has no enclosing name - NOT flagged`() {
+    // `extension [Byte] { struct View {} }` — the extended type is an
+    // ArrayTypeSyntax, which has no nested-name component, so `View`
+    // must not be treated as redundant against an empty enclosing name.
+    let source = """
+      extension [Byte] {
+          struct View {}
+      }
+      """
+    let findings = Lint.Rule.`redundant prefix Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `sugar-typed extension (optional) has no enclosing name - NOT flagged`() {
+    let source = """
+      extension Byte? {
+          struct View {}
+      }
+      """
+    let findings = Lint.Rule.`redundant prefix Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `triple nesting with redundancy at middle level is flagged`() {
     // `enum File { enum FileSystem { struct X {} } }` — FileSystem flagged.
     let source = """

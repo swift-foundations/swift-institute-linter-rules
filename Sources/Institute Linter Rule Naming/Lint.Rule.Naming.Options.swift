@@ -49,7 +49,9 @@ internal final class NamingOptionsVisitor: SyntaxVisitor {
 
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
     let name = node.name.text
-    guard name.hasSuffix("Flags"), name != "Flags" else { return .visitChildren }
+    // Bare `Flags` is the exact C-speak this rule targets — `struct Flags:
+    // OptionSet` is not exempt merely because it lacks a further prefix.
+    guard name.hasSuffix("Flags") else { return .visitChildren }
     guard let inheritance = node.inheritanceClause,
       namingOptionsConformsToOptionSet(inheritance)
     else { return .visitChildren }

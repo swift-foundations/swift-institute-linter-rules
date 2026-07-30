@@ -45,6 +45,33 @@ extension Lint.Rule.`compound suite name Tests`.Unit {
   }
 
   @Test
+  func `Suite with compound name on final class is flagged`() {
+    let source = """
+      @Suite final class MemoryBufferTests {}
+      """
+    let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Suite with compound name on actor is flagged`() {
+    let source = """
+      @Suite actor MemoryBufferTests {}
+      """
+    let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Suite with compound name on enum is flagged`() {
+    let source = """
+      @Suite enum MemoryBufferTests {}
+      """
+    let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `Suite named Test is permitted`() {
     let source = """
       @Suite struct Test {}

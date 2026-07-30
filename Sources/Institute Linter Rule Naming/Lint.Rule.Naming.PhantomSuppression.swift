@@ -110,7 +110,11 @@ internal final class NamingPhantomSuppressionVisitor: SyntaxVisitor {
 
   private func checkGenericParameters(_ clause: GenericParameterClauseSyntax?, in decl: Syntax) {
     guard let clause else { return }
-    let body = decl.description
+    // `trimmedDescription`, not `description` — the latter includes leading
+    // trivia (the declaration's own doc comment), and the text heuristics
+    // below would otherwise match prose inside a `///` comment as if it
+    // were code (e.g. `/// See [Tag]` or `/// Tagged<Tag, Underlying>`).
+    let body = decl.trimmedDescription
     for parameter in clause.parameters {
       let name = parameter.name.text
       // Only `<P: ~Copyable>` (bare `<P>` is out of this conservative scope —

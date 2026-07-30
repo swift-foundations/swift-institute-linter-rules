@@ -538,6 +538,53 @@ extension Naming {
     }
     return false
   }
+
+  /// Returns true if `modifiers` includes a `public` or `open`
+  /// access-level modifier. Direct check of the declaration's own
+  /// modifier list — does not walk up the parent chain. Use
+  /// ``hasPublicOrOpenEffective(_:modifiers:)`` when the caller needs
+  /// effective visibility (which considers an enclosing `public
+  /// extension`).
+  internal static func hasPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Bool {
+    for modifier in modifiers {
+      let kind = modifier.name.tokenKind
+      if kind == .keyword(.public) || kind == .keyword(.open) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /// Returns true if `node`'s *effective* visibility is `public` (or
+  /// `open`) — either because the declaration itself carries the
+  /// modifier, or because it is a member of a `public`/`open`
+  /// `extension` and declares no access modifier of its own. In
+  /// Swift, a member of a `public extension` is public API without
+  /// carrying the keyword — public-API-scoped rules that check only
+  /// `node.modifiers` are silently defeated by moving the `public`
+  /// keyword to the extension. This is the mirror image of
+  /// ``hasFileprivateOrPrivateEffective(_:modifiers:)``.
+  ///
+  /// Only the nearest enclosing `ExtensionDeclSyntax` is consulted —
+  /// a member's own explicit modifier (if any) always wins, matching
+  /// `hasPublicOrOpen(modifiers)` when the declaration is not
+  /// implicitly public via its extension.
+  internal static func hasPublicOrOpenEffective(
+    _ node: Syntax,
+    modifiers: DeclModifierListSyntax
+  ) -> Bool {
+    if hasPublicOrOpen(modifiers) {
+      return true
+    }
+    var current: Syntax? = node.parent
+    while let candidate = current {
+      if let ext = candidate.as(ExtensionDeclSyntax.self) {
+        return hasPublicOrOpen(ext.modifiers)
+      }
+      current = candidate.parent
+    }
+    return false
+  }
 }
 
 extension Naming {
@@ -588,5 +635,33 @@ extension Naming {
 internal func namingIsShorthandGetterAccessorBlock(_ node: Syntax) -> Swift.Bool {
   guard let block = node.as(AccessorBlockSyntax.self) else { return false }
   if case .getter = block.accessors { return true }
+  return false
+}
+
+/// Returns true if `block` declares any non-computed, non-`static` stored
+/// property. Computed properties (an accessor block) do not count as
+/// stored, and neither does `static let` / `static var` — the rules
+/// consuming this helper (`tag suffix`, `nested tag`) test for *instance*
+/// storage that would make the tag/newtype carry a runtime payload;
+/// `static let raw = 1` is a type-level constant, not instance state.
+/// Shared by `Lint.Rule.Naming.Tag.swift` and
+/// `Lint.Rule.Naming.NestedTag.swift`; previously duplicated in both
+/// (see issue #17).
+internal func namingHasStoredInstanceProperty(_ block: MemberBlockSyntax) -> Swift.Bool {
+  for member in block.members {
+    guard let variable = member.decl.as(VariableDeclSyntax.self) else { continue }
+    if variable.modifiers.contains(where: { $0.name.tokenKind == .keyword(.static) }) { continue }
+    for binding in variable.bindings {
+      if binding.accessorBlock == nil { return true }
+    }
+  }
+  return false
+}
+
+/// Returns true if `block` declares any enum case. Shared by
+/// `Lint.Rule.Naming.Tag.swift` and `Lint.Rule.Naming.NestedTag.swift`;
+/// previously duplicated in both (see issue #17).
+internal func namingHasEnumCase(_ block: MemberBlockSyntax) -> Swift.Bool {
+  for member in block.members where member.decl.is(EnumCaseDeclSyntax.self) { return true }
   return false
 }

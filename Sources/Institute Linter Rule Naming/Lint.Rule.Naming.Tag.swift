@@ -50,7 +50,7 @@ internal final class NamingTagVisitor: SyntaxVisitor {
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
     let name = node.name.text
     guard name.hasSuffix("Tag"), name != "Tag" else { return .visitChildren }
-    guard !tagHasStoredProperty(node.memberBlock) else { return .visitChildren }
+    guard !namingHasStoredInstanceProperty(node.memberBlock) else { return .visitChildren }
     emit(at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
   }
@@ -58,7 +58,7 @@ internal final class NamingTagVisitor: SyntaxVisitor {
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
     let name = node.name.text
     guard name.hasSuffix("Tag"), name != "Tag" else { return .visitChildren }
-    guard !tagHasEnumCase(node.memberBlock) else { return .visitChildren }
+    guard !namingHasEnumCase(node.memberBlock) else { return .visitChildren }
     emit(at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
   }
@@ -78,19 +78,4 @@ internal final class NamingTagVisitor: SyntaxVisitor {
         message: namingTagMessage
       ))
   }
-}
-
-private func tagHasStoredProperty(_ block: MemberBlockSyntax) -> Swift.Bool {
-  for member in block.members {
-    guard let variable = member.decl.as(VariableDeclSyntax.self) else { continue }
-    for binding in variable.bindings {
-      if binding.accessorBlock == nil { return true }
-    }
-  }
-  return false
-}
-
-private func tagHasEnumCase(_ block: MemberBlockSyntax) -> Swift.Bool {
-  for member in block.members where member.decl.is(EnumCaseDeclSyntax.self) { return true }
-  return false
 }

@@ -51,18 +51,9 @@ private let namingIntParameterMessageReturn: Swift.String =
   + "(`Cardinal`, `Count<T>`, `Offset<T>`) so consumers see typed "
   + "intent rather than a raw machine integer."
 
-private func namingIntParameterIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Bool {
-  for modifier in modifiers {
-    switch modifier.name.tokenKind {
-    case .keyword(.public), .keyword(.open):
-      return true
-
-    default:
-      continue
-    }
-  }
-  return false
-}
+// Public-or-open-effective check moved to `Naming.hasPublicOrOpenEffective`
+// (Lint.Rule.Naming.Shared.swift) — shared with `bool public parameter` and
+// documented as a cross-pack fix in issue #22.
 
 /// Strips optionals + attributed type wrappers and asks: is the
 /// underlying type the bare `Int` or `Swift.Int`?
@@ -108,7 +99,7 @@ internal final class NamingIntParameterVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard namingIntParameterIsPublicOrOpen(node.modifiers) else {
+    guard Naming.hasPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
       return .visitChildren
     }
     // Exempt result-builder protocol methods inside an `@resultBuilder`
@@ -133,7 +124,7 @@ internal final class NamingIntParameterVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard namingIntParameterIsPublicOrOpen(node.modifiers) else {
+    guard Naming.hasPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
       return .visitChildren
     }
     checkParameters(node.signature.parameterClause.parameters)
@@ -141,7 +132,7 @@ internal final class NamingIntParameterVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: SubscriptDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard namingIntParameterIsPublicOrOpen(node.modifiers) else {
+    guard Naming.hasPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
       return .visitChildren
     }
     checkParameters(node.parameterClause.parameters)

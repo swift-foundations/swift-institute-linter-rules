@@ -52,18 +52,9 @@ private let namingBoolParameterMessage: Swift.String =
   + "named-options structs (the rule's own prescribed remedy) are "
   + "exempt per the #16 Option C ledger, Entry II.3."
 
-private func namingBoolParameterIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Bool {
-  for modifier in modifiers {
-    switch modifier.name.tokenKind {
-    case .keyword(.public), .keyword(.open):
-      return true
-
-    default:
-      continue
-    }
-  }
-  return false
-}
+// Public-or-open-effective check moved to `Naming.hasPublicOrOpenEffective`
+// (Lint.Rule.Naming.Shared.swift) — shared with `int public parameter` and
+// documented as a cross-pack fix in issue #22.
 
 /// Strips optionals + attributed type wrappers and asks: is the
 /// underlying type an identifier `Bool` or `Swift.Bool`?
@@ -111,7 +102,7 @@ internal final class NamingBoolParameterVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard namingBoolParameterIsPublicOrOpen(node.modifiers) else {
+    guard Naming.hasPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
       return .visitChildren
     }
     // Exempt result-builder protocol methods inside an `@resultBuilder`
@@ -129,7 +120,7 @@ internal final class NamingBoolParameterVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard namingBoolParameterIsPublicOrOpen(node.modifiers) else {
+    guard Naming.hasPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
       return .visitChildren
     }
     // Conversion-init exemption: `init(_ x: Bool)` is the Swift-native

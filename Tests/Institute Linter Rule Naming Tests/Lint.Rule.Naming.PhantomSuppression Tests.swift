@@ -76,6 +76,57 @@ extension Lint.Rule.`phantom suppression Tests`.Unit {
     let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `function generic Tag used as Tagged discriminator is flagged`() {
+    let source = """
+      extension Int {
+          public func make<Tag: ~Copyable>(_ x: Tagged<Tag, Ordinal>) -> Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `subscript generic Tag used as Tagged discriminator is flagged`() {
+    let source = """
+      extension Int {
+          public subscript<Tag: ~Copyable>(x: Tagged<Tag, Ordinal>) -> Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `doc comment prose does not silence a genuine finding`() {
+    // `usedAsStoredValue` matches `"[Tag]"`, `"-> Tag"`, `": Tag "` as text
+    // heuristics; a `///` doc comment mentioning `[Tag]` must not read as
+    // code and suppress the real finding below.
+    let source = """
+      /// See [Tag] for background.
+      extension Tagged where Underlying == Ordinal, Tag: ~Copyable {
+          public var probe: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `doc comment prose does not manufacture a false positive`() {
+    // A doc comment showing `Tagged<Tag, Underlying>` must not turn a
+    // non-phantom parameter into a flagged one.
+    let source = """
+      extension Sequence {
+          /// Works like `Tagged<Tag, Underlying>` conceptually.
+          public func collect<Tag: ~Copyable>(_ x: [Tag]) {}
+      }
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }
 
 extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {

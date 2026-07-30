@@ -54,7 +54,7 @@ internal final class NamingNestedTagVisitor: SyntaxVisitor {
 
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
     guard node.name.text == "Tag" else { return .visitChildren }
-    guard !nestedTagStructHasStoredProperty(node.memberBlock) else { return .visitChildren }
+    guard !namingHasStoredInstanceProperty(node.memberBlock) else { return .visitChildren }
     guard nestedTagIsNested(Syntax(node)) else { return .visitChildren }
     emit(at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
@@ -62,7 +62,7 @@ internal final class NamingNestedTagVisitor: SyntaxVisitor {
 
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
     guard node.name.text == "Tag" else { return .visitChildren }
-    guard !nestedTagEnumHasCase(node.memberBlock) else { return .visitChildren }
+    guard !namingHasEnumCase(node.memberBlock) else { return .visitChildren }
     guard nestedTagIsNested(Syntax(node)) else { return .visitChildren }
     emit(at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
@@ -99,28 +99,5 @@ private func nestedTagIsNested(_ node: Syntax) -> Swift.Bool {
     if candidate.is(ExtensionDeclSyntax.self) { return true }
     current = candidate.parent
   }
-  return false
-}
-
-/// Returns true if `block` declares any non-computed stored property.
-/// Computed properties (those with an accessor block) do not count as
-/// stored. Duplicates `tagHasStoredProperty` in
-/// `Lint.Rule.Naming.Tag.swift`; consolidation into
-/// `Lint.Rule.Naming.Shared.swift` is a candidate cleanup.
-private func nestedTagStructHasStoredProperty(_ block: MemberBlockSyntax) -> Swift.Bool {
-  for member in block.members {
-    guard let variable = member.decl.as(VariableDeclSyntax.self) else { continue }
-    for binding in variable.bindings {
-      if binding.accessorBlock == nil { return true }
-    }
-  }
-  return false
-}
-
-/// Returns true if `block` declares any enum case. Duplicates
-/// `tagHasEnumCase` in `Lint.Rule.Naming.Tag.swift`; consolidation
-/// into `Lint.Rule.Naming.Shared.swift` is a candidate cleanup.
-private func nestedTagEnumHasCase(_ block: MemberBlockSyntax) -> Swift.Bool {
-  for member in block.members where member.decl.is(EnumCaseDeclSyntax.self) { return true }
   return false
 }

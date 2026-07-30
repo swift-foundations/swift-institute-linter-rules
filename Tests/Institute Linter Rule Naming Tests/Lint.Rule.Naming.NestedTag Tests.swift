@@ -137,6 +137,21 @@ extension Lint.Rule.`nested tag Tests`.Unit {
     let findings = Lint.Rule.`nested tag Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `nested struct Tag with only a static let is flagged`() {
+    // `static let` is type-level storage, not instance storage — it must
+    // not disqualify the phantom-type reading.
+    let source = """
+      enum Order {
+          struct Tag {
+              static let raw = 1
+          }
+      }
+      """
+    let findings = Lint.Rule.`nested tag Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`nested tag Tests`.`Edge Case` {

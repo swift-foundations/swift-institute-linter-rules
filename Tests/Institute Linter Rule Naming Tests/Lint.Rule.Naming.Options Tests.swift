@@ -135,24 +135,26 @@ extension Lint.Rule.`property named flags Tests`.`Edge Case` {
   }
 
   @Test
-  func `bare struct named Flags (no suffix) is NOT flagged`() {
+  func `bare struct named Flags IS flagged`() {
+    // Bare `Flags` is the exact C-speak this rule targets — it must not be
+    // exempt merely because it has no further prefix.
     let source = """
       struct Flags: OptionSet {
           let rawValue: Int
       }
       """
-    // Rule requires "ends in Flags" with at least one prefix character; "Flags"
-    // alone doesn't have a suffix-bearing prefix.
     let findings = Lint.Rule.`property named flags Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
   func `class named XFlags conforming to OptionSet is NOT flagged`() {
-    // OptionSet is struct-only conventionally; classes don't conform. The rule
-    // visits StructDeclSyntax only.
+    // The rule visits StructDeclSyntax only — a class carrying the same
+    // name and conformance shape is out of scope. The fixture must
+    // actually declare the conformance the title names, or the branch
+    // this test claims to pin (ClassDeclSyntax never visited) is untested.
     let source = """
-      class OpenFlags {
+      class OpenFlags: OptionSet {
           var rawValue: Int = 0
       }
       """

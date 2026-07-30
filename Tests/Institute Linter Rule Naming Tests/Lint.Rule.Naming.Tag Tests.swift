@@ -83,6 +83,19 @@ extension Lint.Rule.`tag suffix Tests`.Unit {
   }
 
   @Test
+  func `struct with only a static let ending in Tag is flagged`() {
+    // `static let` is type-level storage, not instance storage — it must
+    // not disqualify the phantom-type reading.
+    let source = """
+      struct OrderTag {
+          static let raw = 1
+      }
+      """
+    let findings = Lint.Rule.`tag suffix Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `nested phantom tag inside type is flagged`() {
     let source = """
       enum Outer {

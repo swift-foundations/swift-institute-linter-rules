@@ -46,6 +46,16 @@ extension Lint.Rule.`bool public parameter Tests`.Unit {
   }
 
   @Test
+  func `func with no modifier of its own inside a public extension is flagged`() {
+    // A member of a `public extension` is public API without carrying
+    // the `public` keyword itself — the rule must walk up to the
+    // extension's access level, not just the declaration's own.
+    let source = "public extension Walker { func read(count: Bool) {} }"
+    let findings = Lint.Rule.`bool public parameter Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `public func with two Bool parameters has two findings`() {
     let source = "public func open(create: Bool, truncate: Bool) {}"
     let findings = Lint.Rule.`bool public parameter Tests`.findings(in: source)
