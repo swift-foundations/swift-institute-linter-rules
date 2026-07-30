@@ -66,6 +66,38 @@ extension Lint.Rule.`throwing wrapper init Tests`.`Edge Case` {
   }
 
   @Test
+  func `single-try body calling an unrelated lowercase function is NOT flagged`() {
+    // Regression guard: the predicate previously fired on ANY single
+    // `try` statement, not specifically a forward to the base type's
+    // own initializer. `try validate(x)` is a throwing helper-function
+    // call, not a construction of a base value — it is not evidence
+    // the wrapper's stricter invariant goes unvalidated (it may BE
+    // the validation).
+    let source = """
+      struct NonEmpty {
+          init(_ raw: [Int]) throws {
+              try validate(raw)
+          }
+      }
+      """
+    let findings = Lint.Rule.`throwing wrapper init Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `single-try body calling a method (not a constructor) is NOT flagged`() {
+    let source = """
+      struct Wrapper {
+          init(from decoder: Decoder) throws {
+              try self.load(from: decoder)
+          }
+      }
+      """
+    let findings = Lint.Rule.`throwing wrapper init Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `non-throwing init is NOT flagged`() {
     let source = """
       struct Wrapper {

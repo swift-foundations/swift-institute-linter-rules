@@ -87,7 +87,16 @@ internal final class StructureThrowingWrapperInitVisitor: SyntaxVisitor {
     let statements = body.statements
     guard statements.count == 1 else { return .visitChildren }
     guard let only = statements.first?.item else { return .visitChildren }
-    guard isTryExpression(Syntax(only)) else { return .visitChildren }
+    // The predicate targets specifically a *forward to the base
+    // type's own initializer* (`try base.init(...)` / bare
+    // `try Base(...)`, per the doc and message) — not merely "any
+    // single `try` statement". A single-`try` body calling something
+    // else (`try someOtherOperation()`, `try validate(x)`, an
+    // `init(from:) throws` that forwards through a non-constructor
+    // decoder API) is not the base-init-forward shape the doc and
+    // message describe, and is not itself evidence that the
+    // wrapper's stricter invariant goes unvalidated.
+    guard isBaseInitializerTryForward(Syntax(only)) else { return .visitChildren }
     // Skip when the init's enclosing type is a stdlib lax primitive
     // (Int, UInt, Float, etc.). The rule's "wrapper specializes
     // stricter invariant than its base" premise inverts when the
@@ -144,21 +153,75 @@ internal final class StructureThrowingWrapperInitVisitor: SyntaxVisitor {
     return false
   }
 
-  private func isTryExpression(_ syntax: Syntax) -> Swift.Bool {
-    if syntax.is(TryExprSyntax.self) {
-      return true
+  /// Extracts the `TryExprSyntax` from a single-statement body's item,
+  /// whether it's the item directly, wrapped as an `ExprSyntax`, or
+  /// (pre-operator-folding) one element of an unfolded
+  /// `SequenceExprSyntax`.
+  private func extractTryExpr(_ syntax: Syntax) -> TryExprSyntax? {
+    if let tryExpr = syntax.as(TryExprSyntax.self) {
+      return tryExpr
     }
     if let expression = syntax.as(ExprSyntax.self),
-      expression.is(TryExprSyntax.self)
+      let tryExpr = expression.as(TryExprSyntax.self)
     {
-      return true
+      return tryExpr
     }
     if let sequence = syntax.as(SequenceExprSyntax.self) {
       for element in sequence.elements {
-        if element.is(TryExprSyntax.self) {
-          return true
+        if let tryExpr = element.as(TryExprSyntax.self) {
+          return tryExpr
         }
       }
+    }
+    return nil
+  }
+
+  /// True if `syntax` is a top-level `try` statement whose (possibly
+  /// assignment-wrapped) expression is a call to the base type's own
+  /// initializer — `try self.init(...)`, `try Type.init(...)`, bare
+  /// `try Type(...)`, or one of those forms on the right-hand side of
+  /// an assignment (`try self.base = Base(raw)`). A `try` expression
+  /// calling anything else (a method, a free function, a decoder API)
+  /// is not the base-init-forward shape the doc and message describe.
+  private func isBaseInitializerTryForward(_ syntax: Syntax) -> Swift.Bool {
+    guard let tryExpr = extractTryExpr(syntax) else { return false }
+    let inner = tryExpr.expression
+    if let assignment = inner.as(AssignmentExprSyntax.self) {
+      return isConstructorCall(assignment.value)
+    }
+    return isConstructorCall(inner)
+  }
+
+  /// True if `expr` (after peeling one layer of parens) is a
+  /// `FunctionCallExprSyntax` whose callee resolves to an
+  /// initializer: `self.init(...)` / `Type.init(...)`
+  /// (`MemberAccessExprSyntax` with `declName == "init"`), or a bare
+  /// call to an upper-camel-case identifier (`Type(...)`) — the
+  /// house convention for a constructor call, as distinct from a
+  /// lowercase method/free-function call.
+  private func isConstructorCall(_ expr: ExprSyntax) -> Swift.Bool {
+    var current = expr
+    if let tuple = current.as(TupleExprSyntax.self),
+      tuple.elements.count == 1,
+      let only = tuple.elements.first?.expression,
+      tuple.elements.first?.label == nil
+    {
+      current = only
+    }
+    guard let call = current.as(FunctionCallExprSyntax.self) else { return false }
+    return calleeIsConstructor(call.calledExpression)
+  }
+
+  private func calleeIsConstructor(_ expr: ExprSyntax) -> Swift.Bool {
+    if let generic = expr.as(GenericSpecializationExprSyntax.self) {
+      return calleeIsConstructor(generic.expression)
+    }
+    if let member = expr.as(MemberAccessExprSyntax.self) {
+      return member.declName.baseName.text == "init"
+    }
+    if let decl = expr.as(DeclReferenceExprSyntax.self) {
+      guard let first = decl.baseName.text.first else { return false }
+      return first.isUppercase
     }
     return false
   }

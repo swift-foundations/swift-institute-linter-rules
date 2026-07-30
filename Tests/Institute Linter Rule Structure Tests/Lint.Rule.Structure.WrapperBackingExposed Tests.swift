@@ -95,6 +95,31 @@ extension Lint.Rule.`wrapper backing exposed Tests`.`Edge Case` {
   }
 
   @Test
+  func `private(set) _backing is flagged`() {
+    // `private(set)` narrows only the setter — the getter remains at
+    // the declaration's own access level, which is exactly the
+    // reach-through this rule exists to prevent.
+    let source = """
+      struct Lane {
+          private(set) var _backing: IO.Blocking.Lane
+      }
+      """
+    let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `fileprivate(set) _wrapped is flagged`() {
+    let source = """
+      struct Wrapper {
+          fileprivate(set) var _wrapped: Underlying
+      }
+      """
+    let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `usableFromInline _backing is NOT flagged`() {
     let source = """
       public struct Lane {

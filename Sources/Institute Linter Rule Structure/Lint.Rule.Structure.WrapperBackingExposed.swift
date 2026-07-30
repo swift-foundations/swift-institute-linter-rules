@@ -54,7 +54,14 @@ internal func structureWrapperBackingExposedHasPrivateOrFilePrivate(
   for modifier in modifiers {
     switch modifier.name.tokenKind {
     case .keyword(.private), .keyword(.fileprivate):
-      return true
+      // `private(set)` / `fileprivate(set)` narrows only the SETTER;
+      // the getter remains at the declaration's (often internal or
+      // public) access level — exactly the reach-through
+      // (`wrapper._backing.run { … }`) this rule exists to prevent.
+      // Only a bare `private`/`fileprivate` with no detail exempts.
+      if modifier.detail == nil {
+        return true
+      }
 
     default:
       continue
