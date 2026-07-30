@@ -174,4 +174,3 @@ private func memberBlockHasBodyNeverTypealias(_ block: MemberBlockSyntax) -> Swi
   }
   return false
 }
-
