@@ -209,4 +209,59 @@ extension Lint.Rule.`suite categories Tests`.`Edge Case` {
     let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  @Test
+  func `house suite idiom - extension-declared suite missing categories is flagged`() {
+    // The repository's own idiom: `extension Lint.Rule { @Suite struct
+    // \`X Tests\` { ... } }`. The extension IS the declaration site, so
+    // a suite declared this way with only one sub-suite must still be
+    // caught.
+    let source = """
+      extension Lint.Rule {
+          @Suite
+          struct `Foo Tests` {
+              @Suite struct Unit {}
+          }
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.count == 1)
+    if findings.count == 1 {
+      #expect(findings[0].message.contains("Edge Case"))
+      #expect(findings[0].message.contains("Integration"))
+    }
+  }
+
+  @Test
+  func `house suite idiom - extension-declared suite with all three categories passes`() {
+    let source = """
+      extension Lint.Rule {
+          @Suite
+          struct `Foo Tests` {
+              @Suite struct Unit {}
+              @Suite struct `Edge Case` {}
+              @Suite struct Integration {}
+          }
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `suite declared inside a non-extension nominal type stays out of scope`() {
+    // Only ExtensionDeclSyntax is transparent. A @Suite struct nested
+    // inside an ordinary struct/class/enum/actor is genuinely nested,
+    // not an idiomatic declaration site, and stays out of scope.
+    let source = """
+      struct Namespace {
+          @Suite
+          struct `Foo Tests` {
+              @Suite struct Unit {}
+          }
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }

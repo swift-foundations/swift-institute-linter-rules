@@ -24,9 +24,12 @@ internal import SwiftSyntax
 /// passes the rule (3 required + arbitrary extras is fine), but it's
 /// no longer required.
 ///
-/// Extension-form files (`extension Y.Test.Z`) are out of scope — they
-/// extend an existing Test namespace declared elsewhere; per-file
-/// checking only applies to files declaring a top-level `@Suite struct`.
+/// A `@Suite struct` declared directly inside a top-level `extension`
+/// (the house suite idiom, e.g. `extension Lint.Rule { @Suite struct
+/// \`X Tests\` { ... } }`) IS in scope — the extension is the
+/// declaration site, not a reopening of an unrelated namespace. Only a
+/// `@Suite struct` nested inside another nominal type (struct, class,
+/// enum, actor) is out of scope; that nesting is genuine, not idiomatic.
 extension Lint.Rule {
   public static let `suite categories` = Lint.Rule(
     id: "suite categories",
@@ -111,16 +114,27 @@ internal func suiteCategoriesHasSuiteAttribute(_ attrs: AttributeListSyntax) -> 
   return false
 }
 
-/// Returns true if `node` is declared at source-file scope (its ancestor
-/// chain contains no struct/class/enum/actor/extension).
+/// Returns true if `node` is declared at source-file scope, treating
+/// `ExtensionDeclSyntax` ancestors as transparent.
+///
+/// The house suite idiom declares every suite as
+/// `extension Lint.Rule { @Suite struct \`X Tests\` { … } }` — the
+/// extension *is* the declaration site, not an unrelated namespace being
+/// extended. An `ExtensionDeclSyntax` ancestor is therefore skipped
+/// rather than disqualifying; any other struct/class/enum/actor
+/// ancestor still disqualifies (a suite nested inside another type is
+/// genuinely nested, not top-level).
 internal func suiteCategoriesIsTopLevel(_ node: Syntax) -> Swift.Bool {
   var current = node.parent
   while let parent = current {
+    if parent.is(ExtensionDeclSyntax.self) {
+      current = parent.parent
+      continue
+    }
     if parent.is(StructDeclSyntax.self)
       || parent.is(EnumDeclSyntax.self)
       || parent.is(ClassDeclSyntax.self)
       || parent.is(ActorDeclSyntax.self)
-      || parent.is(ExtensionDeclSyntax.self)
     {
       return false
     }

@@ -34,10 +34,21 @@ extension Lint.Rule {
 internal let closureLifecycleOrderMessage: Swift.String =
   "[lifecycle order] [API-IMPL-013]: closure parameters "
   + "MUST follow lifecycle order setup → body → completion / teardown. "
-  + "A completion-tier closure (`completion:`, `onError:`, `cleanup:`, "
-  + "`teardown:`, `finalize:`) appears BEFORE the primary body closure "
-  + "(unlabelled `_` or body-tier label) — reorder so the body comes "
-  + "first."
+  + "A closure parameter of a later tier (a setup-tier label like "
+  + "`setup:`/`prepare:`; a body-tier label like `body:`/`perform:` or "
+  + "the unlabelled `_`; a completion-tier label like `completion:`, "
+  + "`onError:`, `cleanup:`, `teardown:`, `finalize:`) appears BEFORE a "
+  + "parameter of an earlier tier — reorder so setup precedes body "
+  + "precedes completion."
+
+internal let setupTierLabels: Swift.Set<Swift.String> = [
+  "setup",
+  "prepare",
+  "onStart",
+  "before",
+  "configure",
+  "arrange",
+]
 
 internal let completionTierLabels: Swift.Set<Swift.String> = [
   "completion",
@@ -91,26 +102,28 @@ internal final class ClosureLifecycleOrderVisitor: SyntaxVisitor {
       ))
   }
 
+  /// Walks the closure-typed parameters in declaration order, tracking
+  /// every earlier-tier parameter still "pending" (not yet confirmed
+  /// in-order). When a parameter of tier `t` is reached, every pending
+  /// parameter of a *later* tier than `t` is now confirmed out of
+  /// order — it appeared before something that must precede it — and
+  /// is flagged at its own position. `other`-tier parameters carry no
+  /// lifecycle signal and don't participate.
   private func checkParameters(_ parameters: FunctionParameterListSyntax) {
-    var pendingCompletion: [AbsolutePosition] = []
+    var pending: [LifecycleTier: [AbsolutePosition]] = [:]
     for parameter in parameters {
       guard isClosureType(parameter.type) else { continue }
       let tier = lifecycleTier(of: parameter)
-      switch tier {
-      case .completion:
-        pendingCompletion.append(parameter.firstName.positionAfterSkippingLeadingTrivia)
+      guard tier != .other else { continue }
 
-      case .body:
-        if !pendingCompletion.isEmpty {
-          for position in pendingCompletion {
-            emit(at: position)
-          }
-          pendingCompletion.removeAll()
+      for laterTier in LifecycleTier.allCases where laterTier != .other && laterTier.rank > tier.rank {
+        guard let positions = pending[laterTier], !positions.isEmpty else { continue }
+        for position in positions {
+          emit(at: position)
         }
-
-      case .other:
-        continue
+        pending[laterTier] = []
       }
+      pending[tier, default: []].append(parameter.firstName.positionAfterSkippingLeadingTrivia)
     }
   }
 

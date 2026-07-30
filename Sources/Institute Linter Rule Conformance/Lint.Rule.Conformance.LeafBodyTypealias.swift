@@ -17,6 +17,15 @@ internal import SwiftSyntax
 /// explicitly. Without it, witness-table emission for generic
 /// conformers fails at link time with `Undefined symbols ... protocol
 /// witness for body.getter`. Citation: `[API-IMPL-020]`.
+///
+/// Detection is file-scope per conforming type, not per member block:
+/// the conformance, the `body` property, and the `Body = Never`
+/// typealias may each live in a different declaration site for the
+/// same type — a nominal declaration plus one or more extensions in
+/// the same file, matching this repository's own one-type-per-file
+/// plus split-extension authoring convention. A type is flagged only
+/// if NONE of its sites in the file supply `body` or the typealias,
+/// at the position of its first conformance-declaring site.
 extension Lint.Rule {
   public static let `leaf body typealias missing` = Lint.Rule(
     id: "leaf body typealias missing",
@@ -28,6 +37,7 @@ extension Lint.Rule {
         converter: source.converter
       )
       visitor.walk(source.tree)
+      visitor.finalizeMatches()
       return visitor.matches
     }
   )
@@ -50,6 +60,14 @@ internal final class ConformanceLeafBodyTypealiasVisitor: SyntaxVisitor {
   let converter: SourceLocationConverter
   var matches: [Diagnostic.Record] = []
 
+  /// The first conformance-declaring site per type key (first
+  /// extension/nominal decl in the file whose inheritance clause names
+  /// a leaf-body protocol). Only this position is used if the
+  /// aggregate verdict for the type fires.
+  private var conformanceSite: [Swift.String: AbsolutePosition] = [:]
+  private var typesWithBodyProperty: Swift.Set<Swift.String> = []
+  private var typesWithBodyNeverTypealias: Swift.Set<Swift.String> = []
+
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
     self.source = source
     self.severity = severity
@@ -57,21 +75,86 @@ internal final class ConformanceLeafBodyTypealiasVisitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
+  private func record(
+    key: Swift.String,
+    inheritance: InheritanceClauseSyntax?,
+    memberBlock: MemberBlockSyntax,
+    keywordPosition: AbsolutePosition
+  ) {
+    if let inheritance, inheritanceContainsLeafBodyProtocol(inheritance) {
+      if conformanceSite[key] == nil {
+        conformanceSite[key] = keywordPosition
+      }
+    }
+    if memberBlockHasBodyProperty(memberBlock) {
+      typesWithBodyProperty.insert(key)
+    }
+    if memberBlockHasBodyNeverTypealias(memberBlock) {
+      typesWithBodyNeverTypealias.insert(key)
+    }
+  }
+
   override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard let inheritance = node.inheritanceClause else {
-      return .visitChildren
-    }
-    guard inheritanceContainsLeafBodyProtocol(inheritance) else {
-      return .visitChildren
-    }
-    if memberBlockHasBodyProperty(node.memberBlock) {
-      return .visitChildren
-    }
-    if memberBlockHasBodyNeverTypealias(node.memberBlock) {
-      return .visitChildren
-    }
-    emit(at: node.extensionKeyword.positionAfterSkippingLeadingTrivia)
+    record(
+      key: conformanceLeafBodyTypeKey(node.extendedType),
+      inheritance: node.inheritanceClause,
+      memberBlock: node.memberBlock,
+      keywordPosition: node.extensionKeyword.positionAfterSkippingLeadingTrivia
+    )
     return .visitChildren
+  }
+
+  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+    record(
+      key: Lint.Syntax.Identifier.unescaped(node.name.text),
+      inheritance: node.inheritanceClause,
+      memberBlock: node.memberBlock,
+      keywordPosition: node.structKeyword.positionAfterSkippingLeadingTrivia
+    )
+    return .visitChildren
+  }
+
+  override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    record(
+      key: Lint.Syntax.Identifier.unescaped(node.name.text),
+      inheritance: node.inheritanceClause,
+      memberBlock: node.memberBlock,
+      keywordPosition: node.classKeyword.positionAfterSkippingLeadingTrivia
+    )
+    return .visitChildren
+  }
+
+  override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+    record(
+      key: Lint.Syntax.Identifier.unescaped(node.name.text),
+      inheritance: node.inheritanceClause,
+      memberBlock: node.memberBlock,
+      keywordPosition: node.enumKeyword.positionAfterSkippingLeadingTrivia
+    )
+    return .visitChildren
+  }
+
+  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    record(
+      key: Lint.Syntax.Identifier.unescaped(node.name.text),
+      inheritance: node.inheritanceClause,
+      memberBlock: node.memberBlock,
+      keywordPosition: node.actorKeyword.positionAfterSkippingLeadingTrivia
+    )
+    return .visitChildren
+  }
+
+  /// Emits one finding per type key that conforms to a leaf-body
+  /// protocol somewhere in the file and supplies neither `body` nor
+  /// `Body = Never` anywhere in the file. Must be called after `walk`
+  /// completes — the verdict is file-scope, not per-declaration-site.
+  func finalizeMatches() {
+    for (key, position) in conformanceSite.sorted(by: { $0.value.utf8Offset < $1.value.utf8Offset }) {
+      if typesWithBodyProperty.contains(key) || typesWithBodyNeverTypealias.contains(key) {
+        continue
+      }
+      emit(at: position)
+    }
   }
 
   private func emit(at position: AbsolutePosition) {
@@ -89,6 +172,21 @@ internal final class ConformanceLeafBodyTypealiasVisitor: SyntaxVisitor {
         message: conformanceLeafBodyTypealiasMessage
       ))
   }
+}
+
+/// Returns the trailing name component of `type` — the identifier a
+/// nominal declaration's own `name` would carry for the same type,
+/// regardless of leading qualification (`Binary.LEB128.Unsigned` and a
+/// bare `Unsigned` both key to `"Unsigned"`). Used to correlate a
+/// type's own declaration with its extensions within one file.
+private func conformanceLeafBodyTypeKey(_ type: TypeSyntax) -> Swift.String {
+  if let member = type.as(MemberTypeSyntax.self) {
+    return Lint.Syntax.Identifier.unescaped(member.name.text)
+  }
+  if let identifier = type.as(IdentifierTypeSyntax.self) {
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text)
+  }
+  return type.trimmedDescription
 }
 
 /// The trailing path components of every protocol whose conformance

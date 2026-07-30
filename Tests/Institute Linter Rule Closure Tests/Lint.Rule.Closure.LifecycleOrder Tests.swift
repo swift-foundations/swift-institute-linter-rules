@@ -72,6 +72,51 @@ extension Lint.Rule.`lifecycle order Tests`.Unit {
     let findings = Lint.Rule.`lifecycle order Tests`.findings(in: source)
     #expect(findings.count == 2)
   }
+
+  @Test
+  func `body before setup is flagged`() {
+    // setup MUST precede body; a body-tier closure appearing before a
+    // later setup-tier closure is the setup-half of the documented
+    // order being violated.
+    let source = """
+      func op(_ body: () -> Void, setup: () -> Void) {}
+      """
+    let findings = Lint.Rule.`lifecycle order Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `completion before setup is flagged`() {
+    let source = """
+      func op(completion: () -> Void, setup: () -> Void) {}
+      """
+    let findings = Lint.Rule.`lifecycle order Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `anonymous label with completion-tier internal name is flagged when before body`() {
+    // Regression for the wildcard-always-body bug: `_ completion:` was
+    // misclassified as .body purely from the wildcard external label,
+    // ignoring the completion-tier internal name entirely.
+    let source = """
+      func run(_ completion: () -> Void, body: () -> Void) {}
+      """
+    let findings = Lint.Rule.`lifecycle order Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `non-canonical external label with canonical internal name is classified by internal name`() {
+    // A two-part parameter name where the external label doesn't match
+    // any tier but the internal name does (`to completion:`) still
+    // reads as completion-tier.
+    let source = """
+      func run(to completion: () -> Void, _ body: () -> Void) {}
+      """
+    let findings = Lint.Rule.`lifecycle order Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`lifecycle order Tests`.`Edge Case` {

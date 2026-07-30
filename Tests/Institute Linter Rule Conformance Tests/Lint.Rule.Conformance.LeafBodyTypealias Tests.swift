@@ -105,6 +105,38 @@ extension Lint.Rule.`leaf body typealias missing Tests`.Unit {
   }
 
   @Test
+  func `struct-declared conformance (not extension) without typealias is flagged`() {
+    // The conformance can be declared on the type's own decl rather
+    // than an extension — same link-time failure, must still fire.
+    let source = """
+      public struct MyParser: Parser.`Protocol` {
+          public typealias Input = [UInt8]
+          public typealias Output = Int
+          public typealias Failure = Never
+          public func parse(_ input: inout Input) throws(Failure) -> Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`leaf body typealias missing Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `class-declared conformance without typealias is flagged`() {
+    let source = """
+      public final class MyCoder: Coder.`Protocol` {
+          public typealias Input = [UInt8]
+          public typealias Output = Int
+          public typealias Buffer = [UInt8]
+          public typealias Failure = Never
+          public func parse(_ input: inout Input) throws(Failure) -> Int { 0 }
+          public func serialize(_ output: Int, into buffer: inout [UInt8]) {}
+      }
+      """
+    let findings = Lint.Rule.`leaf body typealias missing Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `module-qualified Parser conformance still flagged`() {
     let source = """
       extension X: Parser_Primitives_Core.Parser.`Protocol` {
@@ -215,6 +247,61 @@ extension Lint.Rule.`leaf body typealias missing Tests`.`Edge Case` {
           public typealias Output = Int
           public typealias Failure = Never
           public func parse(_ input: inout Input) throws(Failure) -> Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`leaf body typealias missing Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `conformance and body split across two extensions is NOT flagged`() {
+    // The Structure pack's own split-extension idiom: one extension
+    // declares the conformance, another (same file) supplies `body`.
+    // Detection is file-scope per type, not per member block.
+    let source = """
+      extension MyParser: Parser.`Protocol` {
+          public typealias Input = [UInt8]
+          public typealias Output = Int
+          public typealias Failure = Never
+      }
+      extension MyParser {
+          public var body: some Parser.`Protocol` {
+              Binary.LEB128.Unsigned<Int>()
+          }
+      }
+      """
+    let findings = Lint.Rule.`leaf body typealias missing Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `conformance and Body Never typealias split across two extensions is NOT flagged`() {
+    let source = """
+      extension MyParser: Parser.`Protocol` {
+          public typealias Input = [UInt8]
+          public typealias Output = Int
+          public typealias Failure = Never
+          public func parse(_ input: inout Input) throws(Failure) -> Int { 0 }
+      }
+      extension MyParser {
+          public typealias Body = Never
+      }
+      """
+    let findings = Lint.Rule.`leaf body typealias missing Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `conformance in one extension, body missing everywhere for that type, is still flagged once`() {
+    let source = """
+      extension MyParser: Parser.`Protocol` {
+          public typealias Input = [UInt8]
+          public typealias Output = Int
+          public typealias Failure = Never
+          public func parse(_ input: inout Input) throws(Failure) -> Int { 0 }
+      }
+      extension MyParser {
+          public func helper() -> Int { 0 }
       }
       """
     let findings = Lint.Rule.`leaf body typealias missing Tests`.findings(in: source)
