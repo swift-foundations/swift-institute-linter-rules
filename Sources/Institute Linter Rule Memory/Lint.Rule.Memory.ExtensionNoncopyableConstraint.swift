@@ -81,25 +81,23 @@ internal let memoryExtensionConstraintInexpressibleTypes: Swift.Set<Swift.String
   "Result",
 ]
 
-/// Curated allowlist for nested institute types whose leaf names are
-/// shared by generic types elsewhere in the ecosystem (so the bare leaf
-/// cannot safely admit). Matched against the full qualified path of the
-/// extension target (e.g. `Affine.Discrete.Vector`). `Vector` deliberately
-/// does NOT appear in `memoryExtensionConstraintInexpressibleTypes`
-/// because generic `Vector` types exist in `swift-dimension-primitives`
-/// (`Displacement.Vector<let N: Int, Space>`, `Coordinate.Vector`,
-/// `Extent.Vector`) and `swift-index-primitives` (`Vector<Element, N>`),
-/// and silently admitting all of them would mask legitimate
-/// `~Copyable`-constraint omissions.
+/// Reserved, currently-empty hook for a future qualified-path allowlist
+/// (#25 nit: this set is empty and the lookup at its one call site can
+/// therefore never succeed — it is dead code today, not an active
+/// allowlist. Previously documented as a populated curated allowlist,
+/// which contradicted the "Currently empty" comment in the body; this
+/// doc block now states the honest, current status instead of
+/// reasoning about entries that don't exist).
+///
+/// If syntactic non-generic detection
+/// (`extensionTargetIsSyntacticallyNonGeneric(_:)`) is ever found
+/// insufficient for a qualified path whose leaf name is shared by a
+/// generic type elsewhere in the ecosystem, this is the place to add
+/// that qualified path, matched against the extension target's full
+/// dotted path (e.g. `Affine.Discrete.Vector`). No such case is known
+/// to exist today.
 @usableFromInline
-internal let memoryExtensionConstraintInexpressibleQualifiedTypes: Swift.Set<Swift.String> = [
-  // Reserved for future entries where syntactic-non-generic detection
-  // is insufficient (e.g., generic type whose leaf name is shared by
-  // non-generic siblings elsewhere). Currently empty: the syntactic
-  // detection in `extensionTargetIsSyntacticallyNonGeneric(_:)` handles
-  // the Affine.Discrete.Vector + Comparison-family + Lint.Source.Parsed
-  // cases without per-type allowlist maintenance.
-]
+internal let memoryExtensionConstraintInexpressibleQualifiedTypes: Swift.Set<Swift.String> = []
 
 @usableFromInline
 internal let memoryExtensionNoncopyableConstraintMessage: Swift.String =

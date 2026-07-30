@@ -150,6 +150,51 @@ extension Lint.Rule.`sendable struct with class member Tests`.`Edge Case` {
   }
 
   @Test
+  func `struct unchecked Sendable with willSet-observed class-typed property is NOT flagged`() {
+    // #25 nit: accessor-granularity — a willSet/didSet observer means
+    // this isn't the plain stored class-typed reference shape either.
+    let source = """
+      final class Storage {}
+      struct Box: @unchecked Sendable {
+          var storage: Storage {
+              willSet { }
+          }
+      }
+      """
+    let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `struct unchecked Sendable with didSet-observed class-typed property is NOT flagged`() {
+    let source = """
+      final class Storage {}
+      struct Box: @unchecked Sendable {
+          var storage: Storage {
+              didSet { }
+          }
+      }
+      """
+    let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `struct unchecked Sendable with _read _modify class-typed property is NOT flagged`() {
+    let source = """
+      final class Storage {}
+      struct Box: @unchecked Sendable {
+          var storage: Storage {
+              _read { yield Storage() }
+              _modify { var s = Storage(); yield &s }
+          }
+      }
+      """
+    let findings = Lint.Rule.`sendable struct with class member Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `struct unchecked Sendable with imported class not in the allowlist is NOT flagged`() {
     // A class declared in another module and absent from
     // `memoryStructSendableClassMemberKnownClassNames` is a real per-file

@@ -179,4 +179,53 @@ extension Lint.Rule.`pointer advanced by Tests`.`Edge Case` {
     let findings = Lint.Rule.`pointer advanced by Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  /// #25 defect 9 remainder: the `// WHY:` prefix is an alternate
+  /// justification spelling to `// SAFETY:`, previously untested.
+  @Test
+  func `last-resort unsafe advanced by with WHY comment is NOT flagged`() {
+    let source = """
+      func op(_ ptr: UnsafeMutableRawPointer, n: Int) {
+          // WHY: MutableSpan cannot express move-out semantics here
+          let p = unsafe ptr.advanced(by: n)
+          use(p)
+      }
+      """
+    let findings = Lint.Rule.`pointer advanced by Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  /// #25 defect 9 remainder: the `Experiments/` path exclusion,
+  /// previously untested (only `Tests/` was covered).
+  @Test
+  func `unsafe advanced by under Experiments path is NOT flagged`() {
+    let source = """
+      func op(_ ptr: UnsafePointer<Int>, n: Int) {
+          let next = unsafe ptr.advanced(by: n)
+          use(next)
+      }
+      """
+    let findings = Lint.Rule.`pointer advanced by Tests`.findings(
+      in: source,
+      file: "Experiments/Memory Arithmetic/Sandbox.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  /// #25 defect 9 remainder: the `Examples/` path exclusion, previously
+  /// untested.
+  @Test
+  func `unsafe advanced by under Examples path is NOT flagged`() {
+    let source = """
+      func op(_ ptr: UnsafePointer<Int>, n: Int) {
+          let next = unsafe ptr.advanced(by: n)
+          use(next)
+      }
+      """
+    let findings = Lint.Rule.`pointer advanced by Tests`.findings(
+      in: source,
+      file: "Examples/Memory Arithmetic/Demo.swift"
+    )
+    #expect(findings.isEmpty)
+  }
 }

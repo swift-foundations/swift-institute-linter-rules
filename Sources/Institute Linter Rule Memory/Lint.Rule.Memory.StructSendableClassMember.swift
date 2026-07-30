@@ -144,7 +144,15 @@ internal func memoryStructSendableClassMemberIsComputed(_ node: VariableDeclSynt
       case .accessors(let list):
         for accessor in list {
           switch accessor.accessorSpecifier.tokenKind {
-          case .keyword(.get), .keyword(.set):
+          // #25 nit: accessor-granularity — a _read/_modify coroutine
+          // accessor, an unsafeAddress(-Mutable) accessor, or a
+          // willSet/didSet observer all mean this is not a plain
+          // stored class-typed reference either; each is its own
+          // custom-behavior signal alongside get/set.
+          case .keyword(.get), .keyword(.set),
+            .keyword(._read), .keyword(._modify),
+            .keyword(.unsafeAddress), .keyword(.unsafeMutableAddress),
+            .keyword(.willSet), .keyword(.didSet):
             return true
 
           default: break

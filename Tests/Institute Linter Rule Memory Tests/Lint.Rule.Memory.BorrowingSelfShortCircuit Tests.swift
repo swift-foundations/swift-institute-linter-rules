@@ -61,6 +61,22 @@ extension Lint.Rule.`borrowing self short circuit Tests`.Unit {
     let findings = Lint.Rule.`borrowing self short circuit Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `short-circuit inside a nested closure is NOT flagged - closures are their own scope`() {
+    // #25 defect 9 remainder: the finder's ClosureExprSyntax visit
+    // returns .skipChildren — a short-circuit that lives inside a
+    // closure body is a different capture/scope shape, previously
+    // untested.
+    let source = """
+      public static func < (lhs: borrowing Self, rhs: borrowing Self) -> Bool {
+          let compare = { lhs.priority < rhs.priority || lhs.sequence < rhs.sequence }
+          return compare()
+      }
+      """
+    let findings = Lint.Rule.`borrowing self short circuit Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }
 
 extension Lint.Rule.`borrowing self short circuit Tests`.`Edge Case` {

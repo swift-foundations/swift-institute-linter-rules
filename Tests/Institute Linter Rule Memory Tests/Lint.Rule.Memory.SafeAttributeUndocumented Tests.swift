@@ -414,6 +414,101 @@ extension Lint.Rule.`safe attribute undocumented Tests`.`Decl kinds` {
     let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // #25 defect 9 remainder: protocol/deinit/typealias/associatedtype
+  // visitors existed but carried no coverage.
+
+  @Test
+  func `safe protocol with disclosure is admitted`() {
+    let source = """
+      // WHY: Category A — conformers self-certify synchronization.
+      @safe
+      public protocol Coordinating {}
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `safe protocol without disclosure fires`() {
+    let source = """
+      @safe
+      public protocol Coordinating {}
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `safe deinitializer with disclosure is admitted`() {
+    let source = """
+      public struct Container {
+          // SAFETY: Release is idempotent; double-free is unreachable.
+          @safe
+          deinit {}
+      }
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `safe deinitializer without disclosure fires`() {
+    let source = """
+      public struct Container {
+          @safe
+          deinit {}
+      }
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `safe typealias with disclosure is admitted`() {
+    let source = """
+      // WHY: Category D — SP-5 pointer payload alias.
+      @safe
+      public typealias RawToken = Int
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `safe typealias without disclosure fires`() {
+    let source = """
+      @safe
+      public typealias RawToken = Int
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `safe associatedtype with disclosure is admitted`() {
+    let source = """
+      public protocol Coordinating {
+          // WHY: Category A — conformers self-certify synchronization.
+          @safe
+          associatedtype Token
+      }
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `safe associatedtype without disclosure fires`() {
+    let source = """
+      public protocol Coordinating {
+          @safe
+          associatedtype Token
+      }
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 // MARK: - Adjacency edge cases (trivia walker behavior)

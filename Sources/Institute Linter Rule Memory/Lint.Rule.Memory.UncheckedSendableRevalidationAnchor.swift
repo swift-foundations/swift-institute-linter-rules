@@ -182,8 +182,10 @@ internal final class MemoryUncheckedSendableRevalidationAnchorVisitor: SyntaxVis
 
     // Direct idioms.
     if lower.contains("until swift") { return true }
-    if lower.contains("sendable workaround") { return true }
     if lower.contains("@_rawlayout") { return true }
+    // #25 nit: a bare "workaround" check subsumes "sendable
+    // workaround" — any string containing the longer phrase also
+    // contains "workaround"; the two-line form was dead redundancy.
     if lower.contains("workaround") { return true }
 
     // Institute audit-findings Category-letter scheme. Category D
@@ -221,10 +223,10 @@ internal final class MemoryUncheckedSendableRevalidationAnchorVisitor: SyntaxVis
   }
 
   private func anchorPresence(_ text: Swift.String) -> AnchorPresence {
-    // `WHEN TO REMOVE` MUST be checked before `WHY` because the
-    // latter is a prefix of nothing problematic but the markers can
-    // co-occur on the same lowered haystack — we simply search the
-    // whole text for each independently.
+    // #25 nit: corrected stale doc — the three markers below are
+    // three independent `.contains` calls against the same lowered
+    // haystack, so no check-before-check ordering exists or is
+    // required; each marker's presence is decided on its own.
     let lower = text.lowercased()
     return AnchorPresence(
       why: lower.contains("why:"),

@@ -92,9 +92,17 @@ internal final class MemoryBorrowingSelfShortCircuitFinder: SyntaxVisitor {
       }
       return false
     }
-    if let paren = node.as(InfixOperatorExprSyntax.self) {
-      return rootIdentifierIsBorrowingSelf(paren.leftOperand)
-        || rootIdentifierIsBorrowingSelf(paren.rightOperand)
+    // #25 nit: renamed from `paren` — an InfixOperatorExprSyntax is not
+    // a parenthesized expression; the name was a copy/paste artifact.
+    // (Also #25 nit: this branch, like the SequenceExprSyntax branch
+    // above, is unreachable in practice — SwiftParser never nests a
+    // SequenceExprSyntax or InfixOperatorExprSyntax as an element of
+    // another SequenceExprSyntax; both arrive pre-folded or as leaves.
+    // Left in place as defensive/future-proofing, not removed, since
+    // that predicate change is out of this pass's scope.)
+    if let infix = node.as(InfixOperatorExprSyntax.self) {
+      return rootIdentifierIsBorrowingSelf(infix.leftOperand)
+        || rootIdentifierIsBorrowingSelf(infix.rightOperand)
     }
     return false
   }
