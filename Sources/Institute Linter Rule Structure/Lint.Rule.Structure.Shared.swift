@@ -81,3 +81,86 @@ internal func structureExtendsSyntaxVisitor(_ clause: InheritanceClauseSyntax?) 
   }
   return false
 }
+
+/// Returns the Swift source basename for a path, without its `.swift`
+/// extension.
+internal func structureSwiftBasename(_ filePath: Swift.String) -> Swift.String? {
+  guard
+    let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last,
+    filename.hasSuffix(".swift")
+  else {
+    return nil
+  }
+  return Swift.String(filename.dropLast(".swift".count))
+}
+
+/// Returns whether a file path is in the source-file naming rules' governed
+/// surface.
+///
+/// The rules inspect files below `Sources/` and exclude test, experiment,
+/// example, and benchmark subtrees even when those trees are nested below a
+/// source target. Hidden path segments are build and tool state rather than
+/// authored source.
+internal func structureFileIsInSourceNamingScope(_ filePath: Swift.String) -> Swift.Bool {
+  let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
+  guard components.contains("Sources") else { return false }
+  for component in components {
+    if component.hasPrefix(".") { return false }
+    if component == "Tests"
+      || component == "Experiments"
+      || component == "Examples"
+      || component == "Benchmarks"
+    {
+      return false
+    }
+  }
+  return true
+}
+
+/// Build-system and re-export source files do not carry a type-path filename.
+internal func structureFileBasenameIsExempt(_ basename: Swift.String) -> Swift.Bool {
+  basename == "Package" || basename == "exports" || basename == "Exports"
+}
+
+/// Returns whether an undotted basename is a candidate compound type path.
+///
+/// This is the accepted narrow `[API-IMPL-006]` boundary: uppercase-first
+/// identifiers with a lowercase-to-uppercase or acronym-to-word boundary are
+/// candidates. Dotted paths, specification namespaces, and extension-file
+/// discriminators belong to their own filename shapes.
+internal func structureFileBasenameIsCompound(_ basename: Swift.String) -> Swift.Bool {
+  if basename.contains(".")
+    || basename.contains("_")
+    || basename.contains("+")
+    || basename.contains(" where")
+    || basename.contains("where ")
+    || structureFileBasenameIsExempt(basename)
+  {
+    return false
+  }
+  guard
+    let first = basename.first,
+    first.isUppercase
+  else {
+    return false
+  }
+  let characters = Swift.Array(basename)
+  guard characters.count >= 2 else { return false }
+  var index = 1
+  while index < characters.count {
+    let previous = characters[index - 1]
+    let current = characters[index]
+    let next: Swift.Character? =
+      index + 1 < characters.count ? characters[index + 1] : nil
+    if current.isUppercase {
+      if previous.isLowercase {
+        return true
+      }
+      if previous.isUppercase, let next, next.isLowercase {
+        return true
+      }
+    }
+    index += 1
+  }
+  return false
+}

@@ -122,9 +122,11 @@ extension Lint.Rule.Bundle {
       .enable(.`typealiased namespace bridge`),
       // Structure pack (Wave 3 2026-05-15)
       .enable(.`hoisted protocol alias`),
+      .enable(.`extension file discriminator`),
       .enable(.`minimal type body`),
       .enable(.`raw value access`),
       .enable(.`single type per file`),
+      .enable(.`source file type path`),
       .enable(.`throwing wrapper init`),
       .enable(.`type transform placement`),
       .enable(.`wrapper backing exposed`),
@@ -139,6 +141,7 @@ extension Lint.Rule.Bundle {
       // measurement primitive. The rule definition stays in the
       // Institute_Linter_Rule_Testing module for re-enable convenience.
       // .enable(.`benchmark timed required`),
+      .enable(.`test file suffix`),
       .enable(.`test function naming`),
       .enable(.`performance suite serialized`),
       // Throws pack (Wave 3 2026-05-15)
