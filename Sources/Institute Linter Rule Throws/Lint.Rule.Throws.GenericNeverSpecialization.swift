@@ -74,6 +74,28 @@ private func gnsIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift.Boo
   return false
 }
 
+/// Effective-visibility variant of `gnsIsPublicOrOpen`: also true when
+/// `node` declares no access modifier of its own but is a member of a
+/// `public`/`open extension` — a member of a `public extension` is
+/// public API in Swift without carrying the keyword, and this rule is
+/// explicitly scoped to public API.
+private func gnsIsPublicOrOpenEffective(
+  _ node: Syntax,
+  modifiers: DeclModifierListSyntax
+) -> Swift.Bool {
+  if gnsIsPublicOrOpen(modifiers) {
+    return true
+  }
+  var current: Syntax? = node.parent
+  while let candidate = current {
+    if let ext = candidate.as(ExtensionDeclSyntax.self) {
+      return gnsIsPublicOrOpen(ext.modifiers)
+    }
+    current = candidate.parent
+  }
+  return false
+}
+
 private func gnsCollectGenericParamNames(_ clause: GenericParameterClauseSyntax?)
   -> Swift.Set<Swift.String>
 {
@@ -269,7 +291,9 @@ internal final class ThrowsGenericNeverSpecializationVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard gnsIsPublicOrOpen(node.modifiers) else { return .visitChildren }
+    guard gnsIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
+      return .visitChildren
+    }
     // Refinement A: skip @inlinable / @_alwaysEmitIntoClient.
     if gnsIsInlinable(node.attributes) { return .visitChildren }
     // Refinement B: skip if an in-extension Never companion exists
@@ -287,7 +311,9 @@ internal final class ThrowsGenericNeverSpecializationVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard gnsIsPublicOrOpen(node.modifiers) else { return .visitChildren }
+    guard gnsIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
+      return .visitChildren
+    }
     if gnsIsInlinable(node.attributes) { return .visitChildren }
     if hasCompanion("init") { return .visitChildren }
     let funcGenerics = gnsCollectGenericParamNames(node.genericParameterClause)

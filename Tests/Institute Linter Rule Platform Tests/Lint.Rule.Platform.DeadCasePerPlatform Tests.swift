@@ -51,6 +51,22 @@ extension Lint.Rule.`dead case per platform Tests`.Unit {
   }
 
   @Test
+  func `posix windows enum inside a public extension is flagged`() {
+    // Regression guard: a member of a `public extension` is public
+    // API without carrying the keyword itself.
+    let source = """
+      public extension Foo {
+          enum RawEncoding {
+              case posix
+              case windows
+          }
+      }
+      """
+    let findings = Lint.Rule.`dead case per platform Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `utf8 utf16 enum is flagged`() {
     let source = """
       public enum Encoding {

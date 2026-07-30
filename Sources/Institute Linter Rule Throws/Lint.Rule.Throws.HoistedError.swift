@@ -45,6 +45,30 @@ private func hoistedIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift
   return false
 }
 
+/// Returns true if `node`'s *effective* visibility is `public`/`open`
+/// — either it carries the modifier itself, or it declares no access
+/// modifier and is a member of a `public`/`open extension`. In
+/// Swift, a member of a `public extension` is public API without
+/// carrying the keyword; this rule is explicitly scoped to public API
+/// by its own doc/message and was silently defeated by moving the
+/// `public` keyword to the enclosing extension.
+private func hoistedIsPublicOrOpenEffective(
+  _ node: Syntax,
+  modifiers: DeclModifierListSyntax
+) -> Swift.Bool {
+  if hoistedIsPublicOrOpen(modifiers) {
+    return true
+  }
+  var current: Syntax? = node.parent
+  while let candidate = current {
+    if let ext = candidate.as(ExtensionDeclSyntax.self) {
+      return hoistedIsPublicOrOpen(ext.modifiers)
+    }
+    current = candidate.parent
+  }
+  return false
+}
+
 private func hoistedLeafIdentifier(of type: TypeSyntax) -> Swift.String? {
   var current = type
   while let optional = current.as(OptionalTypeSyntax.self) { current = optional.wrappedType }
@@ -71,13 +95,17 @@ internal final class ThrowsHoistedErrorVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard hoistedIsPublicOrOpen(node.modifiers) else { return .visitChildren }
+    guard hoistedIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
+      return .visitChildren
+    }
     checkThrowsClause(node.signature.effectSpecifiers?.throwsClause)
     return .visitChildren
   }
 
   override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard hoistedIsPublicOrOpen(node.modifiers) else { return .visitChildren }
+    guard hoistedIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
+      return .visitChildren
+    }
     checkThrowsClause(node.signature.effectSpecifiers?.throwsClause)
     return .visitChildren
   }

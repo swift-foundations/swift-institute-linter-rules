@@ -51,6 +51,24 @@ extension Lint.Rule.`generic throws missing never Tests`.Unit {
   }
 
   @Test
+  func `member of a public extension with its own function-level generic param is flagged`() {
+    // Regression guard: a member of a `public extension` is public
+    // API without carrying the keyword itself. Uses the function's
+    // OWN generic parameter (not one inherited from the extended
+    // type's generic-argument clause) since this rule now treats an
+    // extension's generic-argument clause as unresolvable (see the
+    // ambiguous-extension-header fix above) — this fixture isolates
+    // the effective-visibility check from that separate concern.
+    let source = """
+      public extension Foo {
+          func op<E: Handler>() throws(E.Failure) { }
+      }
+      """
+    let findings = Lint.Rule.`generic throws missing never Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `public init on generic class throwing G dot Failure is flagged`() {
     let source = """
       public class Loader<Source: Reader> {

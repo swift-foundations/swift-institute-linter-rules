@@ -82,6 +82,33 @@ internal func platformCTypeInPublicAPIIsPublicAPI(_ modifiers: DeclModifierListS
   return false
 }
 
+/// Returns true if `node`'s *effective* visibility is `public`/`open`
+/// — either it carries the modifier itself, or it declares no access
+/// modifier and is a member of a `public`/`open extension`. In Swift,
+/// a member of a `public extension` is public API without carrying
+/// the keyword; every rule in this pack that is explicitly scoped to
+/// public API by its own doc/message is silently defeated by moving
+/// the `public` keyword to the enclosing extension. Shared between
+/// `c type in public api` and `dead case per platform`, whose
+/// byte-identical local copies of the direct (non-effective) check
+/// this supersedes.
+internal func platformIsPublicAPIEffective(
+  _ node: Syntax,
+  modifiers: DeclModifierListSyntax
+) -> Swift.Bool {
+  if platformCTypeInPublicAPIIsPublicAPI(modifiers) {
+    return true
+  }
+  var current: Syntax? = node.parent
+  while let candidate = current {
+    if let ext = candidate.as(ExtensionDeclSyntax.self) {
+      return platformCTypeInPublicAPIIsPublicAPI(ext.modifiers)
+    }
+    current = candidate.parent
+  }
+  return false
+}
+
 internal func platformCTypeInPublicAPIContainsCType(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
     if platformCTypeInPublicAPIFlaggedCTypes.contains(identifier.name.text) {
@@ -131,6 +158,7 @@ internal final class PlatformCTypeInPublicAPIVisitor: SyntaxVisitor {
 
   override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
     checkSignature(
+      node: Syntax(node),
       modifiers: node.modifiers,
       signature: node.signature,
       emitAt: node.funcKeyword.positionAfterSkippingLeadingTrivia
@@ -140,6 +168,7 @@ internal final class PlatformCTypeInPublicAPIVisitor: SyntaxVisitor {
 
   override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
     checkSignature(
+      node: Syntax(node),
       modifiers: node.modifiers,
       signature: node.signature,
       emitAt: node.initKeyword.positionAfterSkippingLeadingTrivia
@@ -148,11 +177,12 @@ internal final class PlatformCTypeInPublicAPIVisitor: SyntaxVisitor {
   }
 
   private func checkSignature(
+    node: Syntax,
     modifiers: DeclModifierListSyntax,
     signature: FunctionSignatureSyntax,
     emitAt position: AbsolutePosition
   ) {
-    guard platformCTypeInPublicAPIIsPublicAPI(modifiers) else {
+    guard platformIsPublicAPIEffective(node, modifiers: modifiers) else {
       return
     }
     var hit = false

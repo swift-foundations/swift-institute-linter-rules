@@ -48,6 +48,21 @@ extension Lint.Rule.`c type in public api Tests`.Unit {
   }
 
   @Test
+  func `member of a public extension with kevent parameter is flagged`() {
+    // Regression guard: a member of a `public extension` is public
+    // API in Swift without carrying the keyword itself — a rule
+    // scoped to public API that checks only the member's own
+    // modifiers is silently defeated by moving `public` outward.
+    let source = """
+      public extension Reactor {
+          func register(events: [kevent]) {}
+      }
+      """
+    let findings = Lint.Rule.`c type in public api Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `public func with HANDLE return type is flagged`() {
     let source = """
       public func open() -> HANDLE { fatalError() }

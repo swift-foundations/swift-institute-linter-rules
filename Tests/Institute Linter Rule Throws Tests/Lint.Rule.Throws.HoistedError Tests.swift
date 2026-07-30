@@ -48,6 +48,19 @@ extension Lint.Rule.`hoisted error in public throws Tests`.Unit {
   }
 
   @Test
+  func `member of a public extension with hoisted error is flagged`() {
+    // Regression guard: a member of a `public extension` is public
+    // API without carrying the keyword itself.
+    let source = """
+      public extension Foo {
+          func op() throws(__FooError) {}
+      }
+      """
+    let findings = Lint.Rule.`hoisted error in public throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `public func with generic hoisted error is flagged`() {
     let source = "public func insert<K, V>() throws(__DictionaryError<K, V>) {}"
     let findings = Lint.Rule.`hoisted error in public throws Tests`.findings(in: source)

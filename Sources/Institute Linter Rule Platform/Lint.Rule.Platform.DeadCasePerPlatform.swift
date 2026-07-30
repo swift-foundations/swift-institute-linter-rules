@@ -75,7 +75,9 @@ internal final class PlatformDeadCasePerPlatformVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard hasPublicAccess(node.modifiers) else { return .visitChildren }
+    guard platformIsPublicAPIEffective(Syntax(node), modifiers: node.modifiers) else {
+      return .visitChildren
+    }
     var caseNames: [Swift.String] = []
     for member in node.memberBlock.members {
       guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else {
@@ -107,18 +109,5 @@ internal final class PlatformDeadCasePerPlatformVisitor: SyntaxVisitor {
         message: platformDeadCasePerPlatformMessage
       ))
     return .visitChildren
-  }
-
-  private func hasPublicAccess(_ modifiers: DeclModifierListSyntax) -> Swift.Bool {
-    for modifier in modifiers {
-      switch modifier.name.tokenKind {
-      case .keyword(.public), .keyword(.open):
-        return true
-
-      default:
-        continue
-      }
-    }
-    return false
   }
 }
