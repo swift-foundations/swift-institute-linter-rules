@@ -82,10 +82,12 @@ internal final class PlatformTypealiasedNamespaceVisitor: SyntaxVisitor {
     //   the conformance-declaring extension that lies in a sibling
     //   subtree at file scope.
     //
-    // Cross-pack visibility isn't yet available between the Platform
-    // and Naming packs in the institute tier, so this helper is
-    // pack-local; semantics match the equivalent Naming.Shared
-    // helpers where they overlap.
+    // Deliberate per-pack copy: rule packs are independently
+    // consumable library products, so the contract is copied rather
+    // than shared, even though Platform and Naming are two targets
+    // of the same package with no tier boundary between them. See
+    // #17. Semantics match the equivalent Naming.Shared helpers
+    // where they overlap.
     if isInsideConformingExtension(Syntax(node)) {
       return .visitChildren
     }
