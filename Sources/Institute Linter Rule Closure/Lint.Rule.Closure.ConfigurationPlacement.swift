@@ -15,9 +15,9 @@ internal import SwiftSyntax
 /// Configuration-bearing parameters MUST sit at the first OR last
 /// non-closure position of a signature. Citation: `[API-IMPL-014]`.
 ///
-/// Configuration-bearing parameters — `.Options`, `.Configuration`,
-/// `.Context`, or OptionSet types — fall into two semantic roles:
-/// PRIMARY input (operation's identity is the configuration → first),
+/// Configuration-bearing parameters — a type whose name ends in
+/// `Options`, `Configuration`, or `Context` — fall into two semantic
+/// roles: PRIMARY input (operation's identity is the configuration → first),
 /// or MODIFIER (operation tunes via configuration → last in the
 /// non-closure portion). Middle placement is forbidden because SE-0286
 /// forward-scan can't match a trailing closure when configuration sits
@@ -54,8 +54,14 @@ internal let configurationSuffixes: Swift.Set<Swift.String> = [
   "Context",
 ]
 
-/// Returns true when the parameter's type ends in one of the
-/// configuration suffixes (after stripping optionals and attributes).
+/// Returns true when the parameter's type name ENDS IN one of the
+/// configuration suffixes (after stripping optionals and attributes)
+/// — `RenderOptions`, `ParseConfiguration`, `RequestContext` all
+/// match; a type merely containing a suffix mid-name does not (#24
+/// defect 4: the code previously tested exact equality against the
+/// constant's name, contradicting both the constant's name
+/// (`configurationSuffixes`) and its doc, and missing the common
+/// suffixed shapes).
 internal func isConfigurationType(_ type: TypeSyntax) -> Swift.Bool {
   var current = type
   while let optional = current.as(OptionalTypeSyntax.self) {
@@ -68,10 +74,10 @@ internal func isConfigurationType(_ type: TypeSyntax) -> Swift.Bool {
     current = attributed.baseType
   }
   if let identifier = current.as(IdentifierTypeSyntax.self) {
-    return configurationSuffixes.contains(identifier.name.text)
+    return configurationSuffixes.contains(where: identifier.name.text.hasSuffix)
   }
   if let member = current.as(MemberTypeSyntax.self) {
-    return configurationSuffixes.contains(member.name.text)
+    return configurationSuffixes.contains(where: member.name.text.hasSuffix)
   }
   return false
 }
@@ -106,21 +112,15 @@ internal final class ClosureConfigurationPlacementVisitor: SyntaxVisitor {
   }
 
   private func checkParameters(_ parameters: FunctionParameterListSyntax) {
-    var nonClosureIndices: [Swift.Int] = []
-    for (index, parameter) in parameters.enumerated() {
-      if !isClosureType(parameter.type) {
-        nonClosureIndices.append(index)
-      }
+    let nonClosureIndices: [Swift.Int] = parameters.enumerated().compactMap { index, parameter in
+      isClosureType(parameter.type) ? nil : index
     }
-    guard nonClosureIndices.count >= 3 else { return }
-    let firstNonClosure = nonClosureIndices.first!
-    let lastNonClosure = nonClosureIndices.last!
-    for parameter in parameters {
+    guard let firstNonClosure = nonClosureIndices.first,
+      let lastNonClosure = nonClosureIndices.last
+    else { return }
+    for (index, parameter) in parameters.enumerated() {
       guard isConfigurationType(parameter.type) else { continue }
-      let parameterIndex = parameters.firstIndex(where: { $0.id == parameter.id })
-      guard let parameterIndex else { continue }
-      let intIndex = parameters.distance(from: parameters.startIndex, to: parameterIndex)
-      if intIndex == firstNonClosure || intIndex == lastNonClosure {
+      if index == firstNonClosure || index == lastNonClosure {
         continue
       }
       emit(at: parameter.firstName.positionAfterSkippingLeadingTrivia)

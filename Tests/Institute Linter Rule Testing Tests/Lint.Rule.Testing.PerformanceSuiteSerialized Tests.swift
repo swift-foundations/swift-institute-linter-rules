@@ -53,12 +53,61 @@ extension Lint.Rule.`performance suite serialized Tests`.Unit {
   }
 
   @Test
-  func `Performance struct without Suite attr is not flagged`() {
+  func `Performance struct without Suite attr and without Test functions is not flagged`() {
     let source = """
       struct Performance {}
       """
     let findings = Lint.Rule.`performance suite serialized Tests`.findings(in: source)
     #expect(findings.isEmpty)
+  }
+
+  // #24 defect 2: a type with no explicit `@Suite` is still an
+  // implicit suite under Swift Testing if it declares a `@Test`
+  // function — the shape that previously lacked `.serialized`
+  // invisibly, since the rule required an explicit `@Suite` to look.
+
+  @Test
+  func `Performance struct with a Test function but no Suite is flagged`() {
+    let source = """
+      struct Performance {
+          @Test func f() {}
+      }
+      """
+    let findings = Lint.Rule.`performance suite serialized Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Performance enum with a Test function but no Suite is flagged`() {
+    let source = """
+      enum Performance {
+          @Test static func f() {}
+      }
+      """
+    let findings = Lint.Rule.`performance suite serialized Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Performance class with a Test function but no Suite is flagged`() {
+    let source = """
+      class Performance {
+          @Test func f() {}
+      }
+      """
+    let findings = Lint.Rule.`performance suite serialized Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Performance actor with a Test function but no Suite is flagged`() {
+    let source = """
+      actor Performance {
+          @Test func f() {}
+      }
+      """
+    let findings = Lint.Rule.`performance suite serialized Tests`.findings(in: source)
+    #expect(findings.count == 1)
   }
 
   @Test

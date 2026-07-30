@@ -146,4 +146,43 @@ extension Lint.Rule.`configuration before content Tests`.`Edge Case` {
     let findings = Lint.Rule.`configuration before content Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  // #24 defect 4: the predicate is a suffix test, not exact equality —
+  // `RenderOptions`, `ParseConfiguration`, `RequestContext` all match.
+
+  @Test
+  func `RenderOptions suffix in middle position is flagged`() {
+    let source = """
+      func op(a: A, settings: RenderOptions, b: B) {}
+      """
+    let findings = Lint.Rule.`configuration before content Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `ParseConfiguration suffix in middle position is flagged`() {
+    let source = """
+      func op(a: A, settings: ParseConfiguration, b: B) {}
+      """
+    let findings = Lint.Rule.`configuration before content Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `RequestContext suffix in middle position is flagged`() {
+    let source = """
+      func op(a: A, settings: RequestContext, b: B) {}
+      """
+    let findings = Lint.Rule.`configuration before content Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `suffix mid-name (not ending in a configuration suffix) is NOT flagged`() {
+    let source = """
+      func op(a: A, settings: OptionsHolder, b: B) {}
+      """
+    let findings = Lint.Rule.`configuration before content Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }

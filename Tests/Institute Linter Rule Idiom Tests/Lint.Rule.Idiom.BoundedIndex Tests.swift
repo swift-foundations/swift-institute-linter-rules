@@ -80,6 +80,33 @@ extension Lint.Rule.`bounded index static capacity Tests`.Unit {
     let findings = Lint.Rule.`bounded index static capacity Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // #24 defect 11 test gap: the ClassDeclSyntax and EnumDeclSyntax
+  // visitors carried the same bookkeeping as struct/actor but had no
+  // fixture reaching them.
+
+  @Test
+  func `Int subscript on value-generic class is flagged`() {
+    let source = """
+      class Buffer<let N: Int> {
+          subscript(i: Int) -> Element { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`bounded index static capacity Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Int subscript on value-generic enum is flagged`() {
+    let source = """
+      enum Buffer<let N: Int> {
+          case slot
+          subscript(i: Int) -> Element { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`bounded index static capacity Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`bounded index static capacity Tests`.`Edge Case` {

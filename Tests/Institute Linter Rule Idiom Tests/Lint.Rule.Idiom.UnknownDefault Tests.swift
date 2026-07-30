@@ -128,6 +128,38 @@ extension Lint.Rule.`unknown default Tests`.`Edge Case` {
   }
 }
 
+extension Lint.Rule.`unknown default Tests`.Unit {
+  // #24 defect 3: `@unknown case _:` is the same runtime-fallthrough
+  // shape as `@unknown default:`, spelled as a wildcard case.
+
+  @Test
+  func `unknown wildcard case is flagged`() {
+    let source = """
+      switch soundCategory {
+      case .ambient: break
+      case .playback: break
+      @unknown case _:
+        fatalError("unhandled category")
+      }
+      """
+    let findings = Lint.Rule.`unknown default Tests`.findings(source: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `unknown default keyword still fires alongside wildcard support`() {
+    let source = """
+      switch soundCategory {
+      case .ambient: break
+      @unknown default:
+        fatalError("unhandled category")
+      }
+      """
+    let findings = Lint.Rule.`unknown default Tests`.findings(source: source)
+    #expect(findings.count == 1)
+  }
+}
+
 extension Lint.Rule.`unknown default Tests`.Integration {
   @Test
   func `exemption analogue - an unknown-named attribute elsewhere does not fire`() {

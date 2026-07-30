@@ -48,6 +48,54 @@ extension Lint.Rule.`enumerated with subscript Tests`.Unit {
       #expect(findings[0].identifier == "enumerated with subscript")
     }
   }
+
+  // #24 defect 10: the receiver comparison is now structural, so
+  // `self.buffer` and `buffer` are recognized as the same receiver.
+
+  @Test
+  func `self-qualified receiver matches unqualified subscript receiver`() {
+    let source = """
+      struct Reader {
+          var buffer: [Byte]
+          mutating func scan() {
+              for (i, _) in self.buffer.enumerated() {
+                  use(buffer[i])
+              }
+          }
+      }
+      """
+    let findings = Lint.Rule.`enumerated with subscript Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `unqualified receiver matches self-qualified subscript receiver`() {
+    let source = """
+      struct Reader {
+          var buffer: [Byte]
+          mutating func scan() {
+              for (i, _) in buffer.enumerated() {
+                  use(self.buffer[i])
+              }
+          }
+      }
+      """
+    let findings = Lint.Rule.`enumerated with subscript Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `interior trivia in the receiver does not defeat the match`() {
+    let source = """
+      func op(components: Path  .  Components) {
+          for (i, _) in components  .  enumerated() {
+              use(components[i])
+          }
+      }
+      """
+    let findings = Lint.Rule.`enumerated with subscript Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`enumerated with subscript Tests`.`Edge Case` {

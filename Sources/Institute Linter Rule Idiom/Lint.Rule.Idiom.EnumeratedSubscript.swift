@@ -17,12 +17,19 @@ internal import SwiftSyntax
 /// offset. Citation: `[PATTERN-058]`.
 ///
 /// Demoted to `.warning` under `Lint.Rule.Bundle.institute`'s
-/// severity-tier policy (2026-07-30): the receiver comparison is
-/// currently textual (`idiomTrimmed(base.description)` equality), which
-/// fails the policy's structural-predicate criterion for `.error`
-/// outright — `self.buffer` and `buffer` are different receivers, and
-/// any interior trivia breaks the match. Promote back to `.error` once
-/// the receiver comparison is structural.
+/// severity-tier policy (2026-07-30): the receiver comparison was
+/// textual (trimmed `base.description` equality), which failed
+/// the policy's structural-predicate criterion for `.error` outright —
+/// `self.buffer` and `buffer` compared as different receivers, and any
+/// interior trivia broke the match.
+///
+/// #24 defect 10: the comparison is now structural
+/// (`idiomNormalizedReceiverPath(_:)` resolves an identifier / member-
+/// access chain to a dotted path and elides a leading `self.`), which
+/// satisfies policy clause (a). Promotion to `.error` still needs
+/// clauses (b) (both-direction exemption fixtures) and (c) (non-zero
+/// adjudicated fleet evidence) — this stays `.warning` until that
+/// evidence exists.
 extension Lint.Rule {
   public static let `enumerated with subscript` = Lint.Rule(
     id: "enumerated with subscript",
@@ -57,11 +64,34 @@ internal func idiomLoopIndexName(_ pattern: PatternSyntax) -> Swift.String? {
   return first.identifier.text
 }
 
-internal func idiomTrimmed(_ string: Swift.String) -> Swift.String {
-  var characters = Array(string)
-  while let first = characters.first, first.isWhitespace { characters.removeFirst() }
-  while let last = characters.last, last.isWhitespace { characters.removeLast() }
-  return Swift.String(characters)
+/// Resolves `expression` to a normalized dotted receiver path
+/// (`self.buffer` and `buffer` both resolve to `"buffer"`) by walking
+/// an identifier / member-access chain. Returns `nil` for any other
+/// expression shape. #24 defect 10: replaces the previous
+/// `description`-based textual comparison, which treated `self.buffer`
+/// and `buffer` as different receivers and broke on any interior
+/// trivia.
+internal func idiomNormalizedReceiverPath(_ expression: ExprSyntax) -> Swift.String? {
+  if let reference = expression.as(DeclReferenceExprSyntax.self) {
+    return reference.baseName.text
+  }
+  if let member = expression.as(MemberAccessExprSyntax.self) {
+    guard let base = member.base else {
+      // A leading-dot member access (`.buffer`) has no resolvable
+      // base from this AST-only vantage point.
+      return nil
+    }
+    if let baseReference = base.as(DeclReferenceExprSyntax.self),
+      baseReference.baseName.text == "self"
+    {
+      // A leading `self.` is elidable: `self.buffer` and `buffer`
+      // name the same receiver.
+      return member.declName.baseName.text
+    }
+    guard let basePath = idiomNormalizedReceiverPath(base) else { return nil }
+    return basePath + "." + member.declName.baseName.text
+  }
+  return nil
 }
 
 internal func idiomEnumeratedReceiverText(_ sequence: ExprSyntax) -> Swift.String? {
@@ -70,7 +100,7 @@ internal func idiomEnumeratedReceiverText(_ sequence: ExprSyntax) -> Swift.Strin
   guard member.declName.baseName.text == "enumerated" else { return nil }
   guard call.arguments.isEmpty else { return nil }
   guard let base = member.base else { return nil }
-  return idiomTrimmed(base.description)
+  return idiomNormalizedReceiverPath(base)
 }
 
 internal final class IdiomEnumeratedSubscriptVisitor: SyntaxVisitor {

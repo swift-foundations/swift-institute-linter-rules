@@ -74,6 +74,67 @@ extension Lint.Rule.`bare string dependency Tests`.Unit {
     #expect(findings.isEmpty)
   }
 
+  // #24 section A: file-scope bindings are resolvable in a manifest,
+  // since a manifest is a single file by construction.
+
+  @Test
+  func `constant-declared target name in dependencies array is flagged at the reference`() {
+    let source = """
+      let owner = "Owner"
+      let package = Package(
+        targets: [
+          .target(name: "Consumer", dependencies: [owner])
+        ]
+      )
+      """
+    let findings = Lint.Rule.`bare string dependency Tests`.findings(source: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `hoisted dependency array constant is flagged`() {
+    let source = """
+      let sharedDeps: [Target.Dependency] = ["A"]
+      let package = Package(
+        targets: [
+          .target(name: "Consumer", dependencies: sharedDeps)
+        ]
+      )
+      """
+    let findings = Lint.Rule.`bare string dependency Tests`.findings(source: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `concatenated dependency arrays are both flagged`() {
+    let source = """
+      let base: [Target.Dependency] = ["A"]
+      let extra: [Target.Dependency] = ["B"]
+      let package = Package(
+        targets: [
+          .target(name: "Consumer", dependencies: base + extra)
+        ]
+      )
+      """
+    let findings = Lint.Rule.`bare string dependency Tests`.findings(source: source)
+    #expect(findings.count == 2)
+  }
+
+  @Test
+  func `computed dependency value is the documented residue and is not flagged`() {
+    // The one honest limitation: a value produced by a function call
+    // is not resolved, and is silently unreported.
+    let source = """
+      let package = Package(
+        targets: [
+          .target(name: "Consumer", dependencies: makeDeps())
+        ]
+      )
+      """
+    let findings = Lint.Rule.`bare string dependency Tests`.findings(source: source)
+    #expect(findings.isEmpty)
+  }
+
   @Test
   func `each bare string fires once across target kinds`() {
     let source = """

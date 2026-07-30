@@ -61,11 +61,31 @@ internal final class TestingPerformanceSuiteSerializedVisitor: SyntaxVisitor {
     return attribute.trimmedDescription.contains(".serialized")
   }
 
-  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard node.name.text == "Performance" else { return .visitChildren }
-    guard let attribute = suiteAttribute(node.attributes) else { return .visitChildren }
-    guard !mentionsSerialized(attribute) else { return .visitChildren }
-    let location = converter.location(for: node.name.positionAfterSkippingLeadingTrivia)
+  /// A type with no explicit `@Suite` is still a suite under Swift
+  /// Testing if its body declares at least one `@Test`-attributed
+  /// function — an IMPLICIT suite, and exactly the shape that
+  /// previously lacked the `.serialized` trait invisibly, since the
+  /// rule required an explicit `@Suite` attribute to even look (#24
+  /// defect 2).
+  private func hasTestFunction(_ members: MemberBlockItemListSyntax) -> Swift.Bool {
+    for member in members {
+      guard let function = member.decl.as(FunctionDeclSyntax.self) else { continue }
+      for attribute in function.attributes {
+        guard let attr = attribute.as(AttributeSyntax.self) else { continue }
+        if attr.attributeName.trimmedDescription == "Test" { return true }
+      }
+    }
+    return false
+  }
+
+  private func check(name: TokenSyntax, attributes: AttributeListSyntax, members: MemberBlockItemListSyntax) {
+    guard name.text == "Performance" else { return }
+    if let attribute = suiteAttribute(attributes) {
+      guard !mentionsSerialized(attribute) else { return }
+    } else {
+      guard hasTestFunction(members) else { return }
+    }
+    let location = converter.location(for: name.positionAfterSkippingLeadingTrivia)
     matches.append(
       Diagnostic.Record(
         location: Source.Location(
@@ -78,6 +98,25 @@ internal final class TestingPerformanceSuiteSerializedVisitor: SyntaxVisitor {
         identifier: "performance suite serialized",
         message: testingPerformanceSuiteSerializedMessage
       ))
+  }
+
+  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+    check(name: node.name, attributes: node.attributes, members: node.memberBlock.members)
+    return .visitChildren
+  }
+
+  override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+    check(name: node.name, attributes: node.attributes, members: node.memberBlock.members)
+    return .visitChildren
+  }
+
+  override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    check(name: node.name, attributes: node.attributes, members: node.memberBlock.members)
+    return .visitChildren
+  }
+
+  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    check(name: node.name, attributes: node.attributes, members: node.memberBlock.members)
     return .visitChildren
   }
 }

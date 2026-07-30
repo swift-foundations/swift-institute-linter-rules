@@ -23,10 +23,27 @@ internal import SwiftSyntax
 /// The rule's surface is a package manifest (`Package.swift`, including
 /// versioned `Package@swift-*.swift` variants and nested test
 /// manifests). It fires on each string-literal element of the
-/// `dependencies:` array of a target-declaring call. The canonical fix
-/// names the typed accessor: `.target(name:)` for a same-package
-/// target, `.product(name:package:)` for a product of a declared
-/// package dependency.
+/// `dependencies:` array of a target-declaring call — resolving
+/// through a `.byName(name:)` wrapper, a file-scope constant
+/// (`let owner = "Owner"`), a file-scope array constant
+/// (`let sharedDeps: [Target.Dependency] = [...]`), and a `+`-
+/// concatenated `SequenceExprSyntax` of such arrays, since a
+/// SwiftPM manifest is a single file by construction and every one
+/// of those bindings is declared in the file the rule is already
+/// parsing (#24 section A). The canonical fix names the typed
+/// accessor: `.target(name:)` for a same-package target,
+/// `.product(name:package:)` for a product of a declared package
+/// dependency.
+///
+/// **Residue (the honest limitation, and the only one):** an element
+/// or array whose value is computed — a function call, `.map`, a
+/// `for`-built array — is not resolved and is silently unreported.
+/// `.byName(name:)`, bare string literals, file-scope string
+/// constants, and file-scope/hoisted or concatenated dependency
+/// arrays are all resolved; a zero from this rule is not evidence of
+/// compliance for a manifest that hoists every dependency array
+/// behind a computed value (Goal #90: a disposition does not count
+/// as compliance merely because it is recorded).
 ///
 /// Citation: `swift-institute-linter-rules#4`.
 extension Lint.Rule {
@@ -40,6 +57,10 @@ extension Lint.Rule {
         severity: severity,
         converter: source.converter
       )
+      // Pre-pass: collect every file-scope binding before walking, so
+      // a target call that references a constant declared later in the
+      // file (or earlier) still resolves (#24 section A).
+      visitor.collectFileScopeBindings(source.tree)
       visitor.walk(source.tree)
       return visitor.matches
     }
@@ -76,11 +97,97 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
   let converter: SourceLocationConverter
   var matches: [Diagnostic.Record] = []
 
+  /// File-scope `let`/`var` bindings, keyed by the pattern's
+  /// identifier text, mapped to their initializer expression. Built by
+  /// ``collectFileScopeBindings(_:)`` before the walk, so a target
+  /// call that references a constant is resolvable regardless of
+  /// declaration order (#24 section A).
+  private var fileScopeBindings: [Swift.String: ExprSyntax] = [:]
+
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
     self.source = source
     self.severity = severity
     self.converter = converter
     super.init(viewMode: .sourceAccurate)
+  }
+
+  /// Collects every file-scope `VariableDeclSyntax` binding's
+  /// identifier → initializer into ``fileScopeBindings``. Goes through
+  /// `Lint.Syntax.IfConfig.statements(_:)` so a manifest with a
+  /// top-level `#if` is covered too.
+  internal func collectFileScopeBindings(_ file: SourceFileSyntax) {
+    for statement in Lint.Syntax.IfConfig.statements(file.statements) {
+      guard let variable = statement.item.as(VariableDeclSyntax.self) else { continue }
+      for binding in variable.bindings {
+        guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self),
+          let initializer = binding.initializer?.value
+        else { continue }
+        fileScopeBindings[pattern.identifier.text] = initializer
+      }
+    }
+  }
+
+  /// Resolves `expression` to the list of dependency-array element
+  /// expressions it denotes: an array literal's own elements; a
+  /// reference to a file-scope array constant, resolved recursively
+  /// (bounded by `visited` to stop a cycle); or a `+`-concatenated
+  /// `SequenceExprSyntax` of such arrays, whose non-operator operands
+  /// are each resolved and concatenated. Anything else — a computed
+  /// value such as a function call or `.map` — resolves to no
+  /// elements; this is the rule's documented residue.
+  private func resolvedElements(
+    of expression: ExprSyntax,
+    visited: Swift.Set<Swift.String> = []
+  ) -> [ExprSyntax] {
+    if let array = expression.as(ArrayExprSyntax.self) {
+      return array.elements.map(\.expression)
+    }
+    if let reference = expression.as(DeclReferenceExprSyntax.self) {
+      let name = reference.baseName.text
+      guard !visited.contains(name), let bound = fileScopeBindings[name] else { return [] }
+      return resolvedElements(of: bound, visited: visited.union([name]))
+    }
+    if let sequence = expression.as(SequenceExprSyntax.self) {
+      var result: [ExprSyntax] = []
+      for element in sequence.elements where element.as(BinaryOperatorExprSyntax.self) == nil {
+        result.append(contentsOf: resolvedElements(of: element, visited: visited))
+      }
+      return result
+    }
+    return []
+  }
+
+  /// Resolves a single dependency-array element to the position at
+  /// which a finding should be emitted, if it denotes a bare string:
+  /// the element itself if it is a string literal or `.byName(name:)`
+  /// call, or — if it is a reference to a file-scope string constant —
+  /// the *reference's* position, not the constant's, since the author
+  /// fixes the use site.
+  private func flaggedPosition(
+    of element: ExprSyntax,
+    visited: Swift.Set<Swift.String> = []
+  ) -> AbsolutePosition? {
+    if let literal = element.as(StringLiteralExprSyntax.self) {
+      return literal.positionAfterSkippingLeadingTrivia
+    }
+    // `.byName(name: "Owner")` is the exact harm the rule's own
+    // message names ("SwiftPM resolves a bare string as `.byName`,
+    // which binds to whatever it resolves first") — an explicit
+    // spelling of the same resolution ambiguity a bare string
+    // produces, not a safer alternative to it.
+    if let call = element.as(FunctionCallExprSyntax.self),
+      let member = call.calledExpression.as(MemberAccessExprSyntax.self),
+      member.declName.baseName.text == "byName"
+    {
+      return call.positionAfterSkippingLeadingTrivia
+    }
+    if let reference = element.as(DeclReferenceExprSyntax.self) {
+      let name = reference.baseName.text
+      guard !visited.contains(name), let bound = fileScopeBindings[name] else { return nil }
+      guard bound.is(StringLiteralExprSyntax.self) else { return nil }
+      return reference.positionAfterSkippingLeadingTrivia
+    }
+    return nil
   }
 
   override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
@@ -91,24 +198,9 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
       return .visitChildren
     }
     for argument in node.arguments where argument.label?.text == "dependencies" {
-      guard let array = argument.expression.as(ArrayExprSyntax.self) else { continue }
-      for element in array.elements {
-        if let literal = element.expression.as(StringLiteralExprSyntax.self) {
-          emit(at: literal.positionAfterSkippingLeadingTrivia)
-          continue
-        }
-        // `.byName(name: "Owner")` is the exact harm the rule's own
-        // message names ("SwiftPM resolves a bare string as
-        // `.byName`, which binds to whatever it resolves first") —
-        // an explicit spelling of the same resolution ambiguity a
-        // bare string produces, not a safer alternative to it.
-        if let call = element.expression.as(FunctionCallExprSyntax.self),
-          let member = call.calledExpression.as(MemberAccessExprSyntax.self),
-          member.declName.baseName.text == "byName"
-        {
-          emit(at: call.positionAfterSkippingLeadingTrivia)
-          continue
-        }
+      for element in resolvedElements(of: argument.expression) {
+        guard let position = flaggedPosition(of: element) else { continue }
+        emit(at: position)
       }
     }
     return .visitChildren

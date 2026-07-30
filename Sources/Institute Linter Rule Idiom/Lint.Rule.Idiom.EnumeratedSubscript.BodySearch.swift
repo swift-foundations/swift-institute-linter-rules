@@ -23,8 +23,9 @@ internal final class IdiomEnumeratedSubscriptBodySearch: SyntaxVisitor {
   }
 
   override func visit(_ node: SubscriptCallExprSyntax) -> SyntaxVisitorContinueKind {
-    let receiverDescription = idiomTrimmed(node.calledExpression.description)
-    guard receiverDescription == receiverText else { return .visitChildren }
+    guard idiomNormalizedReceiverPath(node.calledExpression) == receiverText else {
+      return .visitChildren
+    }
     guard let firstArgument = node.arguments.first else { return .visitChildren }
     if let reference = firstArgument.expression.as(DeclReferenceExprSyntax.self),
       reference.baseName.text == indexName

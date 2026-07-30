@@ -133,9 +133,14 @@ extension Lint.Rule.Bundle {
       // introduction, error only after the graduation gate.
       .enable(.`unknown default`),
       // Manifest pack (swift-institute-linter-rules#4) — advisory at
-      // introduction; the predicate must be checked against `path:`
-      // overrides and constant-declared target names before its zero
-      // means anything at the error tier.
+      // introduction. `.byName(name:)`, bare string literals,
+      // file-scope string constants, and file-scope/hoisted or
+      // concatenated dependency arrays are all resolved (#24 section
+      // A). A dependency whose value is computed by a call or a
+      // transform is not, and is silently unreported — that residue
+      // is the one honest limitation left, and a zero from this rule
+      // is not evidence of compliance for a manifest that hoists
+      // every dependency array behind a computed value.
       .enable(.`bare string dependency`),
       // [swift-structured-queries-primitives#2 ruling, 2026-07-30] —
       // implemented per swift-institute-linter-rules#31. Advisory at

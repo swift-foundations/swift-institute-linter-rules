@@ -15,6 +15,17 @@ internal import SwiftSyntax
 /// Static-capacity types (`<let N: Int>` value-generic parameter) MUST
 /// use `Index<Element>.Bounded<N>` for subscript index parameters, not
 /// raw `Int`. Citation: `[IMPL-050]`.
+///
+/// **Known limitation (#24 defect 11), not `[IMPL-050]`-complete:** a
+/// subscript declared in an `extension Buffer { subscript(i: Int) … }`
+/// separate from `Buffer`'s own `<let N: Int>` declaration is not
+/// seen. Recognizing it would require knowing that `Buffer` was
+/// declared with a value-generic capacity parameter, which under
+/// one-type-per-file is in a *different* file — genuinely outside
+/// what a per-file AST rule can resolve, unlike an in-file
+/// constant-binding case. This rule only sees the value-generic
+/// parameter and the subscript when both are declared on the same
+/// primary type declaration.
 extension Lint.Rule {
   public static let `bounded index static capacity` = Lint.Rule(
     id: "bounded index static capacity",

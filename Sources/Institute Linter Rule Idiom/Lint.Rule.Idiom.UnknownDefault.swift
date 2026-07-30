@@ -63,11 +63,35 @@ internal final class IdiomUnknownDefaultVisitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
+  /// A bare `_` in a case-item pattern position parses as either
+  /// `WildcardPatternSyntax` or an `ExpressionPatternSyntax` wrapping a
+  /// `DiscardAssignmentExprSyntax` — expression/pattern grammar is
+  /// ambiguous at parse time, so both shapes occur depending on
+  /// context. Recognize both.
+  private func isWildcard(_ pattern: PatternSyntax) -> Swift.Bool {
+    if pattern.is(WildcardPatternSyntax.self) { return true }
+    if let expressionPattern = pattern.as(ExpressionPatternSyntax.self) {
+      return expressionPattern.expression.is(DiscardAssignmentExprSyntax.self)
+    }
+    return false
+  }
+
+  /// `@unknown case _:` is the same `[IDIOM-...]` runtime-fallthrough
+  /// shape as `@unknown default:` — it is only spelled as a wildcard
+  /// case rather than the `default` keyword. Recognize both.
+  private func isDefaultLikeLabel(_ label: SwitchCaseSyntax.Label) -> Swift.Bool {
+    if case .default = label { return true }
+    if case .case(let caseLabel) = label {
+      return caseLabel.caseItems.allSatisfy { isWildcard($0.pattern) }
+    }
+    return false
+  }
+
   override func visit(_ node: SwitchCaseSyntax) -> SyntaxVisitorContinueKind {
     guard
       let attribute = node.attribute,
       attribute.attributeName.trimmedDescription == "unknown",
-      case .default = node.label
+      isDefaultLikeLabel(node.label)
     else {
       return .visitChildren
     }

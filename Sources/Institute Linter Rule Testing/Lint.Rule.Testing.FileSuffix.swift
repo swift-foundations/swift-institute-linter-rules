@@ -53,7 +53,13 @@ extension Lint.Rule {
         return []
       }
       let basename = Swift.String(filename.dropLast(".swift".count))
-      guard !basename.hasSuffix(" Tests") else { return [] }
+      // #24 defect 8: `hasSuffix(" Tests")` alone also accepts
+      // `Foo  Tests.swift` (two spaces), since "  Tests" itself ends
+      // in " Tests". Require exactly one space immediately before
+      // `Tests`.
+      let hasExactlyOneSpaceBeforeTests =
+        basename.hasSuffix(" Tests") && !basename.hasSuffix("  Tests")
+      guard !hasExactlyOneSpaceBeforeTests else { return [] }
       let finder = TestingFileSuffixDeclarationFinder(viewMode: .sourceAccurate)
       finder.walk(source.tree)
       guard let position = finder.first else { return [] }

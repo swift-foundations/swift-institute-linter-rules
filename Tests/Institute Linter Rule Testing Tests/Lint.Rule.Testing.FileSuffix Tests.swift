@@ -130,6 +130,18 @@ extension Lint.Rule.`test file suffix Tests`.`Edge Case` {
   }
 
   @Test
+  func `double-spaced Tests suffix remains nonconforming`() {
+    // #24 defect 8: `hasSuffix(" Tests")` alone also accepts a
+    // double-spaced basename, since "  Tests" itself ends in
+    // " Tests" — exactly one space must precede `Tests`.
+    let findings = Lint.Rule.`test file suffix Tests`.findings(
+      source: Lint.Rule.`test file suffix Tests`.suiteSource,
+      file: "Tests/File Tests/Foo  Tests.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `dot-separated Tests suffix remains nonconforming`() {
     let findings = Lint.Rule.`test file suffix Tests`.findings(
       source: Lint.Rule.`test file suffix Tests`.suiteSource,
