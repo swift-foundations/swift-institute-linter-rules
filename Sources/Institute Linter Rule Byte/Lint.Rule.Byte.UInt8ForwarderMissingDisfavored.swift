@@ -203,7 +203,9 @@ private func byteRequirementIsElementEqualsByte(_ requirement: GenericRequiremen
   // spelling `Self.Element` (and, defensively, any `<Prefix>.Element`).
   // Also accept the reversed spelling `Byte == Element` — a same-type
   // requirement's operand order is not semantically meaningful.
-  func isElement(_ text: Swift.String) -> Swift.Bool { text == "Element" || text.hasSuffix(".Element") }
+  func isElement(_ text: Swift.String) -> Swift.Bool {
+    text == "Element" || text.hasSuffix(".Element")
+  }
   func isByte(_ text: Swift.String) -> Swift.Bool { text == "Byte" || text.hasSuffix(".Byte") }
   if isElement(left), isByte(right) { return true }
   if isByte(left), isElement(right) { return true }

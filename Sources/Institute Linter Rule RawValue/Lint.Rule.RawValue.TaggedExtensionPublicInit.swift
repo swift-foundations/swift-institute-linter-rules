@@ -177,6 +177,7 @@ internal final class RawValueTaggedExtensionPublicInitVisitor: SyntaxVisitor {
       switch modifier.name.tokenKind {
       case .keyword(.private), .keyword(.fileprivate), .keyword(.internal):
         return true
+
       default:
         continue
       }

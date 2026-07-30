@@ -316,7 +316,10 @@ extension Lint.Rule.`tagged extension public init Tests`.`Edge Case` {
   }
 
   @Test
-  func `extension whose generic-argument content mentions Tagged is not treated as extending Tagged`() {
+  // swiftlint:disable:next function_name_whitespace
+  func
+    `extension whose generic-argument content mentions Tagged is not treated as extending Tagged`()
+  {
     // Structural regression guard: a textual split on `.` misidentifies
     // `Dictionary<String, Foo.Tagged<A, B>>` as an extension "on"
     // `Tagged` because its last textual dot-segment reads

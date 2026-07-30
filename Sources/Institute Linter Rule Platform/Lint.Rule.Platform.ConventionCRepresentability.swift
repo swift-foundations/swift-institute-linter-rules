@@ -111,7 +111,8 @@ internal func platformConventionCRepresentabilityIsUnsafePointerToUserType(_ typ
 /// A bare identifier (no qualifier at all) is never a C-interop
 /// reference — it's exactly the documented "Swift-defined struct"
 /// case this rule exists to catch.
-private func platformConventionCRepresentabilityIsCInteropReference(_ type: TypeSyntax) -> Swift.Bool
+private func platformConventionCRepresentabilityIsCInteropReference(_ type: TypeSyntax)
+  -> Swift.Bool
 {
   guard let member = type.as(MemberTypeSyntax.self) else { return false }
   var base = member.baseType

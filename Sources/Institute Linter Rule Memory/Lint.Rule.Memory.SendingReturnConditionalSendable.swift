@@ -270,7 +270,8 @@ private func sendingConditionalQualifiedPathComponents(_ type: TypeSyntax) -> [S
 /// True if `clause` inherits `@unchecked Sendable` — an
 /// `AttributedTypeSyntax` whose `attributes` contains `unchecked` and
 /// whose base type's leaf is `Sendable` (optionally `Swift`-qualified).
-private func sendingConditionalHasUncheckedSendable(_ clause: InheritanceClauseSyntax?) -> Swift.Bool
+private func sendingConditionalHasUncheckedSendable(_ clause: InheritanceClauseSyntax?)
+  -> Swift.Bool
 {
   guard let clause else { return false }
   for inherited in clause.inheritedTypes {
@@ -371,19 +372,31 @@ private func sendingConditionalMentionedIdentifierNames(_ type: TypeSyntax)
       }
       return
     }
-    if let optional = type.as(OptionalTypeSyntax.self) { walk(optional.wrappedType); return }
+    if let optional = type.as(OptionalTypeSyntax.self) {
+      walk(optional.wrappedType)
+      return
+    }
     if let iuo = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
       walk(iuo.wrappedType)
       return
     }
-    if let array = type.as(ArrayTypeSyntax.self) { walk(array.element); return }
+    if let array = type.as(ArrayTypeSyntax.self) {
+      walk(array.element)
+      return
+    }
     if let dictionary = type.as(DictionaryTypeSyntax.self) {
       walk(dictionary.key)
       walk(dictionary.value)
       return
     }
-    if let attributed = type.as(AttributedTypeSyntax.self) { walk(attributed.baseType); return }
-    if let someOrAny = type.as(SomeOrAnyTypeSyntax.self) { walk(someOrAny.constraint); return }
+    if let attributed = type.as(AttributedTypeSyntax.self) {
+      walk(attributed.baseType)
+      return
+    }
+    if let someOrAny = type.as(SomeOrAnyTypeSyntax.self) {
+      walk(someOrAny.constraint)
+      return
+    }
     if let member = type.as(MemberTypeSyntax.self) {
       walk(member.baseType)
       if let genericArgs = member.genericArgumentClause {

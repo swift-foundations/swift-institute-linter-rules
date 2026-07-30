@@ -166,8 +166,9 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
         }
         if let call = element.expression.as(FunctionCallExprSyntax.self),
           let callMember = call.calledExpression.as(MemberAccessExprSyntax.self),
-          callMember.declName.baseName.text == "target" || callMember.declName.baseName.text
-            == "byName",
+          callMember.declName.baseName.text == "target"
+            || callMember.declName.baseName.text
+              == "byName",
           let innerNameArgument =
             call.arguments.first(where: { $0.label?.text == "name" || $0.label == nil }),
           let innerLiteral = innerNameArgument.expression.as(StringLiteralExprSyntax.self),

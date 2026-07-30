@@ -144,7 +144,8 @@ extension Lint.Rule.`protocol sentinel under generic front door Tests`.`Edge Cas
 
 extension Lint.Rule.`protocol sentinel under generic front door Tests`.Negative {
   @Test
-  func `bare non-generic namespace with directly-nested Protocol is NOT flagged - Store precedent`() {
+  func `bare non-generic namespace with directly-nested Protocol is NOT flagged - Store precedent`()
+  {
     // Reference non-firing shape: `Store` is a bare, non-generic
     // enum namespace with its own directly-nested `Protocol` member —
     // there is no separate generic front-door typealias pointing at
@@ -162,7 +163,9 @@ extension Lint.Rule.`protocol sentinel under generic front door Tests`.Negative 
   }
 
   @Test
-  func `generic carrier struct with no nested Protocol sentinel is NOT flagged - Storage precedent`()
+  // swiftlint:disable:next function_name_whitespace
+  func
+    `generic carrier struct with no nested Protocol sentinel is NOT flagged - Storage precedent`()
   {
     // Reference non-firing shape: `Storage<Allocation>` is a real
     // generic struct with no nested `Protocol` sentinel at all —

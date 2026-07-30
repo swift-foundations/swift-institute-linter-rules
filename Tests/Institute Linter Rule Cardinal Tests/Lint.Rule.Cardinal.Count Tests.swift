@@ -193,7 +193,8 @@ extension Lint.Rule.`count minus one Tests`.Negative {
   }
 
   @Test
-  func `i plus 1 less-than limits-keys-count (comparison side unrelated to count) is NOT flagged`() {
+  func `i plus 1 less-than limits-keys-count (comparison side unrelated to count) is NOT flagged`()
+  {
     let findings = Lint.Rule.`count minus one Tests`.findings(
       in: "if i + 1 < limits[keys.count] { }")
     #expect(findings.isEmpty)

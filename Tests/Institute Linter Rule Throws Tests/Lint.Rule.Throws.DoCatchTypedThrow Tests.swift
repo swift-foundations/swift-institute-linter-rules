@@ -132,7 +132,10 @@ extension Lint.Rule.`do throws for typed catch with throw Tests`.`Edge Case` {
   }
 
   @Test
-  func `do with throw and try only inside a nested closure is flagged - mutual exclusion with DoCatchTyped`() {
+  // swiftlint:disable:next function_name_whitespace
+  func
+    `do with throw and try only inside a nested closure is flagged - mutual exclusion with DoCatchTyped`()
+  {
     // Regression guard for the DoCatchTyped/DoCatchTypedThrow mutual-
     // exclusion contract: a `try` inside a nested closure is not at
     // the `do` body's own effect scope, so this `do` has (at its own
