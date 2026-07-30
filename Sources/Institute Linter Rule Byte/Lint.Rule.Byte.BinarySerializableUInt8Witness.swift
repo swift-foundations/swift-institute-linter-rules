@@ -73,8 +73,12 @@ internal final class ByteBinarySerializableUInt8WitnessVisitor: SyntaxVisitor {
   var matches: [Diagnostic.Record] = []
 
   /// Stack of "inside a Binary.Serializable / Binary.Parseable
-  /// extension" markers. We push on entering a qualifying extension
-  /// and pop on leaving so that nested types do not inherit the gate.
+  /// extension" markers. We push on entering a qualifying extension and
+  /// pop on leaving so the gate reflects only the innermost enclosing
+  /// extension. (Swift extensions cannot themselves nest, so this isn't
+  /// guarding against a nested-extension false positive; it's what keeps
+  /// a later, non-qualifying extension on the same or a different type
+  /// from inheriting a `true` left on the stack by an earlier one.)
   private var contextStack: [Swift.Bool] = []
 
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
