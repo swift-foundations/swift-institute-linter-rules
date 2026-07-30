@@ -126,7 +126,7 @@ internal final class MemorySendingReturnConditionalSendableVisitor: SyntaxVisito
   // MARK: - Type-decl nesting (primary declarations)
 
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    enclosingPath.append(sendingConditionalStripBackticks(node.name.text))
+    enclosingPath.append(Lint.Syntax.Identifier.unescaped(node.name.text))
     genericParamsByPath[currentPath] = sendingConditionalGenericParamNames(
       node.genericParameterClause)
     return .visitChildren
@@ -134,7 +134,7 @@ internal final class MemorySendingReturnConditionalSendableVisitor: SyntaxVisito
   override func visitPost(_: StructDeclSyntax) { _ = enclosingPath.popLast() }
 
   override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-    enclosingPath.append(sendingConditionalStripBackticks(node.name.text))
+    enclosingPath.append(Lint.Syntax.Identifier.unescaped(node.name.text))
     genericParamsByPath[currentPath] = sendingConditionalGenericParamNames(
       node.genericParameterClause)
     return .visitChildren
@@ -142,7 +142,7 @@ internal final class MemorySendingReturnConditionalSendableVisitor: SyntaxVisito
   override func visitPost(_: ClassDeclSyntax) { _ = enclosingPath.popLast() }
 
   override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-    enclosingPath.append(sendingConditionalStripBackticks(node.name.text))
+    enclosingPath.append(Lint.Syntax.Identifier.unescaped(node.name.text))
     genericParamsByPath[currentPath] = sendingConditionalGenericParamNames(
       node.genericParameterClause)
     return .visitChildren
@@ -230,18 +230,13 @@ internal final class MemorySendingReturnConditionalSendableVisitor: SyntaxVisito
 
 // MARK: - Free helpers
 
-private func sendingConditionalStripBackticks(_ text: Swift.String) -> Swift.String {
-  guard text.count >= 2, text.hasPrefix("`"), text.hasSuffix("`") else { return text }
-  return Swift.String(text.dropFirst().dropLast())
-}
-
 private func sendingConditionalGenericParamNames(_ clause: GenericParameterClauseSyntax?)
   -> Swift.Set<Swift.String>
 {
   guard let clause else { return [] }
   var names: Swift.Set<Swift.String> = []
   for parameter in clause.parameters {
-    names.insert(sendingConditionalStripBackticks(parameter.name.text))
+    names.insert(Lint.Syntax.Identifier.unescaped(parameter.name.text))
   }
   return names
 }
@@ -255,13 +250,13 @@ private func sendingConditionalGenericParamNames(_ clause: GenericParameterClaus
 /// members declared in the same extension or the primary declaration.
 private func sendingConditionalQualifiedPathComponents(_ type: TypeSyntax) -> [Swift.String]? {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return [sendingConditionalStripBackticks(identifier.name.text)]
+    return [Lint.Syntax.Identifier.unescaped(identifier.name.text)]
   }
   if let member = type.as(MemberTypeSyntax.self) {
     guard var base = sendingConditionalQualifiedPathComponents(member.baseType) else {
       return nil
     }
-    base.append(sendingConditionalStripBackticks(member.name.text))
+    base.append(Lint.Syntax.Identifier.unescaped(member.name.text))
     return base
   }
   return nil
@@ -289,10 +284,10 @@ private func sendingConditionalHasUncheckedSendable(_ clause: InheritanceClauseS
 
 private func sendingConditionalIsSendableLeaf(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return sendingConditionalStripBackticks(identifier.name.text) == "Sendable"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "Sendable"
   }
   if let member = type.as(MemberTypeSyntax.self) {
-    return sendingConditionalStripBackticks(member.name.text) == "Sendable"
+    return Lint.Syntax.Identifier.unescaped(member.name.text) == "Sendable"
   }
   return false
 }
@@ -310,7 +305,7 @@ private func sendingConditionalGatedGenericParamNames(_ clause: GenericWhereClau
       continue
     }
     guard sendingConditionalIsSendableLeaf(conformance.rightType) else { continue }
-    names.insert(sendingConditionalStripBackticks(conformance.leftType.trimmedDescription))
+    names.insert(Lint.Syntax.Identifier.unescaped(conformance.leftType.trimmedDescription))
   }
   return names
 }
@@ -364,7 +359,7 @@ private func sendingConditionalMentionedIdentifierNames(_ type: TypeSyntax)
   var names: Swift.Set<Swift.String> = []
   func walk(_ type: TypeSyntax) {
     if let identifier = type.as(IdentifierTypeSyntax.self) {
-      names.insert(sendingConditionalStripBackticks(identifier.name.text))
+      names.insert(Lint.Syntax.Identifier.unescaped(identifier.name.text))
       if let genericArgs = identifier.genericArgumentClause {
         for argument in genericArgs.arguments {
           if let inner = argument.argument.as(TypeSyntax.self) { walk(inner) }

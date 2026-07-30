@@ -209,7 +209,7 @@ private func byteStdlibForwarderWhereClauseMentionsUInt8(_ whereClause: GenericW
 
 private func byteStdlibForwarderTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    let leaf = byteStdlibForwarderStripBackticks(identifier.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(identifier.name.text)
     if leaf == "UInt8" {
       return true
     }
@@ -225,7 +225,7 @@ private func byteStdlibForwarderTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.B
     return false
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    let leaf = byteStdlibForwarderStripBackticks(memberType.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(memberType.name.text)
     if leaf == "UInt8" {
       return true
     }
@@ -274,13 +274,6 @@ private func byteStdlibForwarderTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.B
     return byteStdlibForwarderTypeMentionsUInt8(functionType.returnClause.type)
   }
   return false
-}
-
-private func byteStdlibForwarderStripBackticks(_ name: Swift.String) -> Swift.String {
-  var s = name
-  if s.hasPrefix("`") { s.removeFirst() }
-  if s.hasSuffix("`") { s.removeLast() }
-  return s
 }
 
 /// Curated set of stdlib type leaf-names whose extensions are the
@@ -367,7 +360,7 @@ private func byteStdlibForwarderTypeIsStdlibType(_ type: TypeSyntax) -> Swift.Bo
   // `Swift.<X>` — explicit module qualifier means stdlib.
   if let memberType = type.as(MemberTypeSyntax.self) {
     if let baseIdentifier = memberType.baseType.as(IdentifierTypeSyntax.self),
-      byteStdlibForwarderStripBackticks(baseIdentifier.name.text) == "Swift"
+      Lint.Syntax.Identifier.unescaped(baseIdentifier.name.text) == "Swift"
     {
       return true
     }
@@ -377,7 +370,7 @@ private func byteStdlibForwarderTypeIsStdlibType(_ type: TypeSyntax) -> Swift.Bo
   }
   // Bare identifier — check leaf-name against the allowlist.
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    let leaf = byteStdlibForwarderStripBackticks(identifier.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(identifier.name.text)
     return byteStdlibForwarderStdlibTypeLeafNames.contains(leaf)
   }
   return false

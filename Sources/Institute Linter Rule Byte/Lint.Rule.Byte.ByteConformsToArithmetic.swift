@@ -92,7 +92,7 @@ internal final class ByteConformsToArithmeticVisitor: SyntaxVisitor {
   // `ExtensionDeclSyntax` visitor above is blind to this shape.
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
     guard let inheritance = node.inheritanceClause else { return .visitChildren }
-    guard byteStripBackticks(node.name.text) == "Byte" else { return .visitChildren }
+    guard Lint.Syntax.Identifier.unescaped(node.name.text) == "Byte" else { return .visitChildren }
     for inherited in inheritance.inheritedTypes {
       guard let arithmeticName = arithmeticProtocolLeafName(inherited.type) else { continue }
       emit(at: inherited.positionAfterSkippingLeadingTrivia, protocolName: arithmeticName)
@@ -125,12 +125,12 @@ internal final class ByteConformsToArithmeticVisitor: SyntaxVisitor {
 /// `RFC_1234.Byte`) must not match.
 internal func extensionIsOnByte(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text) == "Byte"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "Byte"
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    guard byteStripBackticks(memberType.name.text) == "Byte" else { return false }
+    guard Lint.Syntax.Identifier.unescaped(memberType.name.text) == "Byte" else { return false }
     if let base = memberType.baseType.as(IdentifierTypeSyntax.self) {
-      return byteStripBackticks(base.name.text) == "Byte_Primitives"
+      return Lint.Syntax.Identifier.unescaped(base.name.text) == "Byte_Primitives"
     }
     return false
   }
@@ -141,14 +141,14 @@ internal func extensionIsOnByte(_ type: TypeSyntax) -> Swift.Bool {
 /// in `byteArithmeticProtocolNames`. Tolerates `Swift.<X>` qualification.
 private func arithmeticProtocolLeafName(_ type: TypeSyntax) -> Swift.String? {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    let leaf = byteStripBackticks(identifier.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(identifier.name.text)
     if byteArithmeticProtocolNames.contains(leaf) {
       return leaf
     }
     return nil
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    let leaf = byteStripBackticks(memberType.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(memberType.name.text)
     if byteArithmeticProtocolNames.contains(leaf) {
       return leaf
     }

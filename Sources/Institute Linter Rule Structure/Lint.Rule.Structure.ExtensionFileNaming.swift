@@ -152,7 +152,7 @@ private func structureExtensionFileNamingFindings(
   let conformances = collector.extensions.flatMap { extensionDecl -> [Swift.String] in
     guard let clause = extensionDecl.inheritanceClause else { return [] }
     return clause.inheritedTypes.compactMap {
-      structureHoistedProtocolAliasDottedName(of: $0.type).map(structureStripBackticks)
+      structureHoistedProtocolAliasDottedName(of: $0.type).map(Lint.Syntax.Identifier.unescaped)
     }
   }
   let hasWhere = collector.extensions.contains { $0.genericWhereClause != nil }
@@ -249,7 +249,7 @@ private final class StructureExtensionFileNamingCollector: SyntaxVisitor {
   init() { super.init(viewMode: .sourceAccurate) }
 
   override func visit(_ node: SourceFileSyntax) -> SyntaxVisitorContinueKind {
-    for item in structureFlattenTopLevelItems(node.statements) {
+    for item in Lint.Syntax.IfConfig.statements(node.statements) {
       guard case .decl(let decl) = item.item else { continue }
       if let extensionDecl = decl.as(ExtensionDeclSyntax.self) {
         extensions.append(extensionDecl)

@@ -143,12 +143,7 @@ internal func suiteCategoriesMissingFromBody(_ memberBlock: MemberBlockSyntax) -
     guard suiteCategoriesHasSuiteAttribute(structDecl.attributes) else { continue }
     let raw = structDecl.name.text
     // Backticked identifiers carry the backticks in `.text`; normalize.
-    let stripped: Swift.String
-    if raw.hasPrefix("`") && raw.hasSuffix("`") && raw.count >= 2 {
-      stripped = Swift.String(raw.dropFirst().dropLast())
-    } else {
-      stripped = raw
-    }
+    let stripped = Lint.Syntax.Identifier.unescaped(raw)
     switch stripped {
     case "Unit": declared.insert("Unit")
     case "Edge Case": declared.insert("`Edge Case`")

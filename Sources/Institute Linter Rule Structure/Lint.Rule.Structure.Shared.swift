@@ -9,43 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
+internal import Linter_Primitives
 internal import SwiftSyntax
-
-/// Flattens a top-level `CodeBlockItemListSyntax` (e.g.
-/// `SourceFileSyntax.statements`) into the declarations it contains,
-/// descending into `IfConfigDeclSyntax` (`#if os(...) ... #endif`)
-/// clauses recursively so that a type or extension declared inside a
-/// top-level `#if` is visible to a by-hand top-level-declaration scan.
-///
-/// Platform-conditional top-level declarations are ordinary under the
-/// Institute cross-platform mandate. Rules that dispatch through
-/// per-syntax-kind `visit` overrides see `#if` contents automatically
-/// via the source-accurate view; the two rules that instead enumerate
-/// `SourceFileSyntax.statements` by hand (`file name nested path`,
-/// `extension file naming`) do not, since `IfConfigDeclSyntax` matches
-/// `case .decl` but is neither a primary-type decl nor an extension —
-/// without this helper it silently drops through. Every clause's
-/// elements are included (not just the first / active one): the file
-/// judged here compiles under several distinct configurations, and any
-/// of them could hold the type or extension in question.
-internal func structureFlattenTopLevelItems(
-  _ statements: CodeBlockItemListSyntax
-) -> [CodeBlockItemSyntax] {
-  var result: [CodeBlockItemSyntax] = []
-  for item in statements {
-    guard case .decl(let decl) = item.item,
-      let ifConfig = decl.as(IfConfigDeclSyntax.self)
-    else {
-      result.append(item)
-      continue
-    }
-    for clause in ifConfig.clauses {
-      guard let elements = clause.elements?.as(CodeBlockItemListSyntax.self) else { continue }
-      result.append(contentsOf: structureFlattenTopLevelItems(elements))
-    }
-  }
-  return result
-}
 
 /// Returns true if `name` is the institute `Protocol` sentinel — a
 /// member name reserved for the hoisted-protocol pattern per
@@ -56,37 +21,12 @@ internal func structureFlattenTopLevelItems(
 /// Citation: [RULE-EXEMPT-5] (Protocol-sentinel) in
 /// the rule-exemptions skill.
 ///
-/// Pack-local duplicate of `Lint.Rule.isProtocolSentinel(_:)` in
-/// `Lint.Rule.Naming.Shared.swift`. Both `Institute Linter Rule
-/// Naming` and `Institute Linter Rule Structure` are targets of THIS
-/// package at the same (institute) tier — there is no tier boundary
-/// between them, and the prior comment's rationale citing one was
-/// simply wrong. The real reason for the duplication is that no
-/// shared internal support target exists for these pack-independent
-/// syntax primitives yet (tracked under #17); consolidating is a
-/// disposition call for the package owner, not a fix bundled here.
-/// Semantics match the Naming original. Used by
-/// `Lint.Rule.Structure.MinimalTypeBody` to skip the typealias-name
-/// check on `Protocol`-named members.
+/// Deliberate per-pack copy of the canonical contract stated on
+/// `Lint.Rule.isProtocolSentinel(_:)` (`Lint.Rule.Naming.Shared.swift`).
+/// Rule packs are independently consumable library products; the
+/// contract is copied, never re-derived. See #17.
 internal func structureIsProtocolSentinelName(_ name: Swift.String) -> Swift.Bool {
   return name == "Protocol" || name == "`Protocol`"
-}
-
-/// Strips a single MATCHED pair of surrounding backticks from a
-/// token's `.text` (which, unlike `.trimmedDescription`, includes the
-/// backticks for an escaped identifier). `` `Protocol` `` becomes
-/// `Protocol`; `Protocol` is returned unchanged.
-///
-/// Requires both a leading AND a trailing backtick (and a minimum
-/// length of 2) before stripping either — matching the contract used
-/// by the Byte/Conformance/Framework packs' independent copies of
-/// this primitive (`byteStripBackticks`, etc; see #17). The prior
-/// version dropped a leading and trailing backtick independently,
-/// which agrees with this on well-formed tokens but diverges on a
-/// malformed one-sided input (e.g. a single stray backtick).
-internal func structureStripBackticks(_ text: Swift.String) -> Swift.String {
-  guard text.count >= 2, text.hasPrefix("`"), text.hasSuffix("`") else { return text }
-  return Swift.String(text.dropFirst().dropLast())
 }
 
 /// The SwiftSyntax visitor-family base classes whose subclasses are
@@ -132,10 +72,11 @@ internal let structureSyntaxVisitorFamilyNames: Swift.Set<Swift.String> = [
 /// deinit body, subscript body) by testing `AccessorDeclSyntax` alone
 /// miss this shorthand form entirely.
 ///
-/// Pack-local duplicate of `namingIsShorthandGetterAccessorBlock` from
-/// `Lint.Rule.Naming.Shared.swift` (institute pack) — cross-pack
-/// visibility isn't available across the universal/institute tier
-/// boundary, so the helper is duplicated; semantics match.
+/// Deliberate per-pack copy of `namingIsShorthandGetterAccessorBlock`
+/// from `Lint.Rule.Naming.Shared.swift`. Rule packs are independently
+/// consumable library products; the contract is copied, never
+/// re-derived — there is no universal/institute tier boundary between
+/// two targets of this package. See #17. Semantics match.
 internal func structureIsShorthandGetterAccessorBlock(_ node: Syntax) -> Swift.Bool {
   guard let block = node.as(AccessorBlockSyntax.self) else { return false }
   if case .getter = block.accessors { return true }

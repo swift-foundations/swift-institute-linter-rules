@@ -146,7 +146,7 @@ private func byteTypeIsArrayOfByte(_ type: TypeSyntax) -> Swift.Bool {
     return byteTypeIsByteToken(arrayType.element)
   }
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    let leaf = byteStripBackticks(identifier.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(identifier.name.text)
     if byteCollectionTypeNames.contains(leaf),
       let genericArgs = identifier.genericArgumentClause
     {
@@ -169,7 +169,7 @@ private func byteTypeIsStdlibCollectionWithByteElement(
   whereClause: GenericWhereClauseSyntax?
 ) -> Swift.Bool {
   guard let identifier = type.as(IdentifierTypeSyntax.self) else { return false }
-  guard byteCollectionTypeNames.contains(byteStripBackticks(identifier.name.text)) else {
+  guard byteCollectionTypeNames.contains(Lint.Syntax.Identifier.unescaped(identifier.name.text)) else {
     return false
   }
   guard let whereClause else { return false }
@@ -183,10 +183,10 @@ private func byteTypeIsStdlibCollectionWithByteElement(
 
 private func byteTypeIsByteToken(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text) == "Byte"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "Byte"
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    return byteStripBackticks(memberType.name.text) == "Byte"
+    return Lint.Syntax.Identifier.unescaped(memberType.name.text) == "Byte"
   }
   return false
 }
@@ -197,8 +197,8 @@ private func byteRequirementIsElementEqualsByte(_ requirement: GenericRequiremen
   guard let sameType = requirement.requirement.as(SameTypeRequirementSyntax.self) else {
     return false
   }
-  let left = byteStripBackticks(sameType.leftType.trimmedDescription)
-  let right = byteStripBackticks(sameType.rightType.trimmedDescription)
+  let left = Lint.Syntax.Identifier.unescaped(sameType.leftType.trimmedDescription)
+  let right = Lint.Syntax.Identifier.unescaped(sameType.rightType.trimmedDescription)
   // Accept both bare `Element` and the idiomatic protocol-extension
   // spelling `Self.Element` (and, defensively, any `<Prefix>.Element`).
   // Also accept the reversed spelling `Byte == Element` — a same-type
@@ -242,7 +242,7 @@ private func byteInitializerMentionsUInt8(_ node: InitializerDeclSyntax) -> Swif
 /// `Optional<UInt8>`, `Span<UInt8>`).
 private func byteTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    if byteStripBackticks(identifier.name.text) == "UInt8" {
+    if Lint.Syntax.Identifier.unescaped(identifier.name.text) == "UInt8" {
       return true
     }
     if let genericArgs = identifier.genericArgumentClause {
@@ -255,7 +255,7 @@ private func byteTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.Bool {
     return false
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    if byteStripBackticks(memberType.name.text) == "UInt8" {
+    if Lint.Syntax.Identifier.unescaped(memberType.name.text) == "UInt8" {
       return true
     }
     if let genericArgs = memberType.genericArgumentClause {

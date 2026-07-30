@@ -145,17 +145,12 @@ internal final class RawValueTaggedExtensionPublicInitVisitor: SyntaxVisitor {
   /// unrelated outer type.
   private func extendsTagged(_ extendedType: TypeSyntax) -> Bool {
     if let identifier = extendedType.as(IdentifierTypeSyntax.self) {
-      return rawValueStripBackticks(identifier.name.text) == "Tagged"
+      return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "Tagged"
     }
     if let member = extendedType.as(MemberTypeSyntax.self) {
-      return rawValueStripBackticks(member.name.text) == "Tagged"
+      return Lint.Syntax.Identifier.unescaped(member.name.text) == "Tagged"
     }
     return false
-  }
-
-  private func rawValueStripBackticks(_ text: Swift.String) -> Swift.String {
-    guard text.count >= 2, text.hasPrefix("`"), text.hasSuffix("`") else { return text }
-    return Swift.String(text.dropFirst().dropLast())
   }
 
   private func hasPublicModifier(_ modifiers: DeclModifierListSyntax) -> Bool {

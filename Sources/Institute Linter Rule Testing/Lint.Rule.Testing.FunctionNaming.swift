@@ -77,10 +77,7 @@ internal final class TestingFunctionNamingVisitor: SyntaxVisitor {
     // signals declarative-narrative naming regardless of word count.
     //
     // Backtick-detection: `TokenSyntax.text` strips backticks from the
-    // unescaped identifier; `trimmedDescription` preserves them. Same
-    // technique as `Naming.isBackticked` in the institute Naming pack
-    // (Lint.Rule.Naming.Shared.swift) — inlined here to avoid cross-pack
-    // dependency for a 1-line check.
+    // unescaped identifier; `trimmedDescription` preserves them.
     if node.name.trimmedDescription.hasPrefix("`") {
       return .visitChildren
     }

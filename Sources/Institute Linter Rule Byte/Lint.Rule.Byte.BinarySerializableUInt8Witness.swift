@@ -102,7 +102,7 @@ internal final class ByteBinarySerializableUInt8WitnessVisitor: SyntaxVisitor {
 
   override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
     guard contextStack.last == true else { return .visitChildren }
-    let baseName = byteStripBackticks(node.name.text)
+    let baseName = Lint.Syntax.Identifier.unescaped(node.name.text)
     guard byteWitnessFunctionNames.contains(baseName) else { return .visitChildren }
     if byteFunctionHasDisfavoredOverload(node.attributes) {
       return .visitChildren
@@ -200,7 +200,7 @@ internal func extensionConformsToSerializableLike(_ node: ExtensionDeclSyntax) -
 
 private func byteTypeMatchesSerializableLike(_ type: TypeSyntax) -> Swift.Bool {
   guard let memberType = type.as(MemberTypeSyntax.self) else { return false }
-  let trailingName = byteStripBackticks(memberType.name.text)
+  let trailingName = Lint.Syntax.Identifier.unescaped(memberType.name.text)
   // Walk to the OUTERMOST root identifier, not just the immediate parent
   // leaf — `Binary.ASCII.Serializable`'s immediate base leaf is `ASCII`,
   // but the family's host is `Binary`. `byteSerializableLikeProtocolPairs`
@@ -220,7 +220,7 @@ private func byteTypeMatchesSerializableLike(_ type: TypeSyntax) -> Swift.Bool {
 /// `Binary.ASCII.Serializable`'s base `Binary.ASCII`.
 private func byteRootIdentifierName(_ type: TypeSyntax) -> Swift.String? {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text)
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text)
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
     return byteRootIdentifierName(memberType.baseType)
@@ -233,7 +233,7 @@ internal func byteFunctionHasDisfavoredOverload(_ attributes: AttributeListSynta
   for element in attributes {
     guard let attribute = element.as(AttributeSyntax.self) else { continue }
     guard let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self) else { continue }
-    if byteStripBackticks(identifier.name.text) == "_disfavoredOverload" {
+    if Lint.Syntax.Identifier.unescaped(identifier.name.text) == "_disfavoredOverload" {
       return true
     }
   }
@@ -253,8 +253,8 @@ private func byteRequirementIsElementEqualsUInt8(_ requirement: GenericRequireme
   let leftIsElement: Swift.Bool = {
     let parts = left.split(separator: ".")
     guard parts.count == 2 else { return false }
-    guard byteStripBackticks(Swift.String(parts[1])) == "Element" else { return false }
-    return byteWitnessElementTypeParameterNames.contains(byteStripBackticks(Swift.String(parts[0])))
+    guard Lint.Syntax.Identifier.unescaped(Swift.String(parts[1])) == "Element" else { return false }
+    return byteWitnessElementTypeParameterNames.contains(Lint.Syntax.Identifier.unescaped(Swift.String(parts[0])))
   }()
   guard leftIsElement else { return false }
   // RHS: `UInt8` or `Swift.UInt8`.

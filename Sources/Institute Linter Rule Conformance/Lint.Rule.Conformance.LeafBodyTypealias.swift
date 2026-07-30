@@ -120,12 +120,12 @@ private func inheritanceContainsLeafBodyProtocol(_ clause: InheritanceClauseSynt
 /// any entry in `leafBodyProtocolPairs`.
 private func typeMatchesLeafBodyProtocol(_ type: TypeSyntax) -> Swift.Bool {
   guard let memberType = type.as(MemberTypeSyntax.self) else { return false }
-  let trailingName = stripBackticks(memberType.name.text)
+  let trailingName = Lint.Syntax.Identifier.unescaped(memberType.name.text)
   let baseName: Swift.String
   if let identifier = memberType.baseType.as(IdentifierTypeSyntax.self) {
-    baseName = stripBackticks(identifier.name.text)
+    baseName = Lint.Syntax.Identifier.unescaped(identifier.name.text)
   } else if let nestedMember = memberType.baseType.as(MemberTypeSyntax.self) {
-    baseName = stripBackticks(nestedMember.name.text)
+    baseName = Lint.Syntax.Identifier.unescaped(nestedMember.name.text)
   } else {
     return false
   }
@@ -145,7 +145,7 @@ private func memberBlockHasBodyProperty(_ block: MemberBlockSyntax) -> Swift.Boo
     guard let variable = member.decl.as(VariableDeclSyntax.self) else { continue }
     for binding in variable.bindings {
       guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { continue }
-      if stripBackticks(pattern.identifier.text) == "body" {
+      if Lint.Syntax.Identifier.unescaped(pattern.identifier.text) == "body" {
         return true
       }
     }
@@ -159,15 +159,15 @@ private func memberBlockHasBodyProperty(_ block: MemberBlockSyntax) -> Swift.Boo
 private func memberBlockHasBodyNeverTypealias(_ block: MemberBlockSyntax) -> Swift.Bool {
   for member in block.members {
     guard let typealiasDecl = member.decl.as(TypeAliasDeclSyntax.self) else { continue }
-    guard stripBackticks(typealiasDecl.name.text) == "Body" else { continue }
+    guard Lint.Syntax.Identifier.unescaped(typealiasDecl.name.text) == "Body" else { continue }
     let value = typealiasDecl.initializer.value
     if let identifier = value.as(IdentifierTypeSyntax.self) {
-      if stripBackticks(identifier.name.text) == "Never" {
+      if Lint.Syntax.Identifier.unescaped(identifier.name.text) == "Never" {
         return true
       }
     }
     if let memberType = value.as(MemberTypeSyntax.self) {
-      if stripBackticks(memberType.name.text) == "Never" {
+      if Lint.Syntax.Identifier.unescaped(memberType.name.text) == "Never" {
         return true
       }
     }
@@ -175,7 +175,3 @@ private func memberBlockHasBodyNeverTypealias(_ block: MemberBlockSyntax) -> Swi
   return false
 }
 
-private func stripBackticks(_ text: Swift.String) -> Swift.String {
-  guard text.hasPrefix("`") && text.hasSuffix("`") && text.count >= 2 else { return text }
-  return Swift.String(text.dropFirst().dropLast())
-}

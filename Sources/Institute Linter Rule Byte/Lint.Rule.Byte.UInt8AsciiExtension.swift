@@ -96,16 +96,16 @@ internal final class ByteUInt8AsciiExtensionVisitor: SyntaxVisitor {
 /// Returns true when `type` is `UInt8.ASCII` (or `Swift.UInt8.ASCII`).
 private func extensionExtendsUInt8DotASCII(_ type: TypeSyntax) -> Swift.Bool {
   guard let memberType = type.as(MemberTypeSyntax.self) else { return false }
-  let trailing = byteStripBackticks(memberType.name.text)
+  let trailing = Lint.Syntax.Identifier.unescaped(memberType.name.text)
   guard trailing == "ASCII" else { return false }
   if let identifier = memberType.baseType.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text) == "UInt8"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "UInt8"
   }
   if let nestedMember = memberType.baseType.as(MemberTypeSyntax.self) {
-    let nestedTrailing = byteStripBackticks(nestedMember.name.text)
+    let nestedTrailing = Lint.Syntax.Identifier.unescaped(nestedMember.name.text)
     guard nestedTrailing == "UInt8" else { return false }
     if let swiftBase = nestedMember.baseType.as(IdentifierTypeSyntax.self) {
-      return byteStripBackticks(swiftBase.name.text) == "Swift"
+      return Lint.Syntax.Identifier.unescaped(swiftBase.name.text) == "Swift"
     }
     return false
   }
@@ -120,23 +120,23 @@ private func memberBlockDeclaresAsciiNamespaceMember(_ block: MemberBlockSyntax)
     if let variable = member.decl.as(VariableDeclSyntax.self) {
       for binding in variable.bindings {
         guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { continue }
-        if byteStripBackticks(pattern.identifier.text) == "ascii" {
+        if Lint.Syntax.Identifier.unescaped(pattern.identifier.text) == "ascii" {
           return true
         }
       }
     }
     if let function = member.decl.as(FunctionDeclSyntax.self) {
-      if byteStripBackticks(function.name.text) == "ascii" {
+      if Lint.Syntax.Identifier.unescaped(function.name.text) == "ascii" {
         return true
       }
     }
     if let nestedEnum = member.decl.as(EnumDeclSyntax.self) {
-      if byteStripBackticks(nestedEnum.name.text) == "ASCII" {
+      if Lint.Syntax.Identifier.unescaped(nestedEnum.name.text) == "ASCII" {
         return true
       }
     }
     if let nestedStruct = member.decl.as(StructDeclSyntax.self) {
-      if byteStripBackticks(nestedStruct.name.text) == "ASCII" {
+      if Lint.Syntax.Identifier.unescaped(nestedStruct.name.text) == "ASCII" {
         return true
       }
     }
@@ -148,13 +148,13 @@ private func memberBlockDeclaresAsciiNamespaceMember(_ block: MemberBlockSyntax)
 /// `Lint.Rule.Byte.UInt8ConformsToByteProtocol.swift` is `private`).
 private func extensionIsOnUInt8(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text) == "UInt8"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "UInt8"
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    let leaf = byteStripBackticks(memberType.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(memberType.name.text)
     guard leaf == "UInt8" else { return false }
     if let base = memberType.baseType.as(IdentifierTypeSyntax.self) {
-      return byteStripBackticks(base.name.text) == "Swift"
+      return Lint.Syntax.Identifier.unescaped(base.name.text) == "Swift"
     }
     return false
   }

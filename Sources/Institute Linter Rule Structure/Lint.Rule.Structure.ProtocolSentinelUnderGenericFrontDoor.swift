@@ -169,31 +169,18 @@ private func psgfdHasPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift.
   return false
 }
 
-private func psgfdStripBackticks(_ text: Swift.String) -> Swift.String {
-  guard text.count >= 2, text.hasPrefix("`"), text.hasSuffix("`") else { return text }
-  return Swift.String(text.dropFirst().dropLast())
-}
-
-/// The leaf (backtick-stripped) identifier name of `type`'s base —
-/// unwraps a `MemberTypeSyntax`'s trailing segment or an
-/// `IdentifierTypeSyntax`, ignoring any generic-argument clause. `nil`
-/// for shapes with no single resolvable identifier (tuples, function
-/// types, etc.).
+/// The leaf identifier name of `type`'s base — unwraps a
+/// `MemberTypeSyntax`'s trailing segment or an `IdentifierTypeSyntax`,
+/// ignoring any generic-argument clause. `nil` for shapes with no
+/// single resolvable identifier (tuples, function types, etc.).
 private func psgfdLeafIdentifierName(_ type: TypeSyntax) -> Swift.String? {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return psgfdStripBackticks(identifier.name.text)
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text)
   }
   if let member = type.as(MemberTypeSyntax.self) {
-    return psgfdStripBackticks(member.name.text)
+    return Lint.Syntax.Identifier.unescaped(member.name.text)
   }
   return nil
-}
-
-/// True if `name` is the institute `Protocol` sentinel (bare or
-/// backtick-escaped) — per [RULE-EXEMPT-5] (Protocol-sentinel) in the
-/// rule-exemptions skill.
-private func psgfdIsProtocolSentinelName(_ name: Swift.String) -> Swift.Bool {
-  psgfdStripBackticks(name) == "Protocol"
 }
 
 /// If `decl` is a nested type-like member (`typealias`/`struct`/
@@ -201,27 +188,27 @@ private func psgfdIsProtocolSentinelName(_ name: Swift.String) -> Swift.Bool {
 /// its name token's position; otherwise `nil`.
 private func psgfdProtocolSentinelPosition(_ decl: DeclSyntax) -> AbsolutePosition? {
   if let typealiasDecl = decl.as(TypeAliasDeclSyntax.self),
-    psgfdIsProtocolSentinelName(typealiasDecl.name.text)
+    structureIsProtocolSentinelName(typealiasDecl.name.text)
   {
     return typealiasDecl.name.positionAfterSkippingLeadingTrivia
   }
   if let structDecl = decl.as(StructDeclSyntax.self),
-    psgfdIsProtocolSentinelName(structDecl.name.text)
+    structureIsProtocolSentinelName(structDecl.name.text)
   {
     return structDecl.name.positionAfterSkippingLeadingTrivia
   }
   if let enumDecl = decl.as(EnumDeclSyntax.self),
-    psgfdIsProtocolSentinelName(enumDecl.name.text)
+    structureIsProtocolSentinelName(enumDecl.name.text)
   {
     return enumDecl.name.positionAfterSkippingLeadingTrivia
   }
   if let classDecl = decl.as(ClassDeclSyntax.self),
-    psgfdIsProtocolSentinelName(classDecl.name.text)
+    structureIsProtocolSentinelName(classDecl.name.text)
   {
     return classDecl.name.positionAfterSkippingLeadingTrivia
   }
   if let protocolDecl = decl.as(ProtocolDeclSyntax.self),
-    psgfdIsProtocolSentinelName(protocolDecl.name.text)
+    structureIsProtocolSentinelName(protocolDecl.name.text)
   {
     return protocolDecl.name.positionAfterSkippingLeadingTrivia
   }

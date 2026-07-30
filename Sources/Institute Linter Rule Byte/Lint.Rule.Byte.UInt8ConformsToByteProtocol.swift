@@ -85,13 +85,13 @@ internal final class ByteUInt8ConformsToByteProtocolVisitor: SyntaxVisitor {
 /// Returns true when `type` is `UInt8` or `Swift.UInt8`.
 private func extensionIsOnUInt8(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text) == "UInt8"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "UInt8"
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    let leaf = byteStripBackticks(memberType.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(memberType.name.text)
     guard leaf == "UInt8" else { return false }
     if let base = memberType.baseType.as(IdentifierTypeSyntax.self) {
-      return byteStripBackticks(base.name.text) == "Swift"
+      return Lint.Syntax.Identifier.unescaped(base.name.text) == "Swift"
     }
     return false
   }
@@ -112,18 +112,13 @@ private func inheritanceContainsByteProtocol(_ clause: InheritanceClauseSyntax) 
 
 internal func byteTypeIsByteProtocol(_ type: TypeSyntax) -> Swift.Bool {
   guard let memberType = type.as(MemberTypeSyntax.self) else { return false }
-  let trailingName = byteStripBackticks(memberType.name.text)
+  let trailingName = Lint.Syntax.Identifier.unescaped(memberType.name.text)
   guard trailingName == "Protocol" else { return false }
   if let identifier = memberType.baseType.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text) == "Byte"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "Byte"
   }
   if let nestedMember = memberType.baseType.as(MemberTypeSyntax.self) {
-    return byteStripBackticks(nestedMember.name.text) == "Byte"
+    return Lint.Syntax.Identifier.unescaped(nestedMember.name.text) == "Byte"
   }
   return false
-}
-
-internal func byteStripBackticks(_ text: Swift.String) -> Swift.String {
-  guard text.hasPrefix("`") && text.hasSuffix("`") && text.count >= 2 else { return text }
-  return Swift.String(text.dropFirst().dropLast())
 }

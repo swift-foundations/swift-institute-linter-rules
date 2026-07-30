@@ -83,7 +83,7 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
   private var currentQualifiedPath: Swift.String { enclosingPath.joined(separator: ".") }
 
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    enclosingPath.append(byteStripBackticks(node.name.text))
+    enclosingPath.append(Lint.Syntax.Identifier.unescaped(node.name.text))
     recordTypeDecl(inheritance: node.inheritanceClause)
     recordRawValueUInt8(members: node.memberBlock)
     return .visitChildren
@@ -91,7 +91,7 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
   override func visitPost(_: StructDeclSyntax) { _ = enclosingPath.popLast() }
 
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-    enclosingPath.append(byteStripBackticks(node.name.text))
+    enclosingPath.append(Lint.Syntax.Identifier.unescaped(node.name.text))
     recordTypeDecl(inheritance: node.inheritanceClause)
     recordRawValueUInt8(members: node.memberBlock)
     return .visitChildren
@@ -101,7 +101,7 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
   // Conformers are not restricted to struct/enum — `final class` and
   // `actor` conformers to `Binary.Serializable` are equally in scope.
   override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-    enclosingPath.append(byteStripBackticks(node.name.text))
+    enclosingPath.append(Lint.Syntax.Identifier.unescaped(node.name.text))
     recordTypeDecl(inheritance: node.inheritanceClause)
     recordRawValueUInt8(members: node.memberBlock)
     return .visitChildren
@@ -109,7 +109,7 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
   override func visitPost(_: ClassDeclSyntax) { _ = enclosingPath.popLast() }
 
   override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-    enclosingPath.append(byteStripBackticks(node.name.text))
+    enclosingPath.append(Lint.Syntax.Identifier.unescaped(node.name.text))
     recordTypeDecl(inheritance: node.inheritanceClause)
     recordRawValueUInt8(members: node.memberBlock)
     return .visitChildren
@@ -142,7 +142,7 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
       guard let variable = member.decl.as(VariableDeclSyntax.self) else { continue }
       for binding in variable.bindings {
         guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { continue }
-        if byteStripBackticks(pattern.identifier.text) != "rawValue" { continue }
+        if Lint.Syntax.Identifier.unescaped(pattern.identifier.text) != "rawValue" { continue }
         guard let typeAnnotation = binding.typeAnnotation else { continue }
         if byteTypeAnnotationIsUInt8(typeAnnotation.type) {
           typesWithRawValueUInt8.append(
@@ -174,13 +174,13 @@ internal final class ByteBinarySerializableRawValueUInt8Visitor: SyntaxVisitor {
 /// Returns true when a type annotation reads as `UInt8` or `Swift.UInt8`.
 internal func byteTypeAnnotationIsUInt8(_ type: TypeSyntax) -> Swift.Bool {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text) == "UInt8"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "UInt8"
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    let leaf = byteStripBackticks(memberType.name.text)
+    let leaf = Lint.Syntax.Identifier.unescaped(memberType.name.text)
     guard leaf == "UInt8" else { return false }
     if let base = memberType.baseType.as(IdentifierTypeSyntax.self) {
-      return byteStripBackticks(base.name.text) == "Swift"
+      return Lint.Syntax.Identifier.unescaped(base.name.text) == "Swift"
     }
     return false
   }
@@ -202,13 +202,13 @@ internal func inheritanceContainsSerializableLikeProtocol(_ clause: InheritanceC
 
 internal func byteTypeIsSerializableLike(_ type: TypeSyntax) -> Swift.Bool {
   guard let memberType = type.as(MemberTypeSyntax.self) else { return false }
-  let trailingName = byteStripBackticks(memberType.name.text)
+  let trailingName = Lint.Syntax.Identifier.unescaped(memberType.name.text)
   guard trailingName == "Serializable" || trailingName == "Parseable" else { return false }
   if let identifier = memberType.baseType.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text) == "Binary"
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text) == "Binary"
   }
   if let nestedMember = memberType.baseType.as(MemberTypeSyntax.self) {
-    return byteStripBackticks(nestedMember.name.text) == "Binary"
+    return Lint.Syntax.Identifier.unescaped(nestedMember.name.text) == "Binary"
   }
   return false
 }
@@ -217,10 +217,10 @@ internal func byteTypeIsSerializableLike(_ type: TypeSyntax) -> Swift.Bool {
 /// `RFC_791.TypeOfService` → `"TypeOfService"`; bare `Foo` → `"Foo"`.
 internal func byteExtensionExtendedLeafName(_ type: TypeSyntax) -> Swift.String? {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return byteStripBackticks(identifier.name.text)
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text)
   }
   if let memberType = type.as(MemberTypeSyntax.self) {
-    return byteStripBackticks(memberType.name.text)
+    return Lint.Syntax.Identifier.unescaped(memberType.name.text)
   }
   return nil
 }

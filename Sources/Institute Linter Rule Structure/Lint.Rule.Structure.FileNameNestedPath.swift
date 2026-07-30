@@ -151,7 +151,7 @@ private func structureFileNameNestedPathFindings(
       else { continue }
       for member in extensionDecl.memberBlock.members {
         guard let alias = member.decl.as(TypeAliasDeclSyntax.self) else { continue }
-        guard structureStripBackticks(alias.name.text) == "Protocol" else { continue }
+        guard Lint.Syntax.Identifier.unescaped(alias.name.text) == "Protocol" else { continue }
         guard
           let aliasedName = structureHoistedProtocolAliasDottedName(of: alias.initializer.value)
         else { continue }
@@ -291,7 +291,7 @@ private final class StructureFileNameNestedPathCollector: SyntaxVisitor {
   init() { super.init(viewMode: .sourceAccurate) }
 
   override func visit(_ node: SourceFileSyntax) -> SyntaxVisitorContinueKind {
-    for item in structureFlattenTopLevelItems(node.statements) {
+    for item in Lint.Syntax.IfConfig.statements(node.statements) {
       guard case .decl(let decl) = item.item else { continue }
       if let extensionDecl = decl.as(ExtensionDeclSyntax.self) {
         topLevelExtensions.append(extensionDecl)
