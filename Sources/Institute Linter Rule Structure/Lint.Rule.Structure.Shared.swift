@@ -56,25 +56,37 @@ internal func structureFlattenTopLevelItems(
 /// Citation: [RULE-EXEMPT-5] (Protocol-sentinel) in
 /// the rule-exemptions skill.
 ///
-/// Pack-local duplicate of `namingIsProtocolSentinelName` from
-/// `Lint.Rule.Naming.Shared.swift` (institute pack) — cross-pack
-/// visibility isn't available across the universal/institute tier
-/// boundary, so the helper is duplicated; semantics match. Used by
+/// Pack-local duplicate of `Lint.Rule.isProtocolSentinel(_:)` in
+/// `Lint.Rule.Naming.Shared.swift`. Both `Institute Linter Rule
+/// Naming` and `Institute Linter Rule Structure` are targets of THIS
+/// package at the same (institute) tier — there is no tier boundary
+/// between them, and the prior comment's rationale citing one was
+/// simply wrong. The real reason for the duplication is that no
+/// shared internal support target exists for these pack-independent
+/// syntax primitives yet (tracked under #17); consolidating is a
+/// disposition call for the package owner, not a fix bundled here.
+/// Semantics match the Naming original. Used by
 /// `Lint.Rule.Structure.MinimalTypeBody` to skip the typealias-name
 /// check on `Protocol`-named members.
 internal func structureIsProtocolSentinelName(_ name: Swift.String) -> Swift.Bool {
   return name == "Protocol" || name == "`Protocol`"
 }
 
-/// Strips a single pair of surrounding backticks from a token's `.text`
-/// (which, unlike `.trimmedDescription`, includes the backticks for an
-/// escaped identifier). `` `Protocol` `` becomes `Protocol`; `Protocol`
-/// is returned unchanged.
+/// Strips a single MATCHED pair of surrounding backticks from a
+/// token's `.text` (which, unlike `.trimmedDescription`, includes the
+/// backticks for an escaped identifier). `` `Protocol` `` becomes
+/// `Protocol`; `Protocol` is returned unchanged.
+///
+/// Requires both a leading AND a trailing backtick (and a minimum
+/// length of 2) before stripping either — matching the contract used
+/// by the Byte/Conformance/Framework packs' independent copies of
+/// this primitive (`byteStripBackticks`, etc; see #17). The prior
+/// version dropped a leading and trailing backtick independently,
+/// which agrees with this on well-formed tokens but diverges on a
+/// malformed one-sided input (e.g. a single stray backtick).
 internal func structureStripBackticks(_ text: Swift.String) -> Swift.String {
-  var slice = Swift.Substring(text)
-  if slice.hasPrefix("`") { slice = slice.dropFirst() }
-  if slice.hasSuffix("`") { slice = slice.dropLast() }
-  return Swift.String(slice)
+  guard text.count >= 2, text.hasPrefix("`"), text.hasSuffix("`") else { return text }
+  return Swift.String(text.dropFirst().dropLast())
 }
 
 /// The SwiftSyntax visitor-family base classes whose subclasses are
