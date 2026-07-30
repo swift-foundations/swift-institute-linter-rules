@@ -197,4 +197,16 @@ extension Lint.Rule.`nonisolated unsafe without invariant Tests`.Unit {
     let findings = Lint.Rule.`nonisolated unsafe without invariant Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `CRLF blank line between SAFETY and declaration breaks adjacency`() {
+    // Regression guard: `.carriageReturnLineFeeds(2)` (a blank line in
+    // a CRLF-line-ended file) must break adjacency exactly like
+    // `.newlines(2)` does. Built explicitly with `\r\n` rather than a
+    // triple-quoted literal so the CRLF sequence survives formatting.
+    let source =
+      "// SAFETY: Mutated only on the main thread under MainActor isolation.\r\n\r\nnonisolated(unsafe) var counter: Int = 0"
+    let findings = Lint.Rule.`nonisolated unsafe without invariant Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

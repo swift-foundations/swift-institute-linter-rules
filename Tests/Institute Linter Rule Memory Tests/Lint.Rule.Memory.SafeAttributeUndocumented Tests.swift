@@ -24,6 +24,7 @@ extension Lint.Rule {
     @Suite struct `Fire without disclosure` {}
     @Suite struct `Decl kinds` {}
     @Suite struct `Adjacency edges` {}
+    @Suite struct Scope {}
   }
 }
 
@@ -215,6 +216,21 @@ extension Lint.Rule.`safe attribute undocumented Tests`.`Fire without disclosure
           private let raw: Int
       }
       """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `safe struct with whitespace-only blank line between disclosure and decl fires`() {
+    // Regression guard: a blank line consisting only of horizontal
+    // whitespace (`// SAFETY: …\n␠␠\n@safe`) is still a blank-line
+    // break — two newline-like trivia pieces separated only by
+    // spaces/tabs must accumulate exactly like a single `newlines(2)`
+    // piece would, not reset per-piece and silently admit. Built via
+    // explicit `\n` + literal spaces (not a triple-quoted literal) so
+    // the whitespace-only line survives formatting.
+    let source =
+      "// SAFETY: Allocated once at init.\n  \n@safe\npublic struct Far {\n    private let raw: Int\n}"
     let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
@@ -442,6 +458,44 @@ extension Lint.Rule.`safe attribute undocumented Tests`.`Adjacency edges` {
       }
       """
     let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+}
+
+extension Lint.Rule.`safe attribute undocumented Tests`.Scope {
+  @Test
+  func `safe struct with no disclosure outside Sources is NOT flagged`() {
+    // The header doc and the message both assert this rule applies to
+    // declarations "in Sources/" — a file outside any Sources/ path
+    // component is out of scope regardless of disclosure state.
+    let source = """
+      @safe
+      public struct Padded {}
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(
+      in: source, file: "Tests/X/Fixture.swift")
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `safe struct with no disclosure in a nested Sources path is flagged`() {
+    let source = """
+      @safe
+      public struct Padded {}
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(
+      in: source, file: "Packages/Foo/Sources/Foo/Padded.swift")
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `safe struct with no disclosure at bare top-level file is NOT flagged`() {
+    let source = """
+      @safe
+      public struct Padded {}
+      """
+    let findings = Lint.Rule.`safe attribute undocumented Tests`.findings(
+      in: source, file: "script.swift")
     #expect(findings.isEmpty)
   }
 }

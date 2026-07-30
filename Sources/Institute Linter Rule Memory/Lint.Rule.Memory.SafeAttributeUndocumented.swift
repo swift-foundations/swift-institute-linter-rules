@@ -49,6 +49,20 @@ extension Lint.Rule {
     id: "safe attribute undocumented",
     default: .warning,
     findings: { source, severity in
+      // Scope: the header doc and the message both assert this rule
+      // applies to every `@safe`-attributed declaration IN `Sources/`
+      // — a file outside any `Sources/` path component (README
+      // snippets embedded as fixtures, `Tests/`, `Experiments/`,
+      // `Examples/`, a bare top-level script) is out of scope. Mirrors
+      // the inclusion/exclusion path-scoping convention used by
+      // `pointer advanced by` (`Lint.Rule.Memory.PointerArithmetic.swift`),
+      // adapted to an inclusion check since this rule's scope is
+      // phrased positively ("in Sources/") rather than as an
+      // exclusion list.
+      let path = source.file.filePath
+      guard path.hasPrefix("Sources/") || path.contains("/Sources/") else {
+        return []
+      }
       let visitor = MemorySafeAttributeUndocumentedVisitor(
         source: source.file,
         severity: severity,
@@ -183,15 +197,21 @@ internal final class MemorySafeAttributeUndocumentedVisitor: SyntaxVisitor {
   /// `// SAFETY:` or `// WHY:` prefix.
   private func triviaHasInvariantLineComment(_ trivia: Trivia) -> Bool {
     let pieces = Swift.Array(trivia)
+    // Accumulate consecutive newline-like counts across pieces —
+    // spaces/tabs between two newline pieces do NOT reset the count
+    // (a whitespace-only blank line, `// SAFETY: …\n␠␠\n@safe`, is
+    // still a blank-line break, not adjacency). Only a comment piece
+    // resets the counter, since that's content rather than
+    // inter-line whitespace.
+    var newlineRun = 0
     for piece in pieces.reversed() {
       switch piece {
-      case .newlines(let count):
-        if count >= 2 { return false }
-
-      case .carriageReturns(let count), .carriageReturnLineFeeds(let count):
-        if count >= 2 { return false }
+      case .newlines(let count), .carriageReturns(let count), .carriageReturnLineFeeds(let count):
+        newlineRun += count
+        if newlineRun >= 2 { return false }
 
       case .lineComment(let text):
+        newlineRun = 0
         let body = stripCommentPrefix(text)
         if isInvariantPrefix(body) {
           return true
@@ -206,6 +226,7 @@ internal final class MemorySafeAttributeUndocumentedVisitor: SyntaxVisitor {
         // They might satisfy the `Safety Invariant`-doc-section
         // branch (handled separately). Don't treat as adjacency
         // boundary — keep walking.
+        newlineRun = 0
         continue
 
       case .spaces, .tabs:
@@ -243,28 +264,32 @@ internal final class MemorySafeAttributeUndocumentedVisitor: SyntaxVisitor {
   private func triviaHasSafetyInvariantDocSection(_ trivia: Trivia) -> Bool {
     let pieces = Swift.Array(trivia)
     var collected: [Swift.String] = []
+    // Same accumulation discipline as `triviaHasInvariantLineComment`:
+    // a whitespace-only blank line is two newline-like pieces
+    // separated only by spaces/tabs, and must break adjacency exactly
+    // as a single `newlines(2)` piece would.
+    var newlineRun = 0
 
     for piece in pieces.reversed() {
       switch piece {
-      case .newlines(let count):
-        if count >= 2 {
-          return matchesSafetyInvariant(in: collected)
-        }
-
-      case .carriageReturns(let count), .carriageReturnLineFeeds(let count):
-        if count >= 2 {
+      case .newlines(let count), .carriageReturns(let count), .carriageReturnLineFeeds(let count):
+        newlineRun += count
+        if newlineRun >= 2 {
           return matchesSafetyInvariant(in: collected)
         }
 
       case .docLineComment(let text):
+        newlineRun = 0
         collected.append(text)
 
       case .docBlockComment(let text):
+        newlineRun = 0
         collected.append(text)
 
       case .lineComment, .blockComment:
         // Non-doc comments are tolerated — keep walking, the
         // doc-block might be earlier.
+        newlineRun = 0
         continue
 
       case .spaces, .tabs:

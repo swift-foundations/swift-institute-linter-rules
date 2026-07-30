@@ -142,8 +142,15 @@ internal final class MemoryNonisolatedUnsafeInvariantVisitor: SyntaxVisitor {
       case .spaces, .tabs:
         continue
 
-      case .carriageReturns, .carriageReturnLineFeeds:
-        newlinesSinceLastComment += piece.sourceLength.utf8Length > 0 ? 1 : 0
+      case .carriageReturns(let count), .carriageReturnLineFeeds(let count):
+        // Regression fix: this previously added at most 1 regardless
+        // of `count`, so `.carriageReturnLineFeeds(2)` — a blank line
+        // in a CRLF file — incremented by 1 and never reached the
+        // `>= 2` threshold, silently admitting a non-adjacent
+        // disclosure. Add the actual count, matching the `.newlines`
+        // branch and the sibling implementation in
+        // `PointerArithmetic.swift`.
+        newlinesSinceLastComment += count
         if newlinesSinceLastComment >= 2 { return false }
 
       default:
