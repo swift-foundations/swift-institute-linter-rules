@@ -16,6 +16,7 @@ public import Institute_Linter_Rule_Conformance
 public import Institute_Linter_Rule_Foundation
 public import Institute_Linter_Rule_Framework
 public import Institute_Linter_Rule_Idiom
+public import Institute_Linter_Rule_Manifest
 public import Institute_Linter_Rule_Memory
 public import Institute_Linter_Rule_Naming
 public import Institute_Linter_Rule_Platform
@@ -99,6 +100,14 @@ extension Lint.Rule.Bundle {
       .enable(.`counter loop iteration`),
       .enable(.`string utf8 scanning`),
       .enable(.`sli literal`),  // [IDX-019] (/promote-rule 2026-07-06)
+      // Implemented per swift-institute-linter-rules#4; advisory at
+      // introduction, error only after the graduation gate.
+      .enable(.`unknown default`),
+      // Manifest pack (swift-institute-linter-rules#4) — advisory at
+      // introduction; the predicate must be checked against `path:`
+      // overrides and constant-declared target names before its zero
+      // means anything at the error tier.
+      .enable(.`bare string dependency`),
       // Memory pack (Wave 3 2026-05-15)
       .enable(.`borrowing self short circuit`),
       .enable(.`noncopyable error`),
