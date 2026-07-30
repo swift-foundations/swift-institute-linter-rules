@@ -108,6 +108,10 @@ extension Lint.Rule.Bundle {
       // overrides and constant-declared target names before its zero
       // means anything at the error tier.
       .enable(.`bare string dependency`),
+      // [swift-structured-queries-primitives#2 ruling, 2026-07-30] —
+      // implemented per swift-institute-linter-rules#31. Advisory at
+      // introduction; error only after the standing graduation gate.
+      .enable(.`foundation integration leaf target`),
       // Memory pack (Wave 3 2026-05-15)
       .enable(.`borrowing self short circuit`),
       .enable(.`noncopyable error`),
