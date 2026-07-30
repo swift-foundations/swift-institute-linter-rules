@@ -128,9 +128,15 @@ extension Lint.Rule.`optionset shell pattern Tests`.`Edge Case` {
       struct Options: OptionSet {
           let rawValue: Int32
           init(rawValue: Int32) { self.rawValue = rawValue }
-          public static let default = Options(rawValue: 0)
+          public static let none = Options(rawValue: 0)
       }
       """
+    // Regression fix: the fixture previously named the binding
+    // `default` without backticks — a reserved keyword, which the
+    // parser cannot produce a well-formed binding from, so the
+    // isEmpty assertion below passed for the wrong reason (an
+    // unparseable/error-recovered tree, not the intended "non-Self
+    // initializer" shape). Renamed to a non-reserved identifier.
     // `Options(rawValue:)` not `Self(rawValue:)` — narrow rule scopes
     // to the canonical `Self(rawValue:)` shape used by the institute
     // convention.

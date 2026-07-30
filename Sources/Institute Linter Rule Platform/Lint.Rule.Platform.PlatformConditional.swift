@@ -85,6 +85,22 @@ internal let platformPlatformConditionalPlatformPrefixes: Swift.Set<Swift.String
   "Musl",
   "Bionic",
   "WinSDK",
+  // Regression fix: bare `Android` / `WASILibc` were already
+  // remembered in the C-library-modules EXEMPTION set above but
+  // forgotten here in the DETECTION set, so a platform-prefixed
+  // module built on one of them (`Android_Kernel_Standard`,
+  // `WASI_System`, `FreeBSD_Kernel`) was never flagged — the rule was
+  // strictly weaker on exactly the platforms most likely to carry
+  // sloppy `canImport` gating, in direct conflict with the cross-
+  // platform mandate. Note `platformPlatformConditionalIsPlatformModuleName`
+  // still checks the C-library-modules exemption FIRST, so the bare
+  // module names themselves (`Android`, `WASILibc`) remain exempt —
+  // only the `<Prefix>_`-suffixed platform-identity shape is newly
+  // detected.
+  "Android",
+  "WASI",
+  "FreeBSD",
+  "BSD",
 ]
 
 internal func platformPlatformConditionalIsPlatformModuleName(_ name: Swift.String) -> Swift.Bool {

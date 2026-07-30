@@ -37,9 +37,9 @@ extension Lint.Rule {
 @usableFromInline
 internal let platformConventionCRepresentabilityMessage: Swift.String =
   "[convention c representability] [PLAT-ARCH-005b]: `@convention(c)` "
-  + "function type takes `UnsafeMutablePointer<<UserType>>?` for a "
-  + "qualified type path — pure Swift structs (including @safe "
-  + "wrappers) are NOT @objc-representable and the compiler rejects "
+  + "function type takes `UnsafeMutablePointer<UserType>?` for a "
+  + "Swift-defined struct — pure Swift structs (including @safe "
+  + "wrappers) are NOT C-representable and the compiler rejects "
   + "them in @convention(c) signatures. Use `OpaquePointer?` or "
   + "`UnsafeMutableRawPointer?` in the callback signature; bind the "
   + "typed wrapper at the callback's first line."
@@ -65,8 +65,19 @@ internal func platformConventionCRepresentabilityHasConventionC(_ attributes: At
 }
 
 /// Returns true when `type` (after stripping optional / IUO /
-/// attributed wrappers) is `UnsafeMutablePointer<X>` where `X` is
-/// a qualified member-type path (`A.B`-shape).
+/// attributed wrappers) is `UnsafeMutablePointer<X>` /
+/// `UnsafePointer<X>` where `X` is a Swift-defined struct — i.e. NOT
+/// itself an `UnsafeMutablePointer`/`UnsafePointer` type, and NOT a
+/// type reached through a known C-interop module qualifier
+/// (`Darwin.kevent`, `Glibc.stat`, etc. — genuinely C-representable,
+/// and the house style for reaching such types in exactly the
+/// platform code this rule targets).
+///
+/// Both a bare bare `MyStruct` (`IdentifierTypeSyntax`) and a
+/// Swift-namespace-qualified `MyNamespace.MyStruct`
+/// (`MemberTypeSyntax` whose root is NOT a C-interop module) count as
+/// Swift-defined; only a `MemberTypeSyntax` rooted at a recognized
+/// C-interop module is exempt.
 internal func platformConventionCRepresentabilityIsUnsafePointerToUserType(_ type: TypeSyntax)
   -> Swift.Bool
 {
@@ -90,7 +101,23 @@ internal func platformConventionCRepresentabilityIsUnsafePointerToUserType(_ typ
   guard let genericArgs = identifier.genericArgumentClause,
     let argument = genericArgs.arguments.first
   else { return false }
-  return argument.argument.is(MemberTypeSyntax.self)
+  return !platformConventionCRepresentabilityIsCInteropReference(argument.argument)
+}
+
+/// True when `type` is a `MemberTypeSyntax` rooted at a recognized
+/// C-interop module (`Darwin`, `Glibc`, `Musl`, `Bionic`, `Android`,
+/// `WASILibc`, `WinSDK`, `ucrt`, `CRT` — the same module set
+/// `canimport conditional` treats as genuine C-library availability).
+/// A bare identifier (no qualifier at all) is never a C-interop
+/// reference — it's exactly the documented "Swift-defined struct"
+/// case this rule exists to catch.
+private func platformConventionCRepresentabilityIsCInteropReference(_ type: TypeSyntax) -> Swift.Bool
+{
+  guard let member = type.as(MemberTypeSyntax.self) else { return false }
+  var base = member.baseType
+  while let nested = base.as(MemberTypeSyntax.self) { base = nested.baseType }
+  guard let root = base.as(IdentifierTypeSyntax.self) else { return false }
+  return platformPlatformConditionalCLibraryModules.contains(root.name.text)
 }
 
 internal final class PlatformConventionCRepresentabilityVisitor: SyntaxVisitor {

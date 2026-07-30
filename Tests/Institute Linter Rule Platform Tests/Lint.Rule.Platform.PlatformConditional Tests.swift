@@ -123,6 +123,53 @@ extension Lint.Rule.`canimport conditional Tests`.Unit {
   }
 
   @Test
+  func `canImport Android-prefixed institute module is flagged`() {
+    // Regression guard: bare `Android` was already remembered in the
+    // C-library-module exemption set but forgotten in the detection
+    // set, so a platform-prefixed module built on it went undetected.
+    let source = """
+      #if canImport(Android_Kernel_Standard)
+      import Android_Kernel_Standard
+      #endif
+      """
+    let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `canImport bare Android is NOT flagged - C-library module availability`() {
+    let source = """
+      #if canImport(Android)
+      import Android
+      #endif
+      """
+    let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `canImport WASI-prefixed institute module is flagged`() {
+    let source = """
+      #if canImport(WASI_System)
+      import WASI_System
+      #endif
+      """
+    let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `canImport FreeBSD-prefixed institute module is flagged`() {
+    let source = """
+      #if canImport(FreeBSD_Kernel)
+      import FreeBSD_Kernel
+      #endif
+      """
+    let findings = Lint.Rule.`canimport conditional Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `canImport Windows in elseif is flagged`() {
     let source = """
       #if os(macOS)
