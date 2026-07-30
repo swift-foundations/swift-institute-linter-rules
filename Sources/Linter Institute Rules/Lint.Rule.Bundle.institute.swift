@@ -139,6 +139,9 @@ extension Lint.Rule.Bundle {
       // measurement primitive. The rule definition stays in the
       // Institute_Linter_Rule_Testing module for re-enable convenience.
       // .enable(.`benchmark timed required`),
+      // [TEST-009] — implemented per swift-institute-linter-rules#10;
+      // advisory at introduction, error only after the graduation gate.
+      .enable(.`test file suffix`),
       .enable(.`test function naming`),
       .enable(.`performance suite serialized`),
       // Throws pack (Wave 3 2026-05-15)
