@@ -82,6 +82,98 @@ internal func structureIsShorthandGetterAccessorBlock(_ node: Syntax) -> Swift.B
   return false
 }
 
+/// Whether `node` is file-significant for `single type per file`'s
+/// purposes: reachable from `SourceFileSyntax` without crossing a
+/// nominal-type body or a function-like body, treating
+/// `ExtensionDeclSyntax` and `IfConfigDeclSyntax` as TRANSPARENT.
+///
+/// This is the extension-transparent sibling of
+/// `Lint.Syntax.Scope.isTopLevel(_:)` (`Linter Primitives`, #17):
+/// that helper stops on `ExtensionDeclSyntax`, but under the
+/// institute `Nest.Name` convention every type is declared via
+/// `extension Parent { struct X }`, so an extension-nested type IS
+/// file-significant here — this rule must not call the primitives
+/// helper bare. Declared separately, named for its own intent,
+/// rather than accidentally diverging from a shared helper (#28
+/// defect 4).
+///
+/// Walks `node.parent` upward, skipping `ExtensionDeclSyntax` and
+/// `IfConfigDeclSyntax` ancestors. Returns `true` on reaching
+/// `SourceFileSyntax`; returns `false` on the first nominal-type
+/// (`StructDeclSyntax`, `ClassDeclSyntax`, `EnumDeclSyntax`,
+/// `ActorDeclSyntax`, `ProtocolDeclSyntax`) or function-like
+/// (`FunctionDeclSyntax`, `InitializerDeclSyntax`,
+/// `DeinitializerDeclSyntax`, `SubscriptDeclSyntax`,
+/// `AccessorDeclSyntax`, `AccessorBlockSyntax`, `ClosureExprSyntax`)
+/// ancestor — a type declared inside a function body, an accessor
+/// body, or a closure is not file-significant, unlike the prior
+/// hand-rolled `currentDepth` counter, which never bumped depth for
+/// those container kinds and so treated a function-local type as a
+/// second top-level type.
+internal func structureIsFileSignificant(_ node: some SyntaxProtocol) -> Swift.Bool {
+  var current: Syntax? = Syntax(node).parent
+  while let ancestor = current {
+    if ancestor.is(SourceFileSyntax.self) {
+      return true
+    }
+    if ancestor.is(ExtensionDeclSyntax.self) || ancestor.is(IfConfigDeclSyntax.self) {
+      current = ancestor.parent
+      continue
+    }
+    if ancestor.is(StructDeclSyntax.self)
+      || ancestor.is(ClassDeclSyntax.self)
+      || ancestor.is(EnumDeclSyntax.self)
+      || ancestor.is(ActorDeclSyntax.self)
+      || ancestor.is(ProtocolDeclSyntax.self)
+      || ancestor.is(FunctionDeclSyntax.self)
+      || ancestor.is(InitializerDeclSyntax.self)
+      || ancestor.is(DeinitializerDeclSyntax.self)
+      || ancestor.is(SubscriptDeclSyntax.self)
+      || ancestor.is(AccessorDeclSyntax.self)
+      || ancestor.is(AccessorBlockSyntax.self)
+      || ancestor.is(ClosureExprSyntax.self)
+    {
+      return false
+    }
+    current = ancestor.parent
+  }
+  return false
+}
+
+/// Builds the dotted-path spelling of `type`, stripping backticks from
+/// EACH segment independently (not the whole joined path) — the
+/// ecosystem's own hoisted-protocol idiom spells the sentinel member
+/// with backticks (`` `Protocol` ``), and a bare
+/// `Lint.Syntax.Identifier.unescaped(_:)` call on the fully-joined path
+/// would only strip the outermost pair
+/// (leaving e.g. ``Foo.`Protocol`` malformed) rather than un-escaping
+/// the trailing segment.
+///
+/// The pack's de-facto shared path helper (#28 defect 7.3) — moved
+/// here from `Lint.Rule.Structure.HoistedProtocolAlias.swift`, renamed
+/// from `structureHoistedProtocolAliasDottedName`, so its three
+/// call sites (`HoistedProtocolAlias`, `ExtensionFileNaming`,
+/// `FileNameNestedPath`) share one definition instead of a de-facto
+/// shared helper living inside one rule's file.
+internal func structureDottedName(of type: TypeSyntax) -> Swift.String? {
+  if let identifier = type.as(IdentifierTypeSyntax.self) {
+    return Lint.Syntax.Identifier.unescaped(identifier.name.text)
+  }
+  if let member = type.as(MemberTypeSyntax.self) {
+    guard let baseName = structureDottedName(of: member.baseType) else {
+      return nil
+    }
+    return "\(baseName).\(Lint.Syntax.Identifier.unescaped(member.name.text))"
+  }
+  if let metatype = type.as(MetatypeTypeSyntax.self) {
+    guard let baseName = structureDottedName(of: metatype.baseType) else {
+      return nil
+    }
+    return "\(baseName).\(Lint.Syntax.Identifier.unescaped(metatype.metatypeSpecifier.text))"
+  }
+  return nil
+}
+
 internal func structureExtendsSyntaxVisitor(_ clause: InheritanceClauseSyntax?) -> Swift.Bool {
   guard let clause else { return false }
   for inherited in clause.inheritedTypes {

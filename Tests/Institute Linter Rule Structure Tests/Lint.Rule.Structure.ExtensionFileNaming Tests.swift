@@ -103,7 +103,7 @@ extension Lint.Rule.`extension file naming Tests`.Positive {
 
   @Test
   func `mixed-base file with a sugared extended type is still detected`() {
-    // Regression guard: `structureHoistedProtocolAliasDottedName` returns
+    // Regression guard: `structureDottedName` returns
     // nil for a sugared extended type (`[Int]`), and a `compactMap` over
     // that would silently drop it from the base set, letting a
     // genuinely mixed-base file pass `bases.count == 1` undetected.

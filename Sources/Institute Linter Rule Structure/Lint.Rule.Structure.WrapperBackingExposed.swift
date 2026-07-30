@@ -114,6 +114,23 @@ internal final class StructureWrapperBackingExposedVisitor: SyntaxVisitor {
   }
   override func visitPost(_: ActorDeclSyntax) { typeDepth -= 1 }
 
+  // #28 defect 5: previously only struct/class/actor bumped
+  // `typeDepth`, so a backing property declared in an `enum` body or
+  // in an `extension` (`extension Lane { public var _backing … }` —
+  // the common authoring site under one-type-per-file) was never
+  // flagged.
+  override func visit(_: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+    typeDepth += 1
+    return .visitChildren
+  }
+  override func visitPost(_: EnumDeclSyntax) { typeDepth -= 1 }
+
+  override func visit(_: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
+    typeDepth += 1
+    return .visitChildren
+  }
+  override func visitPost(_: ExtensionDeclSyntax) { typeDepth -= 1 }
+
   override func visit(_ node: VariableDeclSyntax) -> SyntaxVisitorContinueKind {
     guard typeDepth > 0 else { return .visitChildren }
     if structureWrapperBackingExposedHasPrivateOrFilePrivate(node.modifiers) {

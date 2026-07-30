@@ -145,7 +145,7 @@ private func structureFileNameNestedPathFindings(
     let protocolName = protocolDecl.name.text
     for extensionDecl in collector.topLevelExtensions {
       guard
-        let carrierPath = structureHoistedProtocolAliasDottedName(
+        let carrierPath = structureDottedName(
           of: extensionDecl.extendedType
         )
       else { continue }
@@ -153,7 +153,7 @@ private func structureFileNameNestedPathFindings(
         guard let alias = member.decl.as(TypeAliasDeclSyntax.self) else { continue }
         guard Lint.Syntax.Identifier.unescaped(alias.name.text) == "Protocol" else { continue }
         guard
-          let aliasedName = structureHoistedProtocolAliasDottedName(of: alias.initializer.value)
+          let aliasedName = structureDottedName(of: alias.initializer.value)
         else { continue }
         guard aliasedName == protocolName else { continue }
         dottedPath = "\(carrierPath).Protocol"
@@ -295,7 +295,7 @@ private final class StructureFileNameNestedPathCollector: SyntaxVisitor {
       guard case .decl(let decl) = item.item else { continue }
       if let extensionDecl = decl.as(ExtensionDeclSyntax.self) {
         topLevelExtensions.append(extensionDecl)
-        let prefix = structureHoistedProtocolAliasDottedName(of: extensionDecl.extendedType) ?? ""
+        let prefix = structureDottedName(of: extensionDecl.extendedType) ?? ""
         var nominalMembers: [DeclSyntax] = []
         for member in extensionDecl.memberBlock.members
         where structureFileNameNestedPathIsPrimaryTypeDecl(member.decl) {

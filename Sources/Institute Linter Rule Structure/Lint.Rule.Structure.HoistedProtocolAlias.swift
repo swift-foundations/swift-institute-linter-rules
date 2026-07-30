@@ -43,33 +43,6 @@ internal let structureHoistedProtocolAliasMessage: Swift.String =
   + "typealias path (`Owner.Inner.Protocol`) is for CONSUMER "
   + "modules — different type, no cycle."
 
-/// Builds the dotted-path spelling of `type`, stripping backticks from
-/// EACH segment independently (not the whole joined path) — the
-/// ecosystem's own hoisted-protocol idiom spells the sentinel member
-/// with backticks (`` `Protocol` ``), and a bare
-/// `Lint.Syntax.Identifier.unescaped(_:)` call on the fully-joined path
-/// would only strip the outermost pair
-/// (leaving e.g. ``Foo.`Protocol`` malformed) rather than un-escaping
-/// the trailing segment.
-internal func structureHoistedProtocolAliasDottedName(of type: TypeSyntax) -> Swift.String? {
-  if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return Lint.Syntax.Identifier.unescaped(identifier.name.text)
-  }
-  if let member = type.as(MemberTypeSyntax.self) {
-    guard let baseName = structureHoistedProtocolAliasDottedName(of: member.baseType) else {
-      return nil
-    }
-    return "\(baseName).\(Lint.Syntax.Identifier.unescaped(member.name.text))"
-  }
-  if let metatype = type.as(MetatypeTypeSyntax.self) {
-    guard let baseName = structureHoistedProtocolAliasDottedName(of: metatype.baseType) else {
-      return nil
-    }
-    return "\(baseName).\(Lint.Syntax.Identifier.unescaped(metatype.metatypeSpecifier.text))"
-  }
-  return nil
-}
-
 internal func structureHoistedProtocolAliasIsSelfProtocolConformance(
   extendedName: Swift.String,
   inheritedName: Swift.String
@@ -92,7 +65,7 @@ internal final class StructureHoistedProtocolAliasVisitor: SyntaxVisitor {
 
   override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
     guard
-      let extendedName = structureHoistedProtocolAliasDottedName(
+      let extendedName = structureDottedName(
         of: node.extendedType
       )
     else {
@@ -103,7 +76,7 @@ internal final class StructureHoistedProtocolAliasVisitor: SyntaxVisitor {
     }
     for inherited in inheritance.inheritedTypes {
       guard
-        let inheritedName = structureHoistedProtocolAliasDottedName(
+        let inheritedName = structureDottedName(
           of: inherited.type
         )
       else { continue }

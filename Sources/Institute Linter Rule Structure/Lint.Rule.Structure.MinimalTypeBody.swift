@@ -111,8 +111,12 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
       ))
   }
 
-  private func checkMembers(_ members: MemberBlockItemListSyntax) {
-    for member in members {
+  private func checkMembers(_ block: MemberBlockSyntax) {
+    // #28 defect 2: enumerating `block.members` by hand drops every
+    // `#if`-guarded member. `Lint.Syntax.IfConfig.members(_:)` splices
+    // each clause's members in recursively so a platform-conditional
+    // member is checked exactly as an unguarded one would be.
+    for member in Lint.Syntax.IfConfig.members(block) {
       let decl = member.decl
       if let variable = decl.as(VariableDeclSyntax.self) {
         if structureMinimalTypeBodyIsStaticOrClassMember(variable.modifiers) {
@@ -183,15 +187,20 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
   /// zero semantic gain.
   ///
   /// Pack-local duplicate of `namingHasExtensionPatternAttribute` in
-  /// `Lint.Rule.Naming.Shared.swift` — cross-pack visibility isn't
-  /// available across the universal/institute tier boundary, so the
-  /// helper is duplicated; semantics match. See
-  /// the rule-exemptions skill.
+  /// `Lint.Rule.Naming.Shared.swift` — the two packs are independently
+  /// consumable library products, so the contract is copied rather
+  /// than shared; semantics match. See the rule-exemptions skill.
   private func hasExtensionPatternAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
     for attribute in attributes {
       guard let attr = attribute.as(AttributeSyntax.self) else { continue }
       let name = attr.attributeName.trimmedDescription
-      if name == "resultBuilder" || name == "Suite" {
+      // #28 defect 7.4: accept the qualified spelling
+      // (`@Testing.Suite`) too, matching `Shared.swift`'s handling —
+      // the bare-name-only comparison previously dropped the
+      // [RULE-EXEMPT-4] exemption for it.
+      if name == "resultBuilder" || name == "Suite"
+        || name.hasSuffix(".resultBuilder") || name.hasSuffix(".Suite")
+      {
         return true
       }
     }
@@ -202,7 +211,7 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
     if hasExtensionPatternAttribute(node.attributes) {
       return .visitChildren
     }
-    checkMembers(node.memberBlock.members)
+    checkMembers(node.memberBlock)
     return .visitChildren
   }
 
@@ -223,7 +232,7 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
     if structureExtendsSyntaxVisitor(node.inheritanceClause) {
       return .visitChildren
     }
-    checkMembers(node.memberBlock.members)
+    checkMembers(node.memberBlock)
     return .visitChildren
   }
 
@@ -231,7 +240,7 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
     if hasExtensionPatternAttribute(node.attributes) {
       return .visitChildren
     }
-    checkMembers(node.memberBlock.members)
+    checkMembers(node.memberBlock)
     return .visitChildren
   }
 
@@ -239,7 +248,7 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
     if hasExtensionPatternAttribute(node.attributes) {
       return .visitChildren
     }
-    checkMembers(node.memberBlock.members)
+    checkMembers(node.memberBlock)
     return .visitChildren
   }
 }

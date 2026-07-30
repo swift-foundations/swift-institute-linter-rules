@@ -56,7 +56,6 @@ internal final class StructureSingleTypePerFileVisitor: SyntaxVisitor {
   let severity: Diagnostic.Severity
   let converter: SourceLocationConverter
   var matches: [Diagnostic.Record] = []
-  var currentDepth: Int = 0
   var topLevelCount: Cardinal = .zero
 
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
@@ -66,8 +65,19 @@ internal final class StructureSingleTypePerFileVisitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
-  private func handleTypeDecl(at position: AbsolutePosition) {
-    guard currentDepth == 0 else { return }
+  // #28 defect 4: the hand-rolled `currentDepth` counter bumped for
+  // struct/class/enum/actor/protocol but never for a function-like
+  // container, so a type declared inside a function body was counted
+  // at depth 0 — a second top-level type, with a prescribed fix
+  // ("move to its own file") that cannot apply to it. Replaced with
+  // the structural ancestor walk `structureIsFileSignificant(_:)`
+  // (`Lint.Rule.Structure.Shared.swift`), the extension-transparent
+  // sibling of `Lint.Syntax.Scope.isTopLevel(_:)` — enumerating
+  // container kinds is what produced this defect (and the identical
+  // one in #21 blocker 3's `compound platform namespace root`); the
+  // ancestor walk does not have a "kind I forgot" failure mode.
+  private func handleTypeDecl(_ node: some SyntaxProtocol, at position: AbsolutePosition) {
+    guard structureIsFileSignificant(node) else { return }
     topLevelCount += .one
     guard topLevelCount > .one else { return }
     let location = converter.location(for: position)
@@ -86,48 +96,28 @@ internal final class StructureSingleTypePerFileVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    handleTypeDecl(at: node.name.positionAfterSkippingLeadingTrivia)
-    currentDepth += 1
+    handleTypeDecl(node, at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
   }
-  override func visitPost(_ node: StructDeclSyntax) { currentDepth -= 1 }
 
   override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-    handleTypeDecl(at: node.name.positionAfterSkippingLeadingTrivia)
-    currentDepth += 1
+    handleTypeDecl(node, at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
   }
-  override func visitPost(_ node: ClassDeclSyntax) { currentDepth -= 1 }
 
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-    handleTypeDecl(at: node.name.positionAfterSkippingLeadingTrivia)
-    currentDepth += 1
+    handleTypeDecl(node, at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
   }
-  override func visitPost(_ node: EnumDeclSyntax) { currentDepth -= 1 }
 
   override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-    handleTypeDecl(at: node.name.positionAfterSkippingLeadingTrivia)
-    currentDepth += 1
+    handleTypeDecl(node, at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
   }
-  override func visitPost(_ node: ActorDeclSyntax) { currentDepth -= 1 }
 
   override func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
-    handleTypeDecl(at: node.name.positionAfterSkippingLeadingTrivia)
-    currentDepth += 1
+    handleTypeDecl(node, at: node.name.positionAfterSkippingLeadingTrivia)
     return .visitChildren
-  }
-  override func visitPost(_ node: ProtocolDeclSyntax) { currentDepth -= 1 }
-
-  // Extensions are TRANSPARENT to type-nesting depth. Under the institute
-  // `Nest.Name` convention every type is declared via `extension Parent { struct X }`,
-  // so a type declared directly inside an extension is file-significant and MUST be
-  // counted at depth 0. Only a type nested inside another type's BODY (depth > 0) is a
-  // member type ([API-IMPL-008] governs those). Extensions therefore do NOT bump depth —
-  // bumping them (the prior behavior) made this rule inert on all extension-nested code.
-  override func visit(_: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-    .visitChildren
   }
 
   // `#if` / `#elseif` / `#else` clauses are mutually exclusive at

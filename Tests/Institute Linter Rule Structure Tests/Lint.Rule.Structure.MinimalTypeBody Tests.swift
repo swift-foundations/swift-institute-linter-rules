@@ -437,4 +437,35 @@ extension Lint.Rule.`minimal type body Tests`.`Edge Case` {
     let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // #28 defect 2: no `#if`-shaped fixture existed anywhere in the
+  // pack, which is exactly why a hand-rolled member enumeration could
+  // silently drop `#if`-guarded members.
+
+  @Test
+  func `method guarded by if os is still flagged`() {
+    let source = """
+      struct Foo {
+          #if os(Linux)
+          func f() {}
+          #endif
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // #28 defect 7.4: the qualified `@Testing.Suite` spelling must be
+  // recognized too, matching `Shared.swift`'s handling.
+
+  @Test
+  func `qualified Testing dot Suite struct is exempt per RULE-EXEMPT-4`() {
+    let source = """
+      @Testing.Suite struct Foo {
+          @Suite struct Unit {}
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }

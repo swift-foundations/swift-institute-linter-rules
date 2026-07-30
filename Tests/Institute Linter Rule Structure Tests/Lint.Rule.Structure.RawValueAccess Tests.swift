@@ -269,4 +269,35 @@ extension Lint.Rule.`raw value access Tests`.`Edge Case` {
     let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // #28 nit 2: `isDirectlyInsideInitializer`'s `Deinitializer` /
+  // `Subscript` walk-stopper guards were untested. Pinning both
+  // fixtures before touching the guards, per the ruling.
+
+  @Test
+  func `rawValue access inside a deinit body is flagged`() {
+    let source = """
+      final class Owner {
+          let x: MyTag
+          deinit {
+              log(x.rawValue)
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `rawValue access inside an explicit subscript body is flagged`() {
+    let source = """
+      struct Table {
+          subscript(i: Int) -> Int {
+              get { tags[i].rawValue }
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

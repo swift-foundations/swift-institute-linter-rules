@@ -176,4 +176,29 @@ extension Lint.Rule.`wrapper backing exposed Tests`.`Edge Case` {
     let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  // #28 defect 5: enum bodies and extension-declared backings were
+  // previously invisible.
+
+  @Test
+  func `backing property declared in an extension is flagged`() {
+    let source = """
+      extension Lane {
+          public var _backing: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `backing property declared in an enum is flagged`() {
+    let source = """
+      enum Lane {
+          public static var _backing = 0
+      }
+      """
+    let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

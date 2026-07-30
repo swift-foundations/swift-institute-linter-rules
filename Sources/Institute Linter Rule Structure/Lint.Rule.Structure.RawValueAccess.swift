@@ -41,10 +41,14 @@ extension Lint.Rule {
 internal let structureRawValueAccessMessage: Swift.String =
   "[raw value access] [PATTERN-017]: `.rawValue` / `.position` at a "
   + "consumer call site bypasses the typed-conversion ladder. These "
-  + "accessors are reserved for extension initializers (the brand-newtype's "
-  + "own boundary) and same-package implementations. Prefer the typed "
-  + "operation; suppress with `// swift-linter:disable:next raw value access` "
-  + "and a `// REASON:` continuation for legitimate same-package use."
+  + "accessors are reserved for the brand-newtype's own initializers — "
+  + "the typed-conversion boundary the ladder terminates in — and "
+  + "same-package implementations. Only the directly enclosing "
+  + "initializer counts; a closure or nested function inside an "
+  + "initializer is ordinary consumer code and still fires. Prefer the "
+  + "typed operation; suppress with "
+  + "`// swift-linter:disable:next raw value access` and a `// REASON:` "
+  + "continuation for legitimate same-package use."
 
 internal let structureRawValueAccessFlaggedAccessors: Swift.Set<Swift.String> = [
   "rawValue", "position",
@@ -80,6 +84,20 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
     return .visitChildren
   }
   override func visitPost(_: InitializerDeclSyntax) {
+    bodyDepth -= 1
+  }
+  // #28 nit 2: `deinit { x.rawValue }` was previously invisible to
+  // this rule — nothing bumped `bodyDepth` for a `DeinitializerDeclSyntax`
+  // body, so the `guard bodyDepth > 0` in the member-access visit
+  // below short-circuited before `isDirectlyInsideInitializer`'s
+  // `Deinitializer` walk-stopper guard was ever reached. The ruled
+  // fixture (`deinit { x.rawValue }` → 1 finding) requires this bump
+  // to exist at all.
+  override func visit(_: DeinitializerDeclSyntax) -> SyntaxVisitorContinueKind {
+    bodyDepth += 1
+    return .visitChildren
+  }
+  override func visitPost(_: DeinitializerDeclSyntax) {
     bodyDepth -= 1
   }
   override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind {

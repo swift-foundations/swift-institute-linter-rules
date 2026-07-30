@@ -276,4 +276,57 @@ extension Lint.Rule.`single type per file Tests`.`Edge Case` {
     let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // #28 defect 4: a function-local type was previously counted at
+  // depth 0 (functions never bumped `currentDepth`), so it registered
+  // as a second top-level type even though "move to its own file"
+  // cannot apply to it.
+
+  @Test
+  func `function-local type is not a second file-scope type`() {
+    let source = """
+      struct A {}
+      func f() { struct B {} }
+      """
+    let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `two types each declared in a separate extension are still both flagged`() {
+    // Guards the extension-transparency behavior: this must still
+    // fire, unlike the function-local case above.
+    let source = """
+      extension P { struct A {} }
+      extension P { struct B {} }
+      """
+    let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `type declared inside a computed property accessor body is not a second file-scope type`() {
+    let source = """
+      struct A {
+          var b: Int {
+              struct Local {}
+              return 0
+          }
+      }
+      """
+    let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `type declared inside a closure body is not a second file-scope type`() {
+    let source = """
+      struct A {}
+      let f = {
+          struct Local {}
+      }
+      """
+    let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }

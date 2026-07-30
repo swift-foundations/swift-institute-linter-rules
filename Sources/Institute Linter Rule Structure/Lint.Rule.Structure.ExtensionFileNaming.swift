@@ -133,7 +133,7 @@ private func structureExtensionFileNamingFindings(
   }
 
   // Mixed-base detection: every extension's extended-type must resolve to
-  // the same base key. `structureHoistedProtocolAliasDottedName` returns
+  // the same base key. `structureDottedName` returns
   // nil for anything that isn't an identifier/member/metatype type (sugar
   // and tuple forms — `[Int]`, `Int?`, …); fall back to the type's own
   // trimmed text so those extensions still contribute a distinguishing
@@ -152,7 +152,7 @@ private func structureExtensionFileNamingFindings(
   let conformances = collector.extensions.flatMap { extensionDecl -> [Swift.String] in
     guard let clause = extensionDecl.inheritanceClause else { return [] }
     return clause.inheritedTypes.compactMap {
-      structureHoistedProtocolAliasDottedName(of: $0.type).map(Lint.Syntax.Identifier.unescaped)
+      structureDottedName(of: $0.type).map(Lint.Syntax.Identifier.unescaped)
     }
   }
   let hasWhere = collector.extensions.contains { $0.genericWhereClause != nil }
@@ -269,13 +269,13 @@ private final class StructureExtensionFileNamingCollector: SyntaxVisitor {
 
 /// Resolves an extended-type to a base key for mixed-base detection: the
 /// dotted path when resolvable, or the type's own trimmed source text
-/// otherwise (sugar / tuple / other forms `structureHoistedProtocolAliasDottedName`
+/// otherwise (sugar / tuple / other forms `structureDottedName`
 /// doesn't resolve). Every extension MUST contribute a key — silently
 /// dropping unresolvable ones (via `compactMap`) can hide a genuinely
 /// mixed-base file, or exempt the whole file when it was the first
 /// extension whose extended type fell through.
 private func structureExtensionFileNamingBaseKey(_ type: TypeSyntax) -> Swift.String {
-  structureHoistedProtocolAliasDottedName(of: type) ?? type.trimmedDescription
+  structureDottedName(of: type) ?? type.trimmedDescription
 }
 
 /// Returns true if `candidate` (the basename tail after `<Base>+`) names
