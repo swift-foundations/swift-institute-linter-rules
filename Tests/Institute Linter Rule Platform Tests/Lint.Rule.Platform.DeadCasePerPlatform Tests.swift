@@ -104,4 +104,60 @@ extension Lint.Rule.`dead case per platform Tests`.`Edge Case` {
     let findings = Lint.Rule.`dead case per platform Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  // MARK: - #21 defect 4: subset (not exact-set-equality) matching
+
+  @Test
+  func `platform pair plus an extra non-platform case still fires`() {
+    let source = """
+      public enum Encoding {
+          case posix
+          case windows
+          case unknown
+      }
+      """
+    let findings = Lint.Rule.`dead case per platform Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `macOS linux pair is flagged`() {
+    let source = """
+      public enum Encoding {
+          case macOS
+          case linux
+      }
+      """
+    let findings = Lint.Rule.`dead case per platform Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `macOS windows pair is flagged`() {
+    let source = """
+      public enum Encoding {
+          case macOS
+          case windows
+      }
+      """
+    let findings = Lint.Rule.`dead case per platform Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // MARK: - #21 defect 5: member-position `#if` was invisible
+
+  @Test
+  func `platform case guarded by member-position if os is flagged`() {
+    let source = """
+      public enum Encoding {
+          #if os(Windows)
+          case windows
+          #else
+          case posix
+          #endif
+      }
+      """
+    let findings = Lint.Rule.`dead case per platform Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

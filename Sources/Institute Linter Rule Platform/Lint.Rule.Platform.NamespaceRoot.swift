@@ -42,13 +42,15 @@ internal let platformNamespaceRootMessage: Swift.String =
   + "the shared `Kernel` namespace via `extension Kernel { ... }` so the "
   + "platform discriminator lives in the import, not the type name."
 
-internal let platformNamespaceRootPlatformPrefixes: [Swift.String] = ["Linux", "Darwin", "Windows"]
 internal let platformNamespaceRootKernelKeywords: [Swift.String] = [
   "Kernel", "Kqueue", "Epoll", "IOCP", "IoUring", "EventNotification",
 ]
 
 internal func platformNamespaceRootIsCompoundPlatformName(_ name: Swift.String) -> Swift.Bool {
-  for prefix in platformNamespaceRootPlatformPrefixes {
+  // The pack's single platform-identity vocabulary (`platformPlatformTokens`
+  // in `Lint.Rule.Platform.Shared.swift`) — closes the `AndroidKernel` /
+  // `WASIKernel` / `FreeBSDKernel` gap named in #21 blocker 3.
+  for prefix in platformPlatformTokens {
     guard name.hasPrefix(prefix) else { continue }
     let suffix = String(name.dropFirst(prefix.count))
     for keyword in platformNamespaceRootKernelKeywords {
@@ -73,7 +75,6 @@ internal final class PlatformNamespaceRootVisitor: SyntaxVisitor {
   let severity: Diagnostic.Severity
   let converter: SourceLocationConverter
   var matches: [Diagnostic.Record] = []
-  var depth: Swift.Int = 0
 
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
     self.source = source
@@ -82,45 +83,30 @@ internal final class PlatformNamespaceRootVisitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
+  // #21 blocker 3: the hand-rolled `depth` counter enumerated container
+  // kinds by hand, which is what produced both halves of the defect
+  // (`ActorDeclSyntax` missing, function-local types false-positiving).
+  // Replaced with the structural ancestor walk `Lint.Syntax.Scope.isTopLevel`.
+  // `IfConfigDeclSyntax` is deliberately not a stopper there, so a type
+  // under a file-scope `#if os(Linux)` is still judged top-level.
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-    if depth == 0 {
-      flagIfCompound(node.name)
-    }
-    depth += 1
+    if Lint.Syntax.Scope.isTopLevel(node) { flagIfCompound(node.name) }
     return .visitChildren
-  }
-  override func visitPost(_: EnumDeclSyntax) {
-    depth -= 1
   }
 
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    if depth == 0 {
-      flagIfCompound(node.name)
-    }
-    depth += 1
+    if Lint.Syntax.Scope.isTopLevel(node) { flagIfCompound(node.name) }
     return .visitChildren
-  }
-  override func visitPost(_: StructDeclSyntax) {
-    depth -= 1
   }
 
   override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-    if depth == 0 {
-      flagIfCompound(node.name)
-    }
-    depth += 1
+    if Lint.Syntax.Scope.isTopLevel(node) { flagIfCompound(node.name) }
     return .visitChildren
-  }
-  override func visitPost(_: ClassDeclSyntax) {
-    depth -= 1
   }
 
-  override func visit(_: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-    depth += 1
+  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    if Lint.Syntax.Scope.isTopLevel(node) { flagIfCompound(node.name) }
     return .visitChildren
-  }
-  override func visitPost(_: ExtensionDeclSyntax) {
-    depth -= 1
   }
 
   private func flagIfCompound(_ name: TokenSyntax) {

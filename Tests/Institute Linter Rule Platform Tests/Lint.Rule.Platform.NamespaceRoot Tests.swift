@@ -88,4 +88,47 @@ extension Lint.Rule.`compound platform namespace root Tests`.`Edge Case` {
     let findings = Lint.Rule.`compound platform namespace root Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  // MARK: - #21 blocker 3: ancestor-walk rewrite (actor handling,
+  // function-local-type false positives)
+
+  @Test
+  func `top-level actor with compound platform name is flagged`() {
+    let source = """
+      actor LinuxKernel {}
+      """
+    let findings = Lint.Rule.`compound platform namespace root Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `compound platform name nested inside an actor is NOT flagged`() {
+    let source = """
+      actor Reactor {
+          struct LinuxKernelState {}
+      }
+      """
+    let findings = Lint.Rule.`compound platform namespace root Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `compound platform name declared inside a function body is NOT flagged`() {
+    let source = """
+      func f() {
+          enum LinuxKernel {}
+      }
+      """
+    let findings = Lint.Rule.`compound platform namespace root Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `AndroidKernel is flagged now that the vocabulary is shared`() {
+    let source = """
+      enum AndroidKernel {}
+      """
+    let findings = Lint.Rule.`compound platform namespace root Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

@@ -109,6 +109,20 @@ extension Lint.Rule.`optimize suppression attribute Tests`.`Edge Case` {
   }
 
   @Test
+  func `semantics string sharing only the optimize dot no prefix without the dot is NOT flagged`() {
+    // #21 nit 1: the prefix test requires the trailing dot
+    // (`"optimize.no."`), not just `"optimize.no"` — a string that merely
+    // starts with those characters but is not the `optimize.no.<mode>`
+    // family (e.g. a hypothetical `optimize.nothing_like_this`) must not
+    // fire.
+    let source = """
+      @_semantics("optimize.nothing_like_this") func f() {}
+      """
+    let findings = Lint.Rule.`optimize suppression attribute Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `optimize none inside a string literal is NOT flagged`() {
     let source = """
       let s = "@_optimize(none) func f() {}"

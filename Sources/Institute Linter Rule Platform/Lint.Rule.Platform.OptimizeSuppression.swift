@@ -90,8 +90,9 @@ internal final class PlatformOptimizeSuppressionVisitor: SyntaxVisitor {
   override func visit(_ node: AttributeSyntax) -> SyntaxVisitorContinueKind {
     let name = node.attributeName.trimmedDescription
     if name == "_optimize" {
-      // `@_optimize(none)` / `@_optimize(size)` fire. Any other argument
-      // (there are none today) does not fire — do not crash on unknowns.
+      // `@_optimize(none)` / `@_optimize(size)` fire. `@_optimize(speed)`
+      // exists and deliberately does not fire — only `none` and `size`
+      // suppress optimization.
       if let arguments = node.arguments {
         let mode = arguments.trimmedDescription
         if mode == "none" || mode == "size" {
@@ -102,7 +103,7 @@ internal final class PlatformOptimizeSuppressionVisitor: SyntaxVisitor {
       // `@_semantics("optimize.no.<anything>")` fires; other `_semantics`
       // strings do not.
       if let value = platformOptimizeSuppressionSemanticsString(node),
-        value.hasPrefix("optimize.no")
+        value.hasPrefix("optimize.no.")
       {
         emit(at: node)
       }

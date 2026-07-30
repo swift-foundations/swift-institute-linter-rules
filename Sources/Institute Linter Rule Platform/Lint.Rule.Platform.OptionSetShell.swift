@@ -76,22 +76,33 @@ internal func platformOptionSetShellIsStaticDecl(_ modifiers: DeclModifierListSy
   return false
 }
 
-/// Returns true when a binding's initializer expression is a call
-/// to `Self(rawValue: …)` — the canonical platform-constant shape.
-internal func platformOptionSetShellIsSelfRawValueInit(_ initializer: InitializerClauseSyntax?)
-  -> Swift.Bool
-{
+/// Returns true when a binding's initializer expression is a call to
+/// `Self(rawValue: …)`, `<TypeName>(rawValue: …)`, or `.init(rawValue: …)`
+/// — the three spellings authors use for the canonical platform-constant
+/// shape (#21 defect 11; previously only `Self(rawValue:)` was recognized).
+internal func platformOptionSetShellIsSelfRawValueInit(
+  _ initializer: InitializerClauseSyntax?,
+  typeName: Swift.String
+) -> Swift.Bool {
   guard let initializer else { return false }
   guard let call = initializer.value.as(FunctionCallExprSyntax.self) else {
     return false
   }
-  guard let callee = call.calledExpression.as(DeclReferenceExprSyntax.self),
-    callee.baseName.text == "Self"
-  else { return false }
-  for argument in call.arguments {
-    if argument.label?.text == "rawValue" {
-      return true
+  let hasRawValueLabel = call.arguments.contains { $0.label?.text == "rawValue" }
+  guard hasRawValueLabel else { return false }
+  if let callee = call.calledExpression.as(DeclReferenceExprSyntax.self) {
+    // `Self(rawValue:)` or `Options(rawValue:)`.
+    return callee.baseName.text == "Self" || callee.baseName.text == typeName
+  }
+  if let member = call.calledExpression.as(MemberAccessExprSyntax.self),
+    member.declName.baseName.text == "init"
+  {
+    // `.init(rawValue:)` (no base) or `Self.init(rawValue:)` / `Options.init(rawValue:)`.
+    guard let base = member.base else { return true }
+    if let baseRef = base.as(DeclReferenceExprSyntax.self) {
+      return baseRef.baseName.text == "Self" || baseRef.baseName.text == typeName
     }
+    return false
   }
   return false
 }
@@ -113,13 +124,14 @@ internal final class PlatformOptionSetShellVisitor: SyntaxVisitor {
     guard platformOptionSetShellConformsToOptionSet(node.inheritanceClause) else {
       return .visitChildren
     }
-    for member in node.memberBlock.members {
+    let typeName = Lint.Syntax.Identifier.unescaped(node.name.text)
+    for member in Lint.Syntax.IfConfig.members(node.memberBlock) {
       guard let variable = member.decl.as(VariableDeclSyntax.self) else { continue }
       guard platformOptionSetShellIsStaticDecl(variable.modifiers) else {
         continue
       }
       for binding in variable.bindings {
-        if platformOptionSetShellIsSelfRawValueInit(binding.initializer) {
+        if platformOptionSetShellIsSelfRawValueInit(binding.initializer, typeName: typeName) {
           let location = converter.location(
             for: variable.bindingSpecifier.positionAfterSkippingLeadingTrivia)
           matches.append(

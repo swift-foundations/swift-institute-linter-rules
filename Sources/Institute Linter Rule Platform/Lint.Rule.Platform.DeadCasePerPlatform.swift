@@ -48,13 +48,23 @@ internal let platformDeadCasePerPlatformPlatformPairs: [Swift.Set<Swift.String>]
   ["linux", "darwin"],
   ["linux", "darwin", "windows"],
   ["linux", "darwin", "windows", "freebsd"],
+  ["macos", "linux"],
+  ["macos", "windows"],
 ]
 
+/// A subset test (#21 defect 4), not exact-set equality: `{ case posix,
+/// windows, unknown }` still enumerates the POSIX/Windows platform split
+/// even with an extra non-platform case, and exact equality evaded it.
+/// Accepted consequence, recorded deliberately: a genuinely open
+/// platform-identity enum (`enum OperatingSystem { case linux, darwin,
+/// windows, freebsd, android }`) now fires too — that is the shape this
+/// rule exists for, it is `.warning`, and the author has a suppression
+/// directive.
 internal func platformDeadCasePerPlatformMatchesPlatformPair(_ cases: [Swift.String]) -> Swift.Bool
 {
   let lower = Swift.Set(cases.map { $0.lowercased() })
   for pair in platformDeadCasePerPlatformPlatformPairs {
-    if lower == pair {
+    if pair.isSubset(of: lower) {
       return true
     }
   }
@@ -79,7 +89,7 @@ internal final class PlatformDeadCasePerPlatformVisitor: SyntaxVisitor {
       return .visitChildren
     }
     var caseNames: [Swift.String] = []
-    for member in node.memberBlock.members {
+    for member in Lint.Syntax.IfConfig.members(node.memberBlock) {
       guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else {
         continue
       }
@@ -87,7 +97,7 @@ internal final class PlatformDeadCasePerPlatformVisitor: SyntaxVisitor {
         caseNames.append(element.name.text)
       }
     }
-    guard caseNames.count >= 2, caseNames.count <= 4 else {
+    guard caseNames.count >= 2 else {
       return .visitChildren
     }
     guard platformDeadCasePerPlatformMatchesPlatformPair(caseNames) else {

@@ -123,7 +123,12 @@ extension Lint.Rule.`optionset shell pattern Tests`.`Edge Case` {
   }
 
   @Test
-  func `static decl with non-Self initializer is NOT flagged`() {
+  func `static decl with the type's own name spelling is flagged too`() {
+    // #21 defect 11: `<TypeName>(rawValue:)` is one of the three
+    // recognized spellings (alongside `Self(rawValue:)` and
+    // `.init(rawValue:)`), not a narrower "Self-only" scope. This
+    // replaces the prior assertion here, which pinned the pre-fix
+    // narrow behavior.
     let source = """
       struct Options: OptionSet {
           let rawValue: Int32
@@ -131,17 +136,49 @@ extension Lint.Rule.`optionset shell pattern Tests`.`Edge Case` {
           public static let none = Options(rawValue: 0)
       }
       """
-    // Regression fix: the fixture previously named the binding
-    // `default` without backticks — a reserved keyword, which the
-    // parser cannot produce a well-formed binding from, so the
-    // isEmpty assertion below passed for the wrong reason (an
-    // unparseable/error-recovered tree, not the intended "non-Self
-    // initializer" shape). Renamed to a non-reserved identifier.
-    // `Options(rawValue:)` not `Self(rawValue:)` — narrow rule scopes
-    // to the canonical `Self(rawValue:)` shape used by the institute
-    // convention.
+    let findings = Lint.Rule.`optionset shell pattern Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `static decl with an unrelated type's initializer is NOT flagged`() {
+    let source = """
+      struct Options: OptionSet {
+          let rawValue: Int32
+          init(rawValue: Int32) { self.rawValue = rawValue }
+          public static let none = Other(rawValue: 0)
+      }
+      """
     let findings = Lint.Rule.`optionset shell pattern Tests`.findings(in: source)
     #expect(findings.isEmpty)
+  }
+
+  // MARK: - #21 defect 11: the three recognized spellings
+
+  @Test
+  func `dot init rawValue spelling is flagged`() {
+    let source = """
+      struct Options: OptionSet {
+          let rawValue: Int32
+          init(rawValue: Int32) { self.rawValue = rawValue }
+          public static let none = .init(rawValue: 0)
+      }
+      """
+    let findings = Lint.Rule.`optionset shell pattern Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Self dot init rawValue spelling is flagged`() {
+    let source = """
+      struct Options: OptionSet {
+          let rawValue: Int32
+          init(rawValue: Int32) { self.rawValue = rawValue }
+          public static let none = Self.init(rawValue: 0)
+      }
+      """
+    let findings = Lint.Rule.`optionset shell pattern Tests`.findings(in: source)
+    #expect(findings.count == 1)
   }
 
   @Test
@@ -154,6 +191,23 @@ extension Lint.Rule.`optionset shell pattern Tests`.`Edge Case` {
       }
       """
     // `var` form, but same `Self(rawValue:)` shape — flagged.
+    let findings = Lint.Rule.`optionset shell pattern Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // MARK: - #21 defect 5: member-position `#if` was invisible
+
+  @Test
+  func `platform constant guarded by member-position if os is flagged`() {
+    let source = """
+      struct Options: OptionSet {
+          let rawValue: Int32
+          init(rawValue: Int32) { self.rawValue = rawValue }
+          #if os(Linux)
+          static let create = Self(rawValue: 1)
+          #endif
+      }
+      """
     let findings = Lint.Rule.`optionset shell pattern Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
