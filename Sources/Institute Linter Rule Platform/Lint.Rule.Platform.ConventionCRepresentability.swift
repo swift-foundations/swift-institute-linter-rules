@@ -67,17 +67,19 @@ internal func platformConventionCRepresentabilityHasConventionC(_ attributes: At
 /// Returns true when `type` (after stripping optional / IUO /
 /// attributed wrappers) is `UnsafeMutablePointer<X>` /
 /// `UnsafePointer<X>` where `X` is a Swift-defined struct — i.e. NOT
-/// itself an `UnsafeMutablePointer`/`UnsafePointer` type, and NOT a
-/// type reached through a known C-interop module qualifier
-/// (`Darwin.kevent`, `Glibc.stat`, etc. — genuinely C-representable,
-/// and the house style for reaching such types in exactly the
-/// platform code this rule targets).
+/// itself an `UnsafeMutablePointer`/`UnsafePointer` type, NOT a type
+/// reached through a known C-interop module qualifier (`Darwin.kevent`,
+/// `Glibc.stat`, etc. — genuinely C-representable, and the house style
+/// for reaching such types in exactly the platform code this rule
+/// targets), and NOT one of the stdlib's own C-representable
+/// fixed-layout primitives (`[PLAT-ARCH-005b]` exemption, #34).
 ///
 /// Both a bare bare `MyStruct` (`IdentifierTypeSyntax`) and a
 /// Swift-namespace-qualified `MyNamespace.MyStruct`
 /// (`MemberTypeSyntax` whose root is NOT a C-interop module) count as
 /// Swift-defined; only a `MemberTypeSyntax` rooted at a recognized
-/// C-interop module is exempt.
+/// C-interop module, or a bare identifier matching the closed stdlib
+/// primitive set, is exempt.
 internal func platformConventionCRepresentabilityIsUnsafePointerToUserType(_ type: TypeSyntax)
   -> Swift.Bool
 {
@@ -102,8 +104,38 @@ internal func platformConventionCRepresentabilityIsUnsafePointerToUserType(_ typ
     let argument = genericArgs.arguments.first,
     let argumentType = argument.argument.as(TypeSyntax.self)
   else { return false }
-  return !platformConventionCRepresentabilityIsCInteropReference(argumentType)
+  if platformConventionCRepresentabilityIsCInteropReference(argumentType) { return false }
+  if platformConventionCRepresentabilityIsStdlibPrimitive(argumentType) { return false }
+  return true
 }
+
+/// True when `type` is a bare identifier naming one of the stdlib's
+/// closed set of C-representable fixed-layout primitives: the
+/// fixed-width integers, `Int`/`UInt`, `Float`, `Double`, `Bool`, and
+/// the raw/opaque pointer types. Being a "Swift-defined struct" is an
+/// implementation detail of these types, not an ABI fact — they are
+/// the canonical `@convention(c)`-compatible primitives under Swift's
+/// C interop rules, and pointers to them MUST NOT be flagged (#34).
+///
+/// The match is by exact spelling against the closed set, never a
+/// prefix or substring test — a type merely named like a primitive
+/// (`Int128`, a project-local `Int32Wrapper`) is not itself one of
+/// these spellings and remains subject to the rule.
+private func platformConventionCRepresentabilityIsStdlibPrimitive(_ type: TypeSyntax)
+  -> Swift.Bool
+{
+  guard let identifier = type.as(IdentifierTypeSyntax.self) else { return false }
+  return platformConventionCRepresentabilityStdlibPrimitiveNames.contains(identifier.name.text)
+}
+
+private let platformConventionCRepresentabilityStdlibPrimitiveNames: Swift.Set<Swift.String> = [
+  "Int8", "Int16", "Int32", "Int64",
+  "UInt8", "UInt16", "UInt32", "UInt64",
+  "Int", "UInt",
+  "Float", "Double",
+  "Bool",
+  "UnsafeRawPointer", "UnsafeMutableRawPointer", "OpaquePointer",
+]
 
 /// True when `type` is a `MemberTypeSyntax` rooted at a recognized
 /// C-interop module (`Darwin`, `Glibc`, `Musl`, `Bionic`, `Android`,

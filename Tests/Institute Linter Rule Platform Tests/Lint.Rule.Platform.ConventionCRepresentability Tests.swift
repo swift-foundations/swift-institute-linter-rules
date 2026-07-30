@@ -108,6 +108,19 @@ extension Lint.Rule.`convention c representability Tests`.`Edge Case` {
   }
 
   @Test
+  func `convention c with UnsafeMutablePointer to Int32Wrapper (near-miss) is flagged`() {
+    // "Int32Wrapper" merely resembles a stdlib primitive by name; it is
+    // not one of the closed set's exact spellings (#34), so it remains a
+    // Swift-defined struct and the rule MUST still fire. Proves the
+    // exemption matches by exact name, not by prefix/substring.
+    let source = """
+      let cb: @convention(c) (UnsafeMutablePointer<Int32Wrapper>?) -> Void = { _ in }
+      """
+    let findings = Lint.Rule.`convention c representability Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `non-convention-c function type with same pointer is NOT flagged`() {
     let source = """
       let cb: (UnsafeMutablePointer<Foo.Bar>?) -> Void = { _ in }
