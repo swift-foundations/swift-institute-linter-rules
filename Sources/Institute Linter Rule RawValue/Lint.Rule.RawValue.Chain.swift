@@ -101,14 +101,31 @@ internal final class RawValueChainVisitor: SyntaxVisitor {
     return .visitChildren
   }
 
+  /// Peels syntactic wrappers that are semantically transparent for this
+  /// predicate's purposes: parenthesization (`(x.rawValue)`), optional
+  /// chaining (`x.rawValue?`), and force unwrap (`x.rawValue!`). Each is
+  /// a one-character evasion that would otherwise reopen the hole the
+  /// paren-peel closed.
   private static func peelParens(_ expr: ExprSyntax) -> ExprSyntax {
     var current = expr
-    while let tuple = current.as(TupleExprSyntax.self),
-      tuple.elements.count == 1,
-      let only = tuple.elements.first?.expression,
-      tuple.elements.first?.label == nil
-    {
-      current = only
+    while true {
+      if let tuple = current.as(TupleExprSyntax.self),
+        tuple.elements.count == 1,
+        let only = tuple.elements.first?.expression,
+        tuple.elements.first?.label == nil
+      {
+        current = only
+        continue
+      }
+      if let optionalChain = current.as(OptionalChainingExprSyntax.self) {
+        current = optionalChain.expression
+        continue
+      }
+      if let forceUnwrap = current.as(ForceUnwrapExprSyntax.self) {
+        current = forceUnwrap.expression
+        continue
+      }
+      break
     }
     return current
   }

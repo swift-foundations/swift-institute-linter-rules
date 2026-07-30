@@ -212,7 +212,16 @@ internal final class RawValueTaggedUncheckedVisitor: SyntaxVisitor {
       return calleeIsTagged(generic.expression)
     }
     if let member = expression.as(MemberAccessExprSyntax.self) {
-      return member.declName.baseName.text == "Tagged"
+      if member.declName.baseName.text == "Tagged" {
+        return true
+      }
+      // `Tagged.init(_unchecked:)` and `Tagged<Tag, Int>.init(_unchecked:)`
+      // parse with `declName == "init"` and `Tagged` as the *base* —
+      // recurse through the explicit `.init` spelling the same way
+      // `Cardinal.Constructor`'s `calleeTypeName` does.
+      if member.declName.baseName.text == "init", let base = member.base {
+        return calleeIsTagged(base)
+      }
     }
     return false
   }

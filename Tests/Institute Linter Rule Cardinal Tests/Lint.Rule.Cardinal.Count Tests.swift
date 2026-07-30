@@ -180,6 +180,24 @@ extension Lint.Rule.`count minus one Tests`.Negative {
     let findings = Lint.Rule.`count minus one Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  @Test
+  func `grid-rows-count-dot-height - 1 (count unrelated to the subtraction) is NOT flagged`() {
+    // Boundary guard: `.count` appears somewhere in the left operand,
+    // but the `- 1` applies to `.height`, not `.count` — the deep
+    // search must not fire on any `.count` mention anywhere in the
+    // subtree.
+    let findings = Lint.Rule.`count minus one Tests`.findings(
+      in: "let n = grid[rows.count].height - 1")
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `i plus 1 less-than limits-keys-count (comparison side unrelated to count) is NOT flagged`() {
+    let findings = Lint.Rule.`count minus one Tests`.findings(
+      in: "if i + 1 < limits[keys.count] { }")
+    #expect(findings.isEmpty)
+  }
 }
 
 extension Lint.Rule.`count minus one Tests`.`Edge Case` {

@@ -17,7 +17,7 @@ internal import SwiftSyntax
 ///
 /// Citation: `[PATTERN-019]` (implementation skill, the patterns note).
 ///
-/// `Tagged<Tag, RawValue>` carries bounded invariants in its `Tag` —
+/// `Tagged<Tag, Underlying>` carries bounded invariants in its `Tag` —
 /// brand-newtypes encode "this `String` is a `User.ID`, not a free
 /// string". Extending `Tagged` with a `public init` that takes a
 /// `RawValue` (or anything else) bypasses the type's bounded
@@ -133,22 +133,29 @@ internal final class RawValueTaggedExtensionPublicInitVisitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
+  /// Matches `Tagged`, `Tagged<...>`, `Tagged_Primitives.Tagged`, or any
+  /// qualified path ending in `.Tagged`, structurally — walking
+  /// `IdentifierTypeSyntax` / `MemberTypeSyntax` rather than splitting
+  /// the trimmed description on `.`. A textual split misidentifies
+  /// generic-argument content that happens to contain a dot-separated
+  /// `Tagged<...>` substring (e.g. `Dictionary<String,
+  /// Foo.Tagged<A, B>>`, whose *last* textual segment is
+  /// `Tagged<A, B>>` — an unbalanced `>` a textual `hasPrefix` check
+  /// cannot see past) as an extension "on" `Tagged` when it extends an
+  /// unrelated outer type.
   private func extendsTagged(_ extendedType: TypeSyntax) -> Bool {
-    // Match `Tagged`, `Tagged<...>`, `Tagged_Primitives.Tagged`, or any
-    // qualified path ending in `.Tagged`. Use trimmed description as
-    // the canonical form; check first identifier or last segment.
-    let text = extendedType.trimmedDescription
-    if text == "Tagged" || text.hasPrefix("Tagged<") || text.hasPrefix("Tagged ") {
-      return true
+    if let identifier = extendedType.as(IdentifierTypeSyntax.self) {
+      return rawValueStripBackticks(identifier.name.text) == "Tagged"
     }
-    // Qualified: `Tagging.Tagged`, `Foo.Bar.Tagged<...>`.
-    if let lastSegment = text.split(separator: ".").last {
-      let segment = String(lastSegment)
-      if segment == "Tagged" || segment.hasPrefix("Tagged<") || segment.hasPrefix("Tagged ") {
-        return true
-      }
+    if let member = extendedType.as(MemberTypeSyntax.self) {
+      return rawValueStripBackticks(member.name.text) == "Tagged"
     }
     return false
+  }
+
+  private func rawValueStripBackticks(_ text: Swift.String) -> Swift.String {
+    guard text.count >= 2, text.hasPrefix("`"), text.hasSuffix("`") else { return text }
+    return Swift.String(text.dropFirst().dropLast())
   }
 
   private func hasPublicModifier(_ modifiers: DeclModifierListSyntax) -> Bool {
@@ -159,6 +166,43 @@ internal final class RawValueTaggedExtensionPublicInitVisitor: SyntaxVisitor {
       }
     }
     return false
+  }
+
+  /// Returns true if any modifier narrows access below `public` —
+  /// `private`, `fileprivate`, or `internal`. An explicit narrower
+  /// modifier on the init overrides an enclosing `public extension`'s
+  /// inherited default.
+  private func hasExplicitNonPublicAccessModifier(_ modifiers: DeclModifierListSyntax) -> Bool {
+    for modifier in modifiers {
+      switch modifier.name.tokenKind {
+      case .keyword(.private), .keyword(.fileprivate), .keyword(.internal):
+        return true
+      default:
+        continue
+      }
+    }
+    return false
+  }
+
+  /// Returns true when an initializer with no explicit access modifier
+  /// of its own is nonetheless effectively public because it is
+  /// declared inside a `public`/`open extension`. A `public extension`
+  /// makes every member public by default unless that member carries
+  /// its own narrower modifier — so
+  /// `public extension Tagged { init(rawValue: String) {} }` declares
+  /// a public initializer even though the init itself carries no
+  /// `public` keyword.
+  private func isEffectivelyPublicInit(
+    initModifiers: DeclModifierListSyntax,
+    extensionModifiers: DeclModifierListSyntax
+  ) -> Bool {
+    if hasPublicModifier(initModifiers) {
+      return true
+    }
+    if hasExplicitNonPublicAccessModifier(initModifiers) {
+      return false
+    }
+    return hasPublicModifier(extensionModifiers)
   }
 
   /// Returns the leaf protocol names from the extension's inheritance
@@ -244,7 +288,12 @@ internal final class RawValueTaggedExtensionPublicInitVisitor: SyntaxVisitor {
       guard let initDecl = member.decl.as(InitializerDeclSyntax.self) else {
         continue
       }
-      guard hasPublicModifier(initDecl.modifiers) else {
+      guard
+        isEffectivelyPublicInit(
+          initModifiers: initDecl.modifiers,
+          extensionModifiers: node.modifiers
+        )
+      else {
         continue
       }
       let location = converter.location(

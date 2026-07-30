@@ -109,16 +109,17 @@ internal final class CardinalCountVisitor: SyntaxVisitor {
 
     if opText == "-",
       Self.isLiteralOne(node.rightOperand),
-      Self.containsCountMemberAccess(node.leftOperand)
+      Self.isCountDerivedExpression(node.leftOperand)
     {
       report(at: binOp.operator)
       return .visitChildren
     }
 
     if Self.isComparisonOperator(opText) {
-      if Self.isPlusOne(node.leftOperand), Self.containsCountMemberAccess(node.rightOperand) {
+      if Self.isPlusOne(node.leftOperand), Self.isCountDerivedExpression(node.rightOperand) {
         report(at: binOp.operator)
-      } else if Self.isPlusOne(node.rightOperand), Self.containsCountMemberAccess(node.leftOperand)
+      } else if Self.isPlusOne(node.rightOperand),
+        Self.isCountDerivedExpression(node.leftOperand)
       {
         report(at: binOp.operator)
       }
@@ -164,19 +165,63 @@ internal final class CardinalCountVisitor: SyntaxVisitor {
     return isLiteralOne(infix.leftOperand) || isLiteralOne(infix.rightOperand)
   }
 
-  static func containsCountMemberAccess(_ expr: ExprSyntax) -> Bool {
-    final class Finder: SyntaxVisitor {
-      var found = false
-      override func visit(_ node: MemberAccessExprSyntax) -> SyntaxVisitorContinueKind {
-        if node.declName.baseName.text == "count" {
-          found = true
-          return .skipChildren
-        }
-        return .visitChildren
-      }
+  /// Returns true when `expr`, after peeling the specific wrapper
+  /// shapes the doc's evasion matrix names (parens, and a single-
+  /// unlabeled-argument cast call like `Double(...)`), IS itself a
+  /// `.count` member access, or a `-` subtraction chain whose
+  /// (recursively unwrapped) left operand resolves the same way.
+  ///
+  /// This intentionally does NOT search arbitrarily deep into an
+  /// unrelated subtree: `grid[rows.count].height - 1` must not fire
+  /// merely because `.count` appears somewhere inside the left
+  /// operand — the `- 1` here applies to `.height`, not `.count`. The
+  /// doc's own operand-reorder example, `seq.count - i - 1`, parses as
+  /// `(seq.count - i) - 1`; recursing one `-` level into the left
+  /// operand (and no further) is exactly the shape that example
+  /// requires, without over-matching subscript/property chains that
+  /// merely contain a `.count` somewhere.
+  static func isCountDerivedExpression(_ expr: ExprSyntax) -> Bool {
+    let unwrapped = peelCountWrappers(expr)
+    if let member = unwrapped.as(MemberAccessExprSyntax.self),
+      member.declName.baseName.text == "count"
+    {
+      return true
     }
-    let finder = Finder(viewMode: .sourceAccurate)
-    finder.walk(expr)
-    return finder.found
+    if let infix = unwrapped.as(InfixOperatorExprSyntax.self),
+      let binOp = infix.operator.as(BinaryOperatorExprSyntax.self),
+      binOp.operator.text == "-"
+    {
+      return isCountDerivedExpression(infix.leftOperand)
+    }
+    return false
+  }
+
+  /// Peels parenthesization and a single-unlabeled-argument call
+  /// (the cast-outside shape, `Double(seq.count)`) — the two wrapper
+  /// forms the doc's evasion matrix names as semantically transparent
+  /// for this predicate.
+  static func peelCountWrappers(_ expr: ExprSyntax) -> ExprSyntax {
+    var current = expr
+    while true {
+      if let tuple = current.as(TupleExprSyntax.self),
+        tuple.elements.count == 1,
+        let only = tuple.elements.first?.expression,
+        tuple.elements.first?.label == nil
+      {
+        current = only
+        continue
+      }
+      if let call = current.as(FunctionCallExprSyntax.self),
+        call.arguments.count == 1,
+        let onlyArg = call.arguments.first,
+        onlyArg.label == nil,
+        call.trailingClosure == nil
+      {
+        current = onlyArg.expression
+        continue
+      }
+      break
+    }
+    return current
   }
 }

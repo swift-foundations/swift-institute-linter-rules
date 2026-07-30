@@ -84,6 +84,30 @@ extension Lint.Rule.`chained rawvalue access Tests`.Evasion {
       in: "let n = ((x.rawValue)).foo")
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `Optional-chained x-rawValue-question-mark-dot-foo is flagged`() {
+    // `?` optional chaining is as semantically transparent to this
+    // predicate as parenthesization — both wrap the same
+    // `MemberAccessExprSyntax(base: x, name: rawValue)` shape.
+    let findings = Lint.Rule.`chained rawvalue access Tests`.findings(
+      in: "let n = x.rawValue?.foo")
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Force-unwrapped x-rawValue-bang-dot-foo is flagged`() {
+    let findings = Lint.Rule.`chained rawvalue access Tests`.findings(
+      in: "let n = x.rawValue!.foo")
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Paren-wrapped optional-chained (x-rawValue)-question-mark-dot-foo is flagged`() {
+    let findings = Lint.Rule.`chained rawvalue access Tests`.findings(
+      in: "let n = (x.rawValue)?.foo")
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`chained rawvalue access Tests`.Negative {

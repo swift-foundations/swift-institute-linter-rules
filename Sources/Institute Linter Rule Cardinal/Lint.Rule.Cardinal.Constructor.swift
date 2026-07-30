@@ -106,11 +106,18 @@ internal final class CardinalConstructorVisitor: SyntaxVisitor {
     if let generic = expr.as(GenericSpecializationExprSyntax.self) {
       return calleeTypeName(generic.expression)
     }
-    if let member = expr.as(MemberAccessExprSyntax.self),
-      member.declName.baseName.text == "init",
-      let base = member.base
-    {
-      return calleeTypeName(base)
+    if let member = expr.as(MemberAccessExprSyntax.self) {
+      if member.declName.baseName.text == "init", let base = member.base {
+        return calleeTypeName(base)
+      }
+      // A qualified reference to the type itself — e.g.
+      // `Cardinal_Primitives.Cardinal(0)` / `Numerics.Cardinal(1)` —
+      // is a `MemberAccessExprSyntax` whose `declName` IS the type
+      // name, with no `.init` in between. Recognize it directly
+      // rather than falling through to `nil`, which left every
+      // module-qualified spelling unmatched (the mirror image of the
+      // `.init` recursion above).
+      return member.declName.baseName.text
     }
     return nil
   }

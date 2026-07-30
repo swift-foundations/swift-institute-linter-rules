@@ -126,9 +126,15 @@ extension Lint.Rule.`tagged extension public init Tests`.`Edge Case` {
   }
 
   @Test
-  func `extension on Tagged with where clause is flagged`() {
+  func `extension on Tagged with where clause not binding Underlying is flagged`() {
+    // `Tagged`'s real second generic parameter is `Underlying`, not
+    // `RawValue` — a fixture using the fictional name `RawValue` would
+    // pass for the wrong reason (it never matches `Underlying` at all,
+    // by construction) rather than because a where clause alone
+    // doesn't exempt. This binds a real-but-unrelated conformance
+    // requirement, leaving `Underlying` unbound.
     let source = """
-      extension Tagged where RawValue == String {
+      extension Tagged where Tag: Hashable {
           public init(_ s: String) { fatalError() }
       }
       """
@@ -266,6 +272,63 @@ extension Lint.Rule.`tagged extension public init Tests`.`Edge Case` {
     // validation gate IS expressible here — the rule's intent
     // applies and the init should still fire.
     #expect(findings.count == 1)
+  }
+
+  @Test
+  func `where clause binding Tag but not Underlying is still flagged`() {
+    // Regression guard for a stale doc/fixture: `Tagged`'s real second
+    // generic parameter is `Underlying`, not `RawValue`. Binding only
+    // `Tag` (a real parameter) — not `Underlying` — must NOT trip the
+    // free-generic-Tag domain-extension admit, which requires
+    // `Underlying` bound and `Tag` free.
+    let source = """
+      extension Tagged where Tag == String {
+          public init(_ s: String) { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`tagged extension public init Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public extension with init lacking its own modifier is flagged`() {
+    // A `public extension` makes every member public by default
+    // unless the member carries its own narrower modifier — the init
+    // here has no modifier of its own but is still effectively public.
+    let source = """
+      public extension Tagged {
+          init(rawValue: String) { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`tagged extension public init Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `public extension with explicitly internal init is NOT flagged`() {
+    let source = """
+      public extension Tagged {
+          internal init(rawValue: String) { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`tagged extension public init Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `extension whose generic-argument content mentions Tagged is not treated as extending Tagged`() {
+    // Structural regression guard: a textual split on `.` misidentifies
+    // `Dictionary<String, Foo.Tagged<A, B>>` as an extension "on"
+    // `Tagged` because its last textual dot-segment reads
+    // `Tagged<A, B>>`. The extended type here is `Dictionary`, not
+    // `Tagged`, and must not be flagged.
+    let source = """
+      extension Dictionary<String, Foo.Tagged<A, B>> {
+          public init(rawValue: String) { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`tagged extension public init Tests`.findings(in: source)
+    #expect(findings.isEmpty)
   }
 
   @Test

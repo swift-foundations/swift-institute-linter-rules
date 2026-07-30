@@ -66,6 +66,23 @@ extension Lint.Rule.`tagged unchecked with typed alternative Tests`.Unit {
   }
 
   @Test
+  func `Tagged dot init explicit callee with _unchecked is flagged`() {
+    // `Tagged.init(_unchecked:)` parses with `declName == "init"` and
+    // `Tagged` as the *base* — a distinct spelling from the bare-call
+    // form `Tagged(_unchecked:)` covered above.
+    let source = "let id = Tagged.init(_unchecked: 0)"
+    let findings = Lint.Rule.`tagged unchecked with typed alternative Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Tagged generic-specialized dot init explicit callee with _unchecked is flagged`() {
+    let source = "let id = Tagged<Tag, Int>.init(_unchecked: 0)"
+    let findings = Lint.Rule.`tagged unchecked with typed alternative Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `multiple Tagged _unchecked sites are all flagged`() {
     let source = """
       let a = Tagged<TagA, Int>(_unchecked: 1)

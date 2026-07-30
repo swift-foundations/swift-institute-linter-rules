@@ -91,6 +91,37 @@ extension Lint.Rule.`zero or one literal Tests`.Unit {
     let findings = Lint.Rule.`zero or one literal Tests`.findings(in: "let c = Cardinal.init(0)")
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `Cardinal-of-T angle-bracket generic-specialized (0) is flagged`() {
+    // The doc advertises `Cardinal<T>(0)` explicitly; this exercises
+    // the `GenericSpecializationExprSyntax` branch of `calleeTypeName`.
+    let findings = Lint.Rule.`zero or one literal Tests`.findings(in: "let c = Cardinal<Int>(0)")
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Cardinal-of-T angle-bracket generic-specialized dot init(1) is flagged`() {
+    let findings = Lint.Rule.`zero or one literal Tests`.findings(
+      in: "let c = Cardinal<Int>.init(1)")
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Cardinal_Primitives-qualified Cardinal(0) is flagged`() {
+    // Mirror image of the `.init` recursion: a qualified reference to
+    // the type itself, with no `.init` in between.
+    let findings = Lint.Rule.`zero or one literal Tests`.findings(
+      in: "let c = Cardinal_Primitives.Cardinal(0)")
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Cardinal_Primitives-qualified Cardinal dot init(1) is flagged`() {
+    let findings = Lint.Rule.`zero or one literal Tests`.findings(
+      in: "let c = Cardinal_Primitives.Cardinal.init(1)")
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`zero or one literal Tests`.Negative {
@@ -101,9 +132,20 @@ extension Lint.Rule.`zero or one literal Tests`.Negative {
   }
 
   @Test
-  func `Cardinal(_unchecked, 0) (multi-arg) is NOT flagged`() {
+  func `Cardinal(unchecked, 0) (labeled single-arg) is NOT flagged`() {
     let findings = Lint.Rule.`zero or one literal Tests`.findings(
       in: "let c = Cardinal(unchecked: 0)")
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `Cardinal(0, radix, 10) (true multi-arg) is NOT flagged`() {
+    // Regression guard: an actual multi-argument call site. The
+    // previous fixture under this title was a single labeled argument
+    // and never reached the `node.arguments.count == 1` guard at all —
+    // this exercises that guard directly.
+    let findings = Lint.Rule.`zero or one literal Tests`.findings(
+      in: "let c = Cardinal(0, radix: 10)")
     #expect(findings.isEmpty)
   }
 
