@@ -221,6 +221,45 @@ extension Lint.Rule.`closure typed throws annotation Tests`.`Edge Case` {
   }
 
   @Test
+  func `closure with only try optional is NOT flagged`() {
+    // `try?` does not propagate — the closure remains non-throwing, so no
+    // annotation is needed.
+    let source = """
+      func f<E: Swift.Error>(_ xs: [Int]) throws(E) -> [Int?] {
+          xs.map { try? g($0) }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `closure with only try force is NOT flagged`() {
+    // `try!` traps rather than propagating — the closure remains
+    // non-throwing, so no annotation is needed.
+    let source = """
+      func f<E: Swift.Error>(_ xs: [Int]) throws(E) -> [Int] {
+          xs.map { try! g($0) }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `closure with unguarded try nested inside try optional IS flagged`() {
+    // The outer `try?` doesn't propagate, but the nested plain `try` inside
+    // its subexpression does.
+    let source = """
+      func f<E: Swift.Error>(_ xs: [Int]) throws(E) -> [Int?] {
+          xs.map { try? g(try h($0)) }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `non-expect macro with throws: label does NOT exempt`() {
     // Regression guard: the carve-out is gated on the macro name
     // being `expect`. A different macro using a `throws:` label

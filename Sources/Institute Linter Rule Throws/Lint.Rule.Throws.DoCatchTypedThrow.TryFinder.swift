@@ -13,7 +13,10 @@ internal import SwiftSyntax
 
 internal final class ThrowsDoCatchTryFinder2: SyntaxVisitor {
   var found = false
-  override func visit(_: TryExprSyntax) -> SyntaxVisitorContinueKind {
+  override func visit(_ node: TryExprSyntax) -> SyntaxVisitorContinueKind {
+    guard node.questionOrExclamationMark == nil else {
+      return .visitChildren
+    }
     found = true
     return .skipChildren
   }

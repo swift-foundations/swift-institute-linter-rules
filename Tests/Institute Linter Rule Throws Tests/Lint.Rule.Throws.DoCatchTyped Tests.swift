@@ -132,6 +132,56 @@ extension Lint.Rule.`do throws for typed catch Tests`.`Edge Case` {
   }
 
   @Test
+  func `do with only try optional is NOT flagged`() {
+    // `try?` does not propagate out of the do body, so the do-catch does
+    // not need a typed-throws specifier on its account.
+    let source = """
+      func f() {
+          do {
+              let x = try? work()
+              _ = x
+          } catch {
+              print(error)
+          }
+      }
+      """
+    let findings = Lint.Rule.`do throws for typed catch Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `do with only try force is NOT flagged`() {
+    let source = """
+      func f() {
+          do {
+              let x = try! work()
+              _ = x
+          } catch {
+              print(error)
+          }
+      }
+      """
+    let findings = Lint.Rule.`do throws for typed catch Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `do with unguarded try nested inside try optional IS flagged`() {
+    let source = """
+      func f() {
+          do {
+              let x = try? outer(try inner())
+              _ = x
+          } catch {
+              print(error)
+          }
+      }
+      """
+    let findings = Lint.Rule.`do throws for typed catch Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `top-level do try catch is flagged`() {
     let source = """
       do {

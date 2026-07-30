@@ -13,9 +13,11 @@ public import Linter_Primitives
 internal import SwiftSyntax
 
 /// `throws(Self.Error)` resolves only inside a protocol declaration with an
-/// `associatedtype Error` requirement. Everywhere else — struct, class, enum,
-/// or extension on a concrete type — the institute convention writes the
-/// fully-nested error type. Citation: `[API-ERR-002]`.
+/// `associatedtype Error` requirement. A bare protocol lacking that
+/// requirement leaves `Self.Error` unresolved — the fix is to declare
+/// `associatedtype Error: Swift.Error`. Struct, class, enum, actor, and
+/// extension contexts are exempt: `Self.Error` there resolves to the
+/// concrete type's own nested `Error` member. Citation: `[API-ERR-002]`.
 extension Lint.Rule {
   public static let `typed throws cannot use self error` = Lint.Rule(
     id: "typed throws cannot use self error",
@@ -35,11 +37,10 @@ extension Lint.Rule {
 @usableFromInline
 internal let throwsSelfErrorInTypedThrowsMessage: Swift.String =
   "[typed throws cannot use self error] [API-ERR-002]: `throws(Self.Error)` "
-  + "resolves only inside a protocol declaration with `associatedtype Error`. "
-  + "In a struct, class, enum, or extension on a concrete type, write the "
-  + "fully-nested error type — `throws(Random.Error)`, "
-  + "`throws(Storage.Pool.Error)`. `Self.Error` in `throws(...)` is forbidden "
-  + "by the institute convention."
+  + "inside a protocol only resolves when the protocol declares "
+  + "`associatedtype Error`. Add `associatedtype Error: Swift.Error` to this "
+  + "protocol, or reference a concrete nested error type instead of "
+  + "`Self.Error`."
 
 internal final class ThrowsSelfErrorInTypedThrowsVisitor: SyntaxVisitor {
   let source: Source.File

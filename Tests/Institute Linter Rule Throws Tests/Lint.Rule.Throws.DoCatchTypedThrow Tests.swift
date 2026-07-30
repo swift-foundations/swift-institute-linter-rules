@@ -145,6 +145,26 @@ extension Lint.Rule.`do throws for typed catch with throw Tests`.`Edge Case` {
   }
 
   @Test
+  func `throw alongside try optional IS flagged - try optional does not propagate`() {
+    // `try?` does not propagate, so its presence should not suppress this
+    // rule in favor of `DoCatchTyped` — the bare `throw` here is the only
+    // thing needing a typed do-catch.
+    let source = """
+      func f() {
+          do {
+              let x = try? maybeWork()
+              guard let x else { throw MyError.bar }
+              use(x)
+          } catch {
+              handle(error)
+          }
+      }
+      """
+    let findings = Lint.Rule.`do throws for typed catch with throw Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `throw inside nested closure is NOT flagged at outer do`() {
     let source = """
       func f() {
