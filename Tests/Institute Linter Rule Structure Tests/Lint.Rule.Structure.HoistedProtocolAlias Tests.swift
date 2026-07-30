@@ -63,6 +63,21 @@ extension Lint.Rule.`hoisted protocol alias Tests`.Unit {
     let findings = Lint.Rule.`hoisted protocol alias Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  @Test
+  func `backtick-escaped Protocol sentinel self-conformance is flagged`() {
+    // Regression guard: the ecosystem's own hoisted-protocol idiom
+    // spells the sentinel member with backticks (`` `Protocol` ``,
+    // since bare `.Protocol` parses as the metatype keyword in some
+    // contexts) — the dotted-path builder must strip backticks per
+    // segment, not treat the escaped spelling as a different name
+    // than the bare one.
+    let source = """
+      extension X: X.`Protocol` {}
+      """
+    let findings = Lint.Rule.`hoisted protocol alias Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }
 
 extension Lint.Rule.`hoisted protocol alias Tests`.`Edge Case` {

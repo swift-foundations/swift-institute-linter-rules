@@ -129,4 +129,19 @@ internal final class StructureSingleTypePerFileVisitor: SyntaxVisitor {
   override func visit(_: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
     .visitChildren
   }
+
+  // `#if` / `#elseif` / `#else` clauses are mutually exclusive at
+  // compile time — the common cross-platform-conditional shape
+  // declares the SAME logical top-level type once per branch (e.g.
+  // a `#if os(Linux) struct Foo {} #else struct Foo {} #endif`
+  // pair). The source-accurate view retains every branch, so the
+  // default traversal would count each branch's declaration
+  // separately and false-positive on platform-conditional code.
+  // Walk only the first clause; skip the rest entirely.
+  override func visit(_ node: IfConfigDeclSyntax) -> SyntaxVisitorContinueKind {
+    if let firstClause = node.clauses.first {
+      walk(firstClause)
+    }
+    return .skipChildren
+  }
 }

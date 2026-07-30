@@ -34,6 +34,22 @@ extension Lint.Rule.`throwing wrapper init Tests` {
 
 extension Lint.Rule.`throwing wrapper init Tests`.Unit {
   @Test
+  func `throwing init with single let-binding try-only body is flagged`() {
+    // Regression guard: `self.x = try Base(...)` fired but the
+    // equally unvalidated `let base = try Base(raw)` did not — no
+    // stated rationale distinguished the two forwarding shapes.
+    let source = """
+      struct NonEmpty {
+          init(_ raw: [Int]) throws {
+              let base = try Base(raw)
+          }
+      }
+      """
+    let findings = Lint.Rule.`throwing wrapper init Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `throwing init with try-only body is flagged`() {
     let source = """
       struct NonEmpty {

@@ -242,4 +242,38 @@ extension Lint.Rule.`single type per file Tests`.`Edge Case` {
     let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  @Test
+  func `same type declared once per #if-#else branch is NOT double-counted`() {
+    // Regression guard: `#if` / `#else` clauses are mutually
+    // exclusive at compile time — this is ONE logical top-level
+    // type, declared once per platform branch, not two.
+    let source = """
+      #if os(Linux)
+      struct Foo {
+          let value: Int
+      }
+      #else
+      struct Foo {
+          let value: Int32
+      }
+      #endif
+      """
+    let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a genuinely second type inside an #if branch is still flagged`() {
+    // The #if-tolerance must not swallow a real second top-level type
+    // declared within the (first) branch that's actually walked.
+    let source = """
+      #if os(Linux)
+      struct Foo {}
+      struct Bar {}
+      #endif
+      """
+    let findings = Lint.Rule.`single type per file Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

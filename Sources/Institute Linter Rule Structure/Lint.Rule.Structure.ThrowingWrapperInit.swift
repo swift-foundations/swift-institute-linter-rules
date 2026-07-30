@@ -154,15 +154,26 @@ internal final class StructureThrowingWrapperInitVisitor: SyntaxVisitor {
   }
 
   /// Extracts the `TryExprSyntax` from a single-statement body's item,
-  /// whether it's the item directly, wrapped as an `ExprSyntax`, or
-  /// (pre-operator-folding) one element of an unfolded
-  /// `SequenceExprSyntax`.
+  /// whether it's the item directly, wrapped as an `ExprSyntax`, a
+  /// `let`/`var` binding's initializer (`let base = try Base(raw)`),
+  /// or (pre-operator-folding) one element of an unfolded
+  /// `SequenceExprSyntax`. The variable-declaration case closes the
+  /// asymmetry where `self.x = try Base(...)` fired but the equally
+  /// unvalidated `let base = try Base(raw)` did not.
   private func extractTryExpr(_ syntax: Syntax) -> TryExprSyntax? {
     if let tryExpr = syntax.as(TryExprSyntax.self) {
       return tryExpr
     }
     if let expression = syntax.as(ExprSyntax.self),
       let tryExpr = expression.as(TryExprSyntax.self)
+    {
+      return tryExpr
+    }
+    if let variableDecl = syntax.as(VariableDeclSyntax.self),
+      variableDecl.bindings.count == 1,
+      let binding = variableDecl.bindings.first,
+      let initializer = binding.initializer,
+      let tryExpr = initializer.value.as(TryExprSyntax.self)
     {
       return tryExpr
     }

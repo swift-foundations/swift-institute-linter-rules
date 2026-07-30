@@ -43,21 +43,28 @@ internal let structureHoistedProtocolAliasMessage: Swift.String =
   + "typealias path (`Owner.Inner.Protocol`) is for CONSUMER "
   + "modules — different type, no cycle."
 
+/// Builds the dotted-path spelling of `type`, stripping backticks from
+/// EACH segment independently (not the whole joined path) — the
+/// ecosystem's own hoisted-protocol idiom spells the sentinel member
+/// with backticks (`` `Protocol` ``), and a bare `structureStripBackticks`
+/// call on the fully-joined path would only strip the outermost pair
+/// (leaving e.g. ``Foo.`Protocol`` malformed) rather than un-escaping
+/// the trailing segment.
 internal func structureHoistedProtocolAliasDottedName(of type: TypeSyntax) -> Swift.String? {
   if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return identifier.name.text
+    return structureStripBackticks(identifier.name.text)
   }
   if let member = type.as(MemberTypeSyntax.self) {
     guard let baseName = structureHoistedProtocolAliasDottedName(of: member.baseType) else {
       return nil
     }
-    return "\(baseName).\(member.name.text)"
+    return "\(baseName).\(structureStripBackticks(member.name.text))"
   }
   if let metatype = type.as(MetatypeTypeSyntax.self) {
     guard let baseName = structureHoistedProtocolAliasDottedName(of: metatype.baseType) else {
       return nil
     }
-    return "\(baseName).\(metatype.metatypeSpecifier.text)"
+    return "\(baseName).\(structureStripBackticks(metatype.metatypeSpecifier.text))"
   }
   return nil
 }
