@@ -134,6 +134,11 @@ extension Lint.Rule.Bundle {
       .enable(.`minimal type body`),
       .enable(.`raw value access`),
       .enable(.`single type per file`),
+      // [API-IMPL-006] — adjudicated swift-institute-linter-rules#6
+      // (ruling D1, 2026-07-30); implemented per
+      // swift-institute-linter-rules#8. Advisory at introduction; error
+      // only after the standing graduation gate.
+      .enable(.`file name nested path`),
       .enable(.`throwing wrapper init`),
       .enable(.`type transform placement`),
       .enable(.`wrapper backing exposed`),

@@ -30,6 +30,17 @@ internal func structureIsProtocolSentinelName(_ name: Swift.String) -> Swift.Boo
   return name == "Protocol" || name == "`Protocol`"
 }
 
+/// Strips a single pair of surrounding backticks from a token's `.text`
+/// (which, unlike `.trimmedDescription`, includes the backticks for an
+/// escaped identifier). `` `Protocol` `` becomes `Protocol`; `Protocol`
+/// is returned unchanged.
+internal func structureStripBackticks(_ text: Swift.String) -> Swift.String {
+  var slice = Swift.Substring(text)
+  if slice.hasPrefix("`") { slice = slice.dropFirst() }
+  if slice.hasSuffix("`") { slice = slice.dropLast() }
+  return Swift.String(slice)
+}
+
 /// The SwiftSyntax visitor-family base classes whose subclasses are
 /// exempt from the structure-pack rules per [RULE-EXEMPT-7]
 /// (syntax-visitor-subclass). The set covers the open base classes a
