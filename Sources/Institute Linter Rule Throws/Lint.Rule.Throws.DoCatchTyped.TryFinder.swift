@@ -23,4 +23,13 @@ internal final class ThrowsDoCatchTryFinder: SyntaxVisitor {
   override func visit(_: DoStmtSyntax) -> SyntaxVisitorContinueKind {
     return .skipChildren
   }
+  // A `try` inside a nested closure is not at the `do` body's own
+  // effect scope — the closure has its own (possibly non-throwing)
+  // call boundary. Without this, `do { register { try handler() };
+  // throw E.x }` false-positives here AND its twin
+  // (`ThrowsDoCatchTryFinder2` in DoCatchTypedThrow.TryFinder.swift,
+  // which already skips closures) correctly stays silent, producing
+  // two diagnostics on the same site where the rules are meant to be
+  // mutually exclusive.
+  override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind { return .skipChildren }
 }

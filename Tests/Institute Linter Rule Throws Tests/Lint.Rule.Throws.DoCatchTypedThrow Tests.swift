@@ -132,6 +132,28 @@ extension Lint.Rule.`do throws for typed catch with throw Tests`.`Edge Case` {
   }
 
   @Test
+  func `do with throw and try only inside a nested closure is flagged - mutual exclusion with DoCatchTyped`() {
+    // Regression guard for the DoCatchTyped/DoCatchTypedThrow mutual-
+    // exclusion contract: a `try` inside a nested closure is not at
+    // the `do` body's own effect scope, so this `do` has (at its own
+    // scope) a `throw` and no `try` — `do throws for typed catch with
+    // throw` should fire exactly once, and `do throws for typed
+    // catch` (the sibling rule) should stay silent on the same site.
+    let source = """
+      func f() {
+          do {
+              register { try handler() }
+              throw MyError.x
+          } catch {
+              handle(error)
+          }
+      }
+      """
+    let findings = Lint.Rule.`do throws for typed catch with throw Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `do throw without catch is NOT flagged`() {
     let source = """
       func f() throws {

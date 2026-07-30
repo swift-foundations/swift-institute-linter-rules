@@ -91,6 +91,26 @@ extension Lint.Rule.`do throws for typed catch Tests`.Unit {
     let findings = Lint.Rule.`do throws for typed catch Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  @Test
+  func `try inside a nested closure does NOT count as the do body's own try`() {
+    // Regression guard: a `try` inside a nested closure is not at the
+    // `do` body's own effect scope. Without the closure skip, this
+    // false-positives here AND `do throws for typed catch with throw`
+    // also fires (its finder correctly skips closures), producing two
+    // diagnostics on a site meant to be mutually exclusive.
+    let source = """
+      func f() {
+          do {
+              register { try handler() }
+              throw MyError.x
+          } catch {
+          }
+      }
+      """
+    let findings = Lint.Rule.`do throws for typed catch Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
 }
 
 extension Lint.Rule.`do throws for typed catch Tests`.`Edge Case` {

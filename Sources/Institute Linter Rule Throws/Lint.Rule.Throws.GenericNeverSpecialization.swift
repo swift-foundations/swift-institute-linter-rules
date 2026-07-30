@@ -94,18 +94,30 @@ private func gnsGenericFailureTypePosition(
   return member.positionAfterSkippingLeadingTrivia
 }
 
+/// Deliberately returns an empty set — a `extension Parser<Sink> { }`
+/// header's generic-ARGUMENT clause cannot be told apart, from syntax
+/// alone, between two semantically opposite cases: (a) `Sink` reopens
+/// `Parser`'s own generic parameter of the same name (the extension
+/// stays fully generic — Swift's "parameterized extension" sugar), or
+/// (b) `Sink` names an unrelated CONCRETE type already in scope (the
+/// extension is fully specialized — no type parameter reaches
+/// codegen, e.g. `extension Parser<Data> { … throws(Data.Failure) }`
+/// where `Data` is a concrete type). Only whole-program semantic
+/// resolution (is there a declaration named `Sink` in scope, and is
+/// IT the same `Sink` as `Parser`'s own parameter?) can distinguish
+/// them; a single-file AST rule cannot.
+///
+/// Given that ambiguity, this rule treats every extension generic
+/// argument as UNKNOWN rather than guessing "generic" — the same
+/// principle `Lint.Rule.Throws.PhantomGenericError` documents at
+/// length: firing on a concrete argument is a false positive, and an
+/// unfixable one (the site cannot rewrite its way to silence). Erring
+/// toward not firing accepts a missed review-prompt in the reopened-
+/// generic case in exchange for eliminating the concrete-argument
+/// false positive.
 private func gnsCollectExtendedGenericNames(_ type: TypeSyntax) -> Swift.Set<Swift.String> {
-  var names: Swift.Set<Swift.String> = []
-  if let identifier = type.as(IdentifierTypeSyntax.self),
-    let genericArgs = identifier.genericArgumentClause
-  {
-    for argument in genericArgs.arguments {
-      if let ident = argument.argument.as(IdentifierTypeSyntax.self) {
-        names.insert(ident.name.text)
-      }
-    }
-  }
-  return names
+  _ = type
+  return []
 }
 
 /// Refinement A. `@inlinable` and `@_alwaysEmitIntoClient` opt the

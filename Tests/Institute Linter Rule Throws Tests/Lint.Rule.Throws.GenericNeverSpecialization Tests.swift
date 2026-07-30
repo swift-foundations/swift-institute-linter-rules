@@ -62,17 +62,6 @@ extension Lint.Rule.`generic throws missing never Tests`.Unit {
   }
 
   @Test
-  func `extension short form picks up generic parameter`() {
-    let source = """
-      extension Parser<Sink> {
-          public func consume() throws(Sink.Failure) { }
-      }
-      """
-    let findings = Lint.Rule.`generic throws missing never Tests`.findings(in: source)
-    #expect(findings.count == 1)
-  }
-
-  @Test
   func `function-level generic param is flagged`() {
     let source = """
       public func op<E: Handler>() throws(E.Failure) { }
@@ -83,6 +72,27 @@ extension Lint.Rule.`generic throws missing never Tests`.Unit {
 }
 
 extension Lint.Rule.`generic throws missing never Tests`.`Edge Case` {
+  @Test
+  func `extension short-form generic-argument-shaped header is NOT flagged`() {
+    // Regression guard: `extension Parser<Sink> { … }`'s generic
+    // ARGUMENT `Sink` cannot be told apart, from syntax alone, from
+    // (a) reopening Parser's own generic parameter of the same name
+    // (still fully generic), or (b) naming an unrelated CONCRETE type
+    // already in scope (fully specialized — the false positive this
+    // rule exists to avoid, per PhantomGenericError's documented
+    // "unfixable false positive" principle). This suite previously
+    // asserted the ambiguous shape as `count == 1` ("picks up generic
+    // parameter"); that locked in the wrong reading for case (b).
+    // Erring toward not firing is the safe default.
+    let source = """
+      extension Parser<Sink> {
+          public func consume() throws(Sink.Failure) { }
+      }
+      """
+    let findings = Lint.Rule.`generic throws missing never Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
   @Test
   func `concrete throw type is NOT flagged`() {
     let source = """
