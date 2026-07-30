@@ -164,4 +164,22 @@ extension Lint.Rule.`type transform placement Tests`.`Edge Case` {
     let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  // #28 test gap 4 (remaining half): no #if-shaped fixture existed
+  // anywhere in the pack. This rule visits FunctionDeclSyntax via
+  // normal recursive descent, so a #if-guarded instance method is
+  // reachable without any additional code — this fixture is the
+  // regression pin for that fact.
+  @Test
+  func `toFoo guarded by if os is still flagged`() {
+    let source = """
+      struct Bar {
+          #if os(Linux)
+          func toFoo() -> Foo { fatalError() }
+          #endif
+      }
+      """
+    let findings = Lint.Rule.`type transform placement Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

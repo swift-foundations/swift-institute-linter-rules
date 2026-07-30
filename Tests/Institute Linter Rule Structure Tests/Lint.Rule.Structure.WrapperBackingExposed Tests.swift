@@ -201,4 +201,62 @@ extension Lint.Rule.`wrapper backing exposed Tests`.`Edge Case` {
     let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // #28 test gap 3: multi-binding and the `break` semantics that
+  // limits a multi-binding var decl to a single finding.
+
+  @Test
+  func `multi-binding var with tracked name first is flagged once`() {
+    let source = """
+      struct Wrapper {
+          var _backing: Int = 0, other: Int = 0
+      }
+      """
+    let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `multi-binding var with tracked name second is still flagged once - break does not skip later bindings`() {
+    let source = """
+      struct Wrapper {
+          var other: Int = 0, _backing: Int = 0
+      }
+      """
+    let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `multi-binding var with two tracked names still fires once per decl - not once per binding`() {
+    // The `break` after the first tracked binding stops scanning the
+    // REST of this decl's bindings — one finding per var decl, not
+    // one per tracked binding within it.
+    let source = """
+      struct Wrapper {
+          var _backing: Int = 0, _wrapped: Int = 0
+      }
+      """
+    let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // #28 test gap 4 (remaining half): no #if-shaped fixture existed
+  // anywhere in the pack. This rule visits VariableDeclSyntax via
+  // normal recursive descent (unlike MinimalTypeBody's manual member
+  // enumeration), so a #if-guarded backing property is reachable
+  // without any additional code — this fixture is the regression
+  // pin for that fact.
+  @Test
+  func `backing property guarded by if os is still flagged`() {
+    let source = """
+      struct Wrapper {
+          #if os(Linux)
+          var _backing: Int = 0
+          #endif
+      }
+      """
+    let findings = Lint.Rule.`wrapper backing exposed Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

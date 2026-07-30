@@ -144,6 +144,23 @@ extension Lint.Rule.`throwing wrapper init Tests`.`Edge Case` {
   }
 
   @Test
+  func `extension on module-qualified Swift dot Int with throwing init is admitted`() {
+    // #28 test gap 3: the MemberTypeSyntax arm of
+    // isInsideExtensionOnLaxType (`ext.extendedType.as(MemberTypeSyntax
+    // .self)`) was previously unreachable from any fixture — only the
+    // bare-identifier `Int`/`UInt` shape above was covered.
+    let source = """
+      extension Swift.Int {
+          public init<Tag: ~Copyable>(_ position: Tagged<Tag, Ordinal>) throws(Ordinal.Error) {
+              self = try Int(position.underlying)
+          }
+      }
+      """
+    let findings = Lint.Rule.`throwing wrapper init Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `extension on UInt with throwing init is admitted`() {
     let source = """
       extension UInt {

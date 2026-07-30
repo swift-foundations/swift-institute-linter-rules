@@ -97,6 +97,106 @@ extension Lint.Rule.`minimal type body Tests`.Unit {
     #expect(findings.count == 1)
   }
 
+  // #28 test gap 3: subscript, nested class/enum/actor, nested
+  // protocol, actor body, and static multi-binding/`class var` were
+  // all reachable branches with no fixture reaching them.
+
+  @Test
+  func `subscript in type body is flagged`() {
+    let source = """
+      struct Foo {
+          var x: Int
+          subscript(index: Int) -> Int { index }
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `nested class in type body is flagged`() {
+    let source = """
+      struct Outer {
+          var x: Int
+          class Inner {}
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `nested enum in type body is flagged`() {
+    let source = """
+      struct Outer {
+          var x: Int
+          enum Inner { case a }
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `nested actor in type body is flagged`() {
+    let source = """
+      struct Outer {
+          var x: Int
+          actor Inner {}
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `nested protocol in type body is flagged`() {
+    let source = """
+      struct Outer {
+          var x: Int
+          protocol Inner {}
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `actor with a computed property is flagged - actor body is checked too`() {
+    let source = """
+      actor Outer {
+          var x: Int = 0
+          var doubled: Int { x * 2 }
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `static member with multiple bindings is flagged`() {
+    let source = """
+      struct Foo {
+          var x: Int
+          static let a = 1, b = 2
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `class var member is flagged`() {
+    let source = """
+      class Foo {
+          var x: Int = 0
+          class var shared: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`minimal type body Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
   @Test
   func `multiple offending members each flagged`() {
     let source = """
