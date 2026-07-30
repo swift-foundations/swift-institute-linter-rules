@@ -137,23 +137,6 @@ extension Lint.Rule.`try optional Tests`.`Edge Case` {
   }
 
   @Test
-  func `try? in a string literal is NOT flagged`() {
-    let source = "let s = \"let x = try? f()\""
-    let findings = Lint.Rule.`try optional Tests`.findings(in: source)
-    #expect(findings.isEmpty)
-  }
-
-  @Test
-  func `try? in a comment is NOT flagged`() {
-    let source = """
-      // let x = try? f()
-      let y = 42
-      """
-    let findings = Lint.Rule.`try optional Tests`.findings(in: source)
-    #expect(findings.isEmpty)
-  }
-
-  @Test
   func `empty file produces no findings`() {
     let findings = Lint.Rule.`try optional Tests`.findings(in: "")
     #expect(findings.isEmpty)

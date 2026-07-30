@@ -142,4 +142,43 @@ extension Lint.Rule.`callback result over throws thunk Tests`.`Edge Case` {
     let findings = Lint.Rule.`callback result over throws thunk Tests`.findings(in: source)
     #expect(findings.count == 1)
   }
+
+  // MARK: - #19 smaller item 6: arity guard and container recursion
+
+  @Test
+  func `project-local non-generic Result type does NOT fire`() {
+    let source = """
+      enum Result { case ok, failed }
+      func register(_ callback: @escaping (Result) -> Void) {}
+      """
+    let findings = Lint.Rule.`callback result over throws thunk Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `array of Result closure parameter is flagged`() {
+    let source = """
+      func register(_ callback: @escaping ([Result<Int, MyError>]) -> Void) {}
+      """
+    let findings = Lint.Rule.`callback result over throws thunk Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `tuple containing Result closure parameter is flagged`() {
+    let source = """
+      func register(_ callback: @escaping ((Result<Int, MyError>, Int)) -> Void) {}
+      """
+    let findings = Lint.Rule.`callback result over throws thunk Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `dictionary value of Result closure parameter is flagged`() {
+    let source = """
+      func register(_ callback: @escaping ([String: Result<Int, MyError>]) -> Void) {}
+      """
+    let findings = Lint.Rule.`callback result over throws thunk Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

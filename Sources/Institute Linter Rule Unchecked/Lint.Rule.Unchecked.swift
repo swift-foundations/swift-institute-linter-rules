@@ -27,6 +27,12 @@ internal import SwiftSyntax
 ///   §"R5. `__unchecked:` use at call sites" — the original DEFER rationale.
 /// - the SwiftSyntax-based custom-linter investigation note
 ///   §"Q3 — Deferred AST-rule unblocking matrix" — R5 is unblocked by this tool.
+///
+/// Whole-run self-suppression: when the run's own sources declare a
+/// `Lint.Brand.numericBoundaryVocabulary` type at namespace root, the run
+/// owns the brand and `__unchecked:` is the owner's own boundary
+/// ([CONV-001]) — the rule returns no findings for the whole run. Retires
+/// the per-package `.excluding(rules:)` stopgap.
 extension Lint.Rule {
   public static let `unchecked call site` = Lint.Rule(
     id: "unchecked call site",
@@ -73,6 +79,14 @@ internal final class UncheckedVisitor: SyntaxVisitor {
 
   override func visit(_ node: LabeledExprSyntax) -> SyntaxVisitorContinueKind {
     guard let label = node.label, label.text == "__unchecked" else {
+      return .visitChildren
+    }
+    // A `LabeledExprSyntax` also matches a labeled TUPLE element
+    // (`let t = (__unchecked: value)`), which is not a call site. Require
+    // the enclosing labeled-expr LIST to itself sit inside a
+    // `FunctionCallExprSyntax` — a call's argument list — not a
+    // `TupleExprSyntax`.
+    guard node.parent?.parent?.is(FunctionCallExprSyntax.self) == true else {
       return .visitChildren
     }
     let location = converter.location(for: label.positionAfterSkippingLeadingTrivia)

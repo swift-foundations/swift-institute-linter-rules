@@ -167,10 +167,46 @@ extension Lint.Rule.`existential throws Tests`.`Edge Case` {
   }
 
   @Test
-  func `init from outside Decodable conformance is still flagged`() {
+  func `init from in a bare extension is exempt via the canonical witness signature`() {
+    // #19 defect 2, item 3: the bare-extension fallback keyed off the
+    // witness key (a sole `Decoder` parameter), not the protocol list —
+    // the `// MARK: - Codable` pattern where the conformance is declared
+    // in a separate extension/file from the witness. This replaces the
+    // prior assertion here, which pinned the wrong (pre-fix) behavior.
     let source = """
       extension MyType {
           public init(from decoder: any Decoder) throws(any Error) { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`existential throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `init from on the declaring type itself (not an extension) is exempt`() {
+    // Conformance-site parity: `struct Foo: Decodable { init(from:) throws(any Error) }`
+    // — conformance on the TYPE rather than an extension — must be exempt,
+    // matching `untyped throws`'s behavior for the same shape.
+    let source = """
+      struct Foo: Decodable {
+          init(from decoder: any Decoder) throws(any Error) { fatalError() }
+      }
+      """
+    let findings = Lint.Rule.`existential throws Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `nested helper inside a Decodable witness still fires`() {
+    // Signature-position restriction (item 2): the exemption applies to
+    // the WITNESS's own signature only. A nested function inside the
+    // witness body is ordinary code and still fires.
+    let source = """
+      extension MyType: Decodable {
+          public init(from decoder: any Decoder) throws {
+              func helper() throws(any Error) {}
+              try helper()
+          }
       }
       """
     let findings = Lint.Rule.`existential throws Tests`.findings(in: source)

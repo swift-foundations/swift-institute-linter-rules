@@ -69,15 +69,13 @@ private func hoistedIsPublicOrOpenEffective(
   return false
 }
 
+/// `hoistedLeafIdentifier(of:)` has exactly one caller, `checkThrowsClause`,
+/// which passes a `ThrowsClauseSyntax.type` — a `throws(...)` clause type is
+/// a bare or member-qualified identifier; no optional/attributed sugar is
+/// expressible there (#19 smaller item 4).
 private func hoistedLeafIdentifier(of type: TypeSyntax) -> Swift.String? {
-  var current = type
-  while let optional = current.as(OptionalTypeSyntax.self) { current = optional.wrappedType }
-  while let iuo = current.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    current = iuo.wrappedType
-  }
-  while let attributed = current.as(AttributedTypeSyntax.self) { current = attributed.baseType }
-  if let identifier = current.as(IdentifierTypeSyntax.self) { return identifier.name.text }
-  if let member = current.as(MemberTypeSyntax.self) { return member.name.text }
+  if let identifier = type.as(IdentifierTypeSyntax.self) { return identifier.name.text }
+  if let member = type.as(MemberTypeSyntax.self) { return member.name.text }
   return nil
 }
 

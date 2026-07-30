@@ -11,10 +11,20 @@
 
 internal import SwiftSyntax
 
-internal final class ThrowsClosureCatchThrowFinder: SyntaxVisitor {
-  var foundThrow = false
+/// #19 defect 3: renamed from `ThrowsClosureCatchThrowFinder` and extended to
+/// see non-`throw` propagation. A catch clause that forwards the error via
+/// `try fallback()` (a call that can itself throw) propagates just as much as
+/// an explicit `throw` — the closure it sits in still needs the annotation.
+internal final class ThrowsClosureCatchPropagationFinder: SyntaxVisitor {
+  var foundPropagation = false
   override func visit(_: ThrowStmtSyntax) -> SyntaxVisitorContinueKind {
-    foundThrow = true
+    foundPropagation = true
+    return .skipChildren
+  }
+  override func visit(_ node: TryExprSyntax) -> SyntaxVisitorContinueKind {
+    if node.questionOrExclamationMark == nil {
+      foundPropagation = true
+    }
     return .skipChildren
   }
   override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind {

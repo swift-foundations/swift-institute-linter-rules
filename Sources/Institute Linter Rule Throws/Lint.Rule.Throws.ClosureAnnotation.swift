@@ -89,24 +89,34 @@ internal func throwsClosureIsInsideExpectThrows(_ node: ClosureExprSyntax) -> Sw
 /// `catchClauses` contain at least one catch body that ends with a
 /// `return` of a value (the Result-materialization shape). Stops the
 /// walk at any enclosing `ClosureExprSyntax` — the closure boundary.
+///
+/// A `do` statement materializes a `try` iff (i) it has at least one catch
+/// clause, (ii) at least one clause is catch-all, and (iii) every clause
+/// neither throws nor propagates (#19 defect 3).
 internal func throwsClosureTryIsInsideMaterializingDoCatch(_ node: Syntax) -> Swift.Bool {
   var current: Syntax? = node.parent
   while let candidate = current {
     if let doStmt = candidate.as(DoStmtSyntax.self) {
-      // Check whether any catch body has a return-with-value
-      // (the materialization signature). Empty catchClauses or
-      // catches that re-throw / propagate without returning a
-      // value don't materialize — fall through to scan further.
-      for catchClause in doStmt.catchClauses {
-        if throwsClosureCatchReturnsValue(catchClause) {
-          return true
-        }
+      if !doStmt.catchClauses.isEmpty,
+        doStmt.catchClauses.contains(where: throwsClosureCatchIsCatchAll),
+        doStmt.catchClauses.allSatisfy(throwsClosureCatchIsNonPropagating)
+      {
+        return true
       }
     }
     if candidate.is(ClosureExprSyntax.self) { return false }
     current = candidate.parent
   }
   return false
+}
+
+/// True when the catch clause has no typed/`where`-guarded pattern — it
+/// catches every error, not a subset. A typed or `where`-guarded catch is
+/// not exhaustive: some errors fall through uncaught, so the `do` does not
+/// fully materialize the `try`.
+internal func throwsClosureCatchIsCatchAll(_ clause: CatchClauseSyntax) -> Swift.Bool {
+  clause.catchItems.isEmpty
+    || clause.catchItems.allSatisfy { $0.pattern == nil && $0.whereClause == nil }
 }
 
 /// Returns true if the catch clause's body materializes the error
@@ -120,14 +130,16 @@ internal func throwsClosureTryIsInsideMaterializingDoCatch(_ node: Syntax) -> Sw
 ///    the variable after the closure returns.
 ///
 /// Both shapes mean the closure itself doesn't propagate the error.
-/// A catch that contains a `ThrowStmt` IS propagating and DOES need
-/// the closure to be annotated. Detection: a catch is materializing
-/// iff its body contains NO `ThrowStmt` at any depth (excluding
-/// nested closures, which have their own boundary).
-private func throwsClosureCatchReturnsValue(_ clause: CatchClauseSyntax) -> Swift.Bool {
-  let finder = ThrowsClosureCatchThrowFinder(viewMode: .sourceAccurate)
+/// A catch that contains a `ThrowStmt`, or a non-optional `try` (a call
+/// that can itself throw, e.g. `try fallback()`), IS propagating and DOES
+/// need the closure to be annotated. Detection: a catch is
+/// non-propagating iff its body contains NO `ThrowStmt` and NO
+/// non-optional `try` at any depth (excluding nested closures, which have
+/// their own boundary).
+internal func throwsClosureCatchIsNonPropagating(_ clause: CatchClauseSyntax) -> Swift.Bool {
+  let finder = ThrowsClosureCatchPropagationFinder(viewMode: .sourceAccurate)
   finder.walk(clause.body)
-  return !finder.foundThrow
+  return !finder.foundPropagation
 }
 
 internal final class ThrowsClosureAnnotationVisitor: SyntaxVisitor {
@@ -184,13 +196,31 @@ internal final class ThrowsClosureAnnotationVisitor: SyntaxVisitor {
     }
   }
 
-  override func visit(_ node: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
-    guard typedThrowsDepth > 0 else { return .visitChildren }
-    if let signature = node.signature,
-      throwsIsTypedThrows(signature.effectSpecifiers?.throwsClause)
-    {
-      return .visitChildren
+  // #19 defect 4, item 1: accessors (and, by extension, subscripts — a
+  // subscript's throws clause lives on its accessors, so no
+  // `SubscriptDeclSyntax` override is needed or correct).
+  override func visit(_ node: AccessorDeclSyntax) -> SyntaxVisitorContinueKind {
+    if throwsIsTypedThrows(node.effectSpecifiers?.throwsClause) {
+      typedThrowsDepth += 1
     }
+    return .visitChildren
+  }
+  override func visitPost(_ node: AccessorDeclSyntax) {
+    if throwsIsTypedThrows(node.effectSpecifiers?.throwsClause) {
+      typedThrowsDepth -= 1
+    }
+  }
+
+  override func visit(_ node: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
+    // #19 defect 4, item 2: a typed-throws closure both COUNTS as a
+    // typed-throws context for its own children and STAYS EXEMPT itself
+    // (it already carries the annotation it would otherwise be flagged
+    // for lacking). `wasInTypedContext` is read BEFORE the increment, or
+    // a typed closure at file scope would flag itself.
+    let isTyped = throwsIsTypedThrows(node.signature?.effectSpecifiers?.throwsClause)
+    let wasInTypedContext = typedThrowsDepth > 0
+    if isTyped { typedThrowsDepth += 1 }
+    guard wasInTypedContext, !isTyped else { return .visitChildren }
     // Carve-out: `#expect(throws:)` macro expansion. The macro's
     // `throws:` argument carries the expected error; the closure
     // annotation is semantically meaningless. Additionally, the
@@ -215,5 +245,10 @@ internal final class ThrowsClosureAnnotationVisitor: SyntaxVisitor {
     }
     emit(at: position)
     return .visitChildren
+  }
+  override func visitPost(_ node: ClosureExprSyntax) {
+    if throwsIsTypedThrows(node.signature?.effectSpecifiers?.throwsClause) {
+      typedThrowsDepth -= 1
+    }
   }
 }

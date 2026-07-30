@@ -43,17 +43,35 @@ private func resultCallbackTokenPosition(in type: TypeSyntax) -> AbsolutePositio
     current = iuo.wrappedType
   }
   while let attributed = current.as(AttributedTypeSyntax.self) { current = attributed.baseType }
+  // Require exactly two generic arguments (`Value`, `Failure`) so a
+  // project-local non-generic `Result` type cannot fire (#19 smaller item 6).
   if let identifier = current.as(IdentifierTypeSyntax.self),
-    identifier.name.text == "Result"
+    identifier.name.text == "Result",
+    identifier.genericArgumentClause?.arguments.count == 2
   {
     return identifier.name.positionAfterSkippingLeadingTrivia
   }
   if let member = current.as(MemberTypeSyntax.self),
     member.name.text == "Result",
+    member.genericArgumentClause?.arguments.count == 2,
     let base = member.baseType.as(IdentifierTypeSyntax.self),
     base.name.text == "Swift"
   {
     return member.name.positionAfterSkippingLeadingTrivia
+  }
+  // Recurse into container shapes that can hide a `Result` leak:
+  // `[Result<T, E>]`, `(Result<T, E>, Int)`, `[String: Result<T, E>]`.
+  if let array = current.as(ArrayTypeSyntax.self) {
+    return resultCallbackTokenPosition(in: array.element)
+  }
+  if let tuple = current.as(TupleTypeSyntax.self) {
+    for element in tuple.elements {
+      if let position = resultCallbackTokenPosition(in: element.type) { return position }
+    }
+    return nil
+  }
+  if let dictionary = current.as(DictionaryTypeSyntax.self) {
+    return resultCallbackTokenPosition(in: dictionary.value)
   }
   return nil
 }

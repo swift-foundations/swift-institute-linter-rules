@@ -47,7 +47,7 @@ extension Lint.Rule {
 
 @usableFromInline
 internal let tryOptionalMessage: Swift.String =
-  "[try optional] [API-ERR-001]: "
+  "[try optional] feedback_prefer_typed_throws_over_try_optional: "
   + "`try?` swallows the thrown error and returns `nil`, erasing both the error type "
   + "and the error instance. Prefer typed throws (`throws(E)`) so the error path stays "
   + "explicit and recoverable. Past incident: `try? input.advance()` swallowed `EAGAIN` "
@@ -57,8 +57,9 @@ internal let tryOptionalMessage: Swift.String =
   + "callee throws UNTYPED (cross-module APIs such as `FileManager.removeItem(at:)` "
   + "or `try await task.value`), no construct satisfies every rule: bare "
   + "`do { ... } catch { }` fires [IMPL-075], `do throws(any Error)` fires "
-  + "[API-ERR-006], and `do throws(E)` does not compile because there is no `E`. "
-  + "Keep the `try?` and apply `// swift-linter:disable:next try optional` with a "
+  + "feedback_no_existential_throws, and `do throws(E)` does not compile because "
+  + "there is no `E`. Keep the `try?` and apply "
+  + "`// swift-linter:disable:next try optional` with a "
   + "`// REASON:` naming the untyped callee — that case is the author's to judge, "
   + "because a per-file rule can prove a callee typed but never untyped."
 // swiftlint:enable no_try_optional no_existential_throws

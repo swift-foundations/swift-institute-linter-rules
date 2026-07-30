@@ -165,55 +165,62 @@ internal final class ThrowsExistentialVisitor: SyntaxVisitor {
   }
 
   private func isStdlibProtocolWitnessThrows(_ node: Syntax) -> Swift.Bool {
-    // Walk up to enclosing function or initializer decl.
+    // Walk up to the enclosing function or initializer decl, guarding both
+    // branches with `witnessKey == nil` (#19 defect 2, item 1) so an OUTER
+    // declaration cannot overwrite an INNER one's key — e.g. an outer
+    // `init(from:)` must not clobber an inner `func helper()`'s key.
+    // Accumulate every enclosing declaration's inheritance-clause leaf names
+    // (item 3) rather than stopping at the innermost extension, so
+    // conformance declared on the nominal TYPE itself (not just an
+    // extension) is seen — matching `ThrowsUntypedVisitor`'s behavior.
     var current: Syntax? = node.parent
     var witnessKey: Swift.String?
-    var enclosingExtension: ExtensionDeclSyntax?
+    var witnessSignature: FunctionSignatureSyntax?
+    var inheritedTypeSuffixes: Swift.Set<Swift.String> = []
     while let candidate = current {
-      if let fn = candidate.as(FunctionDeclSyntax.self) {
-        witnessKey = throwsWitnessKey(
-          name: fn.name.text, parameterClause: fn.signature.parameterClause)
-        current = candidate.parent
-        continue
+      if witnessKey == nil {
+        if let fn = candidate.as(FunctionDeclSyntax.self) {
+          witnessKey = throwsWitnessKey(
+            name: fn.name.text, parameterClause: fn.signature.parameterClause)
+          witnessSignature = fn.signature
+        } else if let initDecl = candidate.as(InitializerDeclSyntax.self) {
+          witnessKey = throwsWitnessKey(
+            name: "init", parameterClause: initDecl.signature.parameterClause)
+          witnessSignature = initDecl.signature
+        }
       }
-      if let initDecl = candidate.as(InitializerDeclSyntax.self) {
-        witnessKey = throwsWitnessKey(
-          name: "init", parameterClause: initDecl.signature.parameterClause)
-        current = candidate.parent
-        continue
-      }
-      if let ext = candidate.as(ExtensionDeclSyntax.self) {
-        enclosingExtension = ext
-        break
-      }
-      if candidate.is(StructDeclSyntax.self)
-        || candidate.is(ClassDeclSyntax.self)
-        || candidate.is(EnumDeclSyntax.self)
-        || candidate.is(ActorDeclSyntax.self)
-      {
-        break
+      if let clause = throwsInheritanceClause(of: candidate) {
+        for inherited in clause.inheritedTypes {
+          inheritedTypeSuffixes.insert(throwsLastNameComponent(inherited.type))
+        }
       }
       current = candidate.parent
     }
-    guard let key = witnessKey,
-      let entry = throwsExistentialStdlibProtocolWitnessCitations[key],
-      let ext = enclosingExtension,
-      let inheritance = ext.inheritanceClause
+    guard let key = witnessKey, let signature = witnessSignature else { return false }
+    // Signature-position restriction (item 2): a `throws(any Error)` inside
+    // the witness BODY is not exempt — only the enclosing member's own
+    // signature is conformance-forced.
+    guard
+      node.position >= signature.position,
+      node.endPosition <= signature.endPosition
     else { return false }
-    for inherited in inheritance.inheritedTypes {
-      let leaf: Swift.String?
-      if let identifier = inherited.type.as(IdentifierTypeSyntax.self) {
-        leaf = identifier.name.text
-      } else if let member = inherited.type.as(MemberTypeSyntax.self) {
-        leaf = member.name.text
-      } else {
-        leaf = nil
-      }
-      if let leaf, entry.protocols.contains(leaf) {
-        return true
-      }
+    guard let entry = throwsExistentialStdlibProtocolWitnessCitations[key] else { return false }
+    for protocolName in entry.protocols where inheritedTypeSuffixes.contains(protocolName) {
+      return true
     }
-    return false
+    // Bare-extension fallback keyed off the witness key, not the protocol
+    // list — the `// MARK: - Codable` pattern where the conformance is
+    // declared in a separate extension/file from the witness.
+    switch key {
+    case "init(from:)":
+      return throwsIsCanonicalWitnessSignature(
+        protocolSuffix: "Decodable", parameters: signature.parameterClause.parameters)
+    case "encode(to:)":
+      return throwsIsCanonicalWitnessSignature(
+        protocolSuffix: "Encodable", parameters: signature.parameterClause.parameters)
+    default:
+      return false
+    }
   }
 
   private func throwsWitnessKey(name: Swift.String, parameterClause: FunctionParameterClauseSyntax)

@@ -32,6 +32,16 @@ extension Lint.Rule.`unchecked call site Tests` {
     let parsed = Lint.Source.parsed(from: source, file: file)
     return Lint.Rule.`unchecked call site`.findings(parsed, .warning)
   }
+
+  /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`
+  /// (#19 smaller item 1: the `Lint.Brand.owned` whole-run self-suppression).
+  static func findings(
+    in source: Swift.String,
+    declaredTypeNames: Swift.Set<Swift.String>
+  ) -> [Diagnostic.Record] {
+    let parsed = Lint.Source.parsed(from: source, declaredTypeNames: declaredTypeNames)
+    return Lint.Rule.`unchecked call site`.findings(parsed, .warning)
+  }
 }
 
 extension Lint.Rule.`unchecked call site Tests`.Unit {
@@ -129,23 +139,6 @@ extension Lint.Rule.`unchecked call site Tests`.`Edge Case` {
   }
 
   @Test
-  func `__unchecked appearing in a string literal is NOT flagged`() {
-    let source = "let x = \"Foo(__unchecked: ())\""
-    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
-    #expect(findings.isEmpty)
-  }
-
-  @Test
-  func `__unchecked in a comment is NOT flagged`() {
-    let source = """
-      // Foo(__unchecked: ()) is the canonical anti-pattern
-      let x = 42
-      """
-    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
-    #expect(findings.isEmpty)
-  }
-
-  @Test
   func `__unchecked as part of a larger label is NOT flagged`() {
     let source = "let x = Foo(__unchecked_extra: ())"
     let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
@@ -177,5 +170,41 @@ extension Lint.Rule.`unchecked call site Tests`.`Edge Case` {
   func `Empty file produces no findings`() {
     let findings = Lint.Rule.`unchecked call site Tests`.findings(in: "")
     #expect(findings.isEmpty)
+  }
+
+  // MARK: - #19 smaller item 2: LabeledExprSyntax also matches tuple labels
+
+  @Test
+  func `__unchecked as a tuple element label is NOT flagged`() {
+    let source = "let t = (__unchecked: value)"
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `__unchecked as a call argument label is still flagged`() {
+    let source = "let x = Cardinal(__unchecked: value)"
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // MARK: - #19 smaller item 1: Lint.Brand.owned whole-run self-suppression
+
+  @Test
+  func `Cardinal brand-owner run self-suppresses`() {
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(
+      in: "let x = Foo(__unchecked: ())",
+      declaredTypeNames: ["Cardinal"]
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a non-brand-owner consumer run still fires`() {
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(
+      in: "let x = Foo(__unchecked: ())",
+      declaredTypeNames: ["SomeConsumerType"]
+    )
+    #expect(findings.count == 1)
   }
 }

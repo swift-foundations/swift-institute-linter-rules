@@ -259,6 +259,109 @@ extension Lint.Rule.`closure typed throws annotation Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 
+  // MARK: - #19 defect 3: do/catch materialization holes
+
+  @Test
+  func `typed catch with where clause is not exhaustive so the try still fires`() {
+    let source = """
+      func f<E: Swift.Error>() throws(E) {
+          _ = xs.map { (x: Int) -> Int in
+              do { return try g(x) } catch let e as A where e.isFatal { return .failure(e) }
+          }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `catch that forwards via try fallback still propagates`() {
+    let source = """
+      func f<E: Swift.Error>() throws(E) {
+          _ = xs.map { (x: Int) -> Int in
+              do { return try g(x) } catch { return try fallback() }
+          }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `one propagating clause among several defeats materialization`() {
+    let source = """
+      func f<E: Swift.Error>() throws(E) {
+          _ = xs.map { (x: Int) -> Int in
+              do { return try g(x) } catch is A { return -1 } catch { throw e }
+          }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `catch-all that only returns a value materializes the try`() {
+    let source = """
+      func f<E: Swift.Error>() throws(E) {
+          _ = xs.map { (x: Int) -> Int in
+              do { return try g(x) } catch { return -1 }
+          }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // MARK: - #19 defect 4: accessors, subscripts, and typed-throws closures
+
+  @Test
+  func `computed property getter with typed throws is a typed-throws context`() {
+    let source = """
+      var x: Int {
+          get throws(E) {
+              xs.map { try h($0) }.first ?? 0
+          }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `subscript getter with typed throws is a typed-throws context`() {
+    let source = """
+      subscript(i: Int) -> Int {
+          get throws(E) {
+              xs.map { try h($0) }.first ?? 0
+          }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `explicitly-signed typed throws closure is itself exempt but counts for its children`() {
+    // #19 defect 4, item 2: a closure whose OWN signature carries
+    // `throws(E)` both stays exempt itself (it already has the
+    // annotation) and counts as a typed-throws context for its nested
+    // children — so the inner unannotated closure still fires. Note: a
+    // closure with no `in`-clause signature at all (its type inferred
+    // purely from a surrounding `let` type annotation) cannot be
+    // classified as typed-throws by this per-file AST rule — SwiftSyntax
+    // gives that closure literal no `signature` node to test, and
+    // resolving the binding's declared type is cross-node type inference
+    // this rule does not perform.
+    let source = """
+      let g: (Int) throws(E) -> Void = { (x: Int) throws(E) in
+          xs.map { try h($0) }
+      }
+      """
+    let findings = Lint.Rule.`closure typed throws annotation Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
   @Test
   func `non-expect macro with throws: label does NOT exempt`() {
     // Regression guard: the carve-out is gated on the macro name
