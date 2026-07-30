@@ -104,6 +104,20 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
+  func `where clause whose comment mentions tilde-Copyable but does not suppress it still fires`() {
+    // #25 defect 7: the previous textual `.contains("~Copyable")`
+    // check matched inside a comment; the structural
+    // `memoryWhereClauseHasNoncopyable` check must not.
+    let source = """
+      extension Container<Element> where T: /* ~Copyable later */ Sendable {
+          consuming func transfer() {}
+      }
+      """
+    let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `extension on namespace containing nested type with consuming init is not flagged`() {
     let source = """
       extension Ownership {
@@ -146,13 +160,21 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
     #expect(findings.count == 1)
   }
 
+  // #25 defect 8: the five fixtures below previously extended a
+  // SYNTACTICALLY NON-GENERIC target (`extension Ownership.Transfer.
+  // Erased.Incoming { ... }`, `extension Box { ... }`), which
+  // `extensionTargetIsSyntacticallyNonGeneric` exempts BEFORE the
+  // ownership finder ever runs — so each fixture's `isEmpty`
+  // assertion held for the wrong reason and never reached the
+  // method-local-generic machinery its name claims to exercise.
+  // Rewritten to extend a syntactically generic target so the
+  // ownership finder — and its method-local-generic exemption —
+  // actually runs.
+
   @Test
-  // swiftlint:disable:next function_name_whitespace
-  func
-    `extension on non-generic type with method-local generic consuming parameter is not flagged`()
-  {
+  func `method-local generic consuming parameter on a generic extension is not flagged`() {
     let source = """
-      extension Ownership.Transfer.Erased.Incoming {
+      extension Pool<Resource> {
           func consume<T>(_ value: consuming T) {}
       }
       """
@@ -161,12 +183,9 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
-  // swiftlint:disable:next function_name_whitespace
-  func
-    `extension on non-generic type with method-local generic borrowing parameter is not flagged`()
-  {
+  func `method-local generic borrowing parameter on a generic extension is not flagged`() {
     let source = """
-      extension Ownership.Transfer.Erased.Incoming {
+      extension Pool<Resource> {
           func inspect<T>(_ value: borrowing T) {}
       }
       """
@@ -175,9 +194,9 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
-  func `extension with method-local generic init consuming parameter is not flagged`() {
+  func `method-local generic init consuming parameter on a generic extension is not flagged`() {
     let source = """
-      extension Box {
+      extension Box<Element> {
           init<T>(consuming value: consuming T) {}
       }
       """
@@ -197,10 +216,10 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
-  func `consuming-self method with own generic params on non-generic extended type is not flagged`()
+  func `consuming-self method with own generic params on a generic extension is not flagged`()
   {
     let source = """
-      extension Ownership.Transfer.Erased.Incoming {
+      extension Pool<Resource> {
           public consuming func consume<T>(_ type: T.Type) -> T { fatalError() }
       }
       """
@@ -209,15 +228,30 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
-  func `borrowing-self method with own generic params on non-generic extended type is not flagged`()
+  func `borrowing-self method with own generic params on a generic extension is not flagged`()
   {
     let source = """
-      extension Ownership.Transfer.Erased.Incoming {
+      extension Pool<Resource> {
           public borrowing func inspect<T>(_ type: T.Type) -> Bool { false }
       }
       """
     let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(in: source)
     #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `consuming-self method whose parameter carries a non-generic ownership type still fires`() {
+    // #25 defect 7: even though the self-modifier is method-scoped
+    // (own generic params), a parameter carrying a `consuming`/
+    // `borrowing` specifier whose type is NOT one of the function's
+    // own generics is type-level ownership and must still fire.
+    let source = """
+      extension Pool<Resource> {
+          public consuming func replace<T>(_ next: consuming Resource, tag: T) {}
+      }
+      """
+    let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(in: source)
+    #expect(findings.count == 1)
   }
 
   @Test
@@ -338,6 +372,77 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
       }
       """
     let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // #25 defect 9: untested risky exemptions — each was an unbounded
+  // silent hole with zero coverage before this pass.
+
+  @Test
+  func `repeat each T pack expansion usage is exempt`() {
+    let source = """
+      extension Bundle<Element> {
+          func combine<each T>(_ value: consuming Element, _ values: repeat each T) {}
+      }
+      """
+    let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `bare each T without repeat each T is NOT pack-exempt`() {
+    // Pins that `PackExpansionTypeSyntax`/`PackElementTypeSyntax` are
+    // the node kinds the finder actually looks for — a generic
+    // parameter clause spelled `<each T>` with no `repeat each T`
+    // usage anywhere in the body does not trip the exemption. Uses a
+    // non-self ownership signal (a `consuming` parameter, not a
+    // `consuming func`) so the method-local-generic self-modifier
+    // exemption cannot itself explain a zero-finding result.
+    let source = """
+      extension Bundle<Element> {
+          func combine<each T>(_ value: consuming Element) {}
+      }
+      """
+    let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `stdlib allowlist leaf Array is exempt`() {
+    let source = """
+      extension Array<Element> {
+          consuming func transfer() {}
+      }
+      """
+    let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `filename with the where discriminator is exempt`() {
+    let source = """
+      extension Container<Element> {
+          consuming func transfer() {}
+      }
+      """
+    let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(
+      in: source,
+      file: "Sources/X/Container where Element is Sendable.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `filename without the where discriminator still fires`() {
+    let source = """
+      extension Container<Element> {
+          consuming func transfer() {}
+      }
+      """
+    let findings = Lint.Rule.`extension noncopyable constraint Tests`.findings(
+      in: source,
+      file: "Sources/X/Container.swift"
+    )
     #expect(findings.count == 1)
   }
 }

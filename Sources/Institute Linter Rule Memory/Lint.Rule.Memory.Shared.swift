@@ -101,6 +101,45 @@ internal func memoryWhereClauseHasPositiveCopyable(_ clause: GenericWhereClauseS
   return false
 }
 
+/// Structural analogue of ``memoryWhereClauseHasPositiveCopyable(_:)``
+/// for the SUPPRESSED (`~Copyable`) form (#25 defect 7): a `where`
+/// clause requirement is a `ConformanceRequirementSyntax` whose
+/// `rightType` is a `SuppressedTypeSyntax` naming `Copyable` — directly
+/// or inside a `CompositionTypeSyntax` — rather than a textual
+/// `.contains("~Copyable")` check on the requirement's description,
+/// which matches inside an unrelated comment or string.
+internal func memoryWhereClauseHasNoncopyable(_ clause: GenericWhereClauseSyntax?)
+  -> Swift.Bool
+{
+  guard let clause else { return false }
+  for requirement in clause.requirements {
+    guard let conformance = requirement.requirement.as(ConformanceRequirementSyntax.self) else {
+      continue
+    }
+    if memoryTypeMentionsSuppressedCopyable(conformance.rightType) {
+      return true
+    }
+  }
+  return false
+}
+
+private func memoryTypeMentionsSuppressedCopyable(_ type: TypeSyntax) -> Swift.Bool {
+  if let suppressed = type.as(SuppressedTypeSyntax.self) {
+    // `memoryTypeMentionsPositiveCopyable` already recognizes both the
+    // bare `Copyable` and qualified `Swift.Copyable` spellings of the
+    // *name* — reuse it on the suppressed type's inner type.
+    return memoryTypeMentionsPositiveCopyable(suppressed.type)
+  }
+  if let composition = type.as(CompositionTypeSyntax.self) {
+    for element in composition.elements {
+      if memoryTypeMentionsSuppressedCopyable(element.type) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
 /// Walks a type syntax for any positive `Copyable` mention. Composition
 /// types (`Element: Comparison.Protocol & Copyable`) are descended into
 /// so the constraint is recognized regardless of how the author wrote it.

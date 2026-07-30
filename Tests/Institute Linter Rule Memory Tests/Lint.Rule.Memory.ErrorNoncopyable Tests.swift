@@ -89,4 +89,52 @@ extension Lint.Rule.`noncopyable error Tests`.Unit {
     let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  // #25 defect 5.
+
+  @Test
+  func `noncopyable protocol conforming to Error is flagged`() {
+    let source = """
+      protocol Failure: Error, ~Copyable {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Error added by a same-file extension is flagged`() {
+    let source = """
+      struct E: ~Copyable {}
+      extension E: Error {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `nested non-stdlib Module dot Error does not false-positive`() {
+    let source = """
+      struct E: MyModule.Error, ~Copyable {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `noncopyable class conforming to Error is flagged`() {
+    let source = """
+      final class MyError: Error, ~Copyable {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `qualified suppression spelling dot Copyable is recognized`() {
+    let source = """
+      struct MyError: Error, ~Swift.Copyable {}
+      """
+    let findings = Lint.Rule.`noncopyable error Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
 }

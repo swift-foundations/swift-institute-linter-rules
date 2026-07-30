@@ -215,16 +215,6 @@ internal final class MemoryExtensionNoncopyableConstraintVisitor: SyntaxVisitor 
     return false
   }
 
-  private func whereClauseHasNoncopyable(_ clause: GenericWhereClauseSyntax?) -> Bool {
-    guard let clause else { return false }
-    for requirement in clause.requirements {
-      if requirement.requirement.trimmedDescription.contains("~Copyable") {
-        return true
-      }
-    }
-    return false
-  }
-
   override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
     // Filename-pattern exemption: `* where *.swift` files use the
     // [API-IMPL-007] where-clause-discriminator naming convention.
@@ -280,7 +270,7 @@ internal final class MemoryExtensionNoncopyableConstraintVisitor: SyntaxVisitor 
     guard !packFinder.found else {
       return .visitChildren
     }
-    guard !whereClauseHasNoncopyable(node.genericWhereClause) else {
+    guard !memoryWhereClauseHasNoncopyable(node.genericWhereClause) else {
       return .visitChildren
     }
     // Exempt per [RULE-EXEMPT-1] (positive-Copyable): author has

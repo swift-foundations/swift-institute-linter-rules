@@ -94,18 +94,67 @@ internal final class MemoryExtensionNoncopyableOwnershipFinder: SyntaxVisitor {
     // (full-program type-info access) is out of scope for an AST
     // visitor. Symmetric with Thread 2's parameter-shape
     // exemption.
+    // Push unconditionally, matching the unconditional pop in
+    // `visitPost` — the previous early `.skipChildren` returns below
+    // left the stack unbalanced whenever an ownership-bearing function
+    // was nested inside another generic context (#25 nit: unbalanced
+    // stack pop).
+    genericsStack.append(Self.genericNames(node.genericParameterClause))
     for modifier in node.modifiers {
       let kind = modifier.name.tokenKind
       if kind == .keyword(.consuming) || kind == .keyword(.borrowing) {
-        if node.genericParameterClause != nil {
+        // #25 defect 7: the `.skipChildren` return here previously
+        // suppressed the parameter scan as well as the self-modifier
+        // scan — so `consuming func f(_ element: consuming Element)`
+        // on a function with its own generics never saw the
+        // `consuming Element` parameter, which is unambiguously
+        // type-level ownership even though the self-modifier itself
+        // is method-scoped. Keep the method-generic guard for the
+        // SELF modifier only; scan the parameters for an ownership
+        // specifier whose type is NOT one of the function's own
+        // generic parameter names before returning.
+        if node.genericParameterClause == nil {
+          found = true
           return .skipChildren
         }
-        found = true
+        let ownGenerics = Self.genericNames(node.genericParameterClause)
+        if parametersCarryTypeLevelOwnership(
+          node.signature.parameterClause.parameters,
+          excluding: ownGenerics
+        ) {
+          found = true
+        }
         return .skipChildren
       }
     }
-    genericsStack.append(Self.genericNames(node.genericParameterClause))
     return .visitChildren
+  }
+
+  /// Scans `parameters` for a `consuming` / `borrowing` specifier
+  /// whose type is not a bare identifier naming one of `excluding`
+  /// (the enclosing function's own generic parameters) — such a
+  /// parameter carries type-level ownership even when the function's
+  /// self-modifier is method-scoped (#25 defect 7).
+  private func parametersCarryTypeLevelOwnership(
+    _ parameters: FunctionParameterListSyntax,
+    excluding: Swift.Set<Swift.String>
+  ) -> Swift.Bool {
+    for parameter in parameters {
+      guard let attributed = parameter.type.as(AttributedTypeSyntax.self) else { continue }
+      for specifier in attributed.specifiers {
+        guard let simple = specifier.as(SimpleTypeSpecifierSyntax.self) else { continue }
+        let kind = simple.specifier.tokenKind
+        guard kind == .keyword(.consuming) || kind == .keyword(.borrowing) else { continue }
+        if let identifier = attributed.baseType.as(IdentifierTypeSyntax.self),
+          identifier.genericArgumentClause == nil,
+          excluding.contains(identifier.name.text)
+        {
+          continue
+        }
+        return true
+      }
+    }
+    return false
   }
   override func visitPost(_ node: FunctionDeclSyntax) {
     if !genericsStack.isEmpty { genericsStack.removeLast() }
