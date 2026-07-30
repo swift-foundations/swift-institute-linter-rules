@@ -151,6 +151,10 @@ extension Lint.Rule.Bundle {
       .enable(.`throwing wrapper init`),
       .enable(.`type transform placement`),
       .enable(.`wrapper backing exposed`),
+      // [swift-institute/.github#122 ruling, disposition c, W7] —
+      // implemented per swift-institute-linter-rules#30. Advisory at
+      // introduction; error only after the standing graduation gate.
+      .enable(.`protocol sentinel under generic front door`),
       // Testing pack (Wave 3 2026-05-15)
       // `benchmark timed required` ([BENCH-003]) deferred 2026-05-18:
       // depends on swift-testing's `.timed()` trait which isn't
