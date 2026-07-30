@@ -169,7 +169,9 @@ private func byteTypeIsStdlibCollectionWithByteElement(
   whereClause: GenericWhereClauseSyntax?
 ) -> Swift.Bool {
   guard let identifier = type.as(IdentifierTypeSyntax.self) else { return false }
-  guard byteCollectionTypeNames.contains(Lint.Syntax.Identifier.unescaped(identifier.name.text)) else {
+  guard
+    byteCollectionTypeNames.contains(Lint.Syntax.Identifier.unescaped(identifier.name.text))
+  else {
     return false
   }
   guard let whereClause else { return false }

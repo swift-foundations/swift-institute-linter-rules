@@ -253,8 +253,12 @@ private func byteRequirementIsElementEqualsUInt8(_ requirement: GenericRequireme
   let leftIsElement: Swift.Bool = {
     let parts = left.split(separator: ".")
     guard parts.count == 2 else { return false }
-    guard Lint.Syntax.Identifier.unescaped(Swift.String(parts[1])) == "Element" else { return false }
-    return byteWitnessElementTypeParameterNames.contains(Lint.Syntax.Identifier.unescaped(Swift.String(parts[0])))
+    guard Lint.Syntax.Identifier.unescaped(Swift.String(parts[1])) == "Element" else {
+      return false
+    }
+    return byteWitnessElementTypeParameterNames.contains(
+      Lint.Syntax.Identifier.unescaped(Swift.String(parts[0]))
+    )
   }()
   guard leftIsElement else { return false }
   // RHS: `UInt8` or `Swift.UInt8`.
