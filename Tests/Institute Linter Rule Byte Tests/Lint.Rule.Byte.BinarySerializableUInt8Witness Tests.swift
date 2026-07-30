@@ -269,4 +269,3 @@ extension Lint.Rule.`binary serializable uint8 witness Tests`.Integration {
     #expect(result.isEmpty)
   }
 }
-

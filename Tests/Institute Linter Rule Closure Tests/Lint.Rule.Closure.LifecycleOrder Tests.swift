@@ -107,7 +107,8 @@ extension Lint.Rule.`lifecycle order Tests`.Unit {
   }
 
   @Test
-  func `non-canonical external label with canonical internal name is classified by internal name`() {
+  func `non-canonical external label with canonical internal name is classified by internal name`()
+  {
     // A two-part parameter name where the external label doesn't match
     // any tier but the internal name does (`to completion:`) still
     // reads as completion-tier.

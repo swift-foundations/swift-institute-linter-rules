@@ -117,4 +117,3 @@ extension Lint.Rule.`uint8 conforms to byte protocol Tests`.Integration {
     #expect(result.isEmpty)
   }
 }
-

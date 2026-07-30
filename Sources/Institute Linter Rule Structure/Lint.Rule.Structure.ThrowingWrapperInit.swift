@@ -192,18 +192,37 @@ internal final class StructureThrowingWrapperInitVisitor: SyntaxVisitor {
   /// assignment-wrapped) expression is a call to the base type's own
   /// initializer — `try self.init(...)`, `try Type.init(...)`, bare
   /// `try Type(...)`, or one of those forms on the right-hand side of
-  /// an assignment (`try self.base = Base(raw)`). A `try` expression
-  /// calling anything else (a method, a free function, a decoder API)
-  /// is not the base-init-forward shape the doc and message describe.
+  /// an assignment (`try self.base = Base(raw)` / `self.base = try
+  /// Base(raw)`). A `try` expression calling anything else (a method,
+  /// a free function, a decoder API) is not the base-init-forward
+  /// shape the doc and message describe.
   private func isBaseInitializerTryForward(_ syntax: Syntax) -> Swift.Bool {
-    guard let tryExpr = extractTryExpr(syntax) else { return false }
-    let inner = tryExpr.expression
-    if let sequence = inner.as(SequenceExprSyntax.self) {
+    // Raw (pre-operator-folding) assignment sequence: exactly three
+    // elements with `=` in the middle. SwiftParser's raw grammar
+    // attaches a prefix `try` to only the immediately following
+    // primary/postfix expression, so `try` can land on EITHER side
+    // depending on where it's written in source: `self.base = try
+    // Base(raw)` wraps the RHS constructor call directly; `try
+    // self.base = Base(raw)` instead wraps the bare LHS, leaving the
+    // RHS unwrapped. Both spellings put the assignment under `try`
+    // (Swift accepts either); what this rule cares about — whether
+    // the RHS is a constructor call — doesn't depend on which side
+    // the keyword landed on, so both are checked directly here
+    // rather than through `extractTryExpr`, which (grabbing "the
+    // first `TryExprSyntax` element") previously returned the bare
+    // LHS's narrow `.expression` for the `try LHS = RHS` spelling and
+    // lost the RHS entirely.
+    if let sequence = syntax.as(SequenceExprSyntax.self) {
       let elements = Array(sequence.elements)
       if elements.count == 3, elements[1].is(AssignmentExprSyntax.self) {
-        return isConstructorCall(elements[2])
+        let sawTry = elements[0].is(TryExprSyntax.self) || elements[2].is(TryExprSyntax.self)
+        guard sawTry else { return false }
+        let rhs = elements[2].as(TryExprSyntax.self)?.expression ?? elements[2]
+        return isConstructorCall(rhs)
       }
     }
+    guard let tryExpr = extractTryExpr(syntax) else { return false }
+    let inner = tryExpr.expression
     if let infix = inner.as(InfixOperatorExprSyntax.self),
       infix.operator.is(AssignmentExprSyntax.self)
     {

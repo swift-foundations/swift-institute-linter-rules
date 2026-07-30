@@ -125,4 +125,3 @@ extension Lint.Rule.`binary serializable rawvalue uint8 Tests`.Integration {
     #expect(result.isEmpty)
   }
 }
-

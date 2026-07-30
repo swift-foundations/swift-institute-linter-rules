@@ -169,4 +169,3 @@ extension Lint.Rule.`uint8 ascii extension Tests`.Integration {
     #expect(result.isEmpty)
   }
 }
-

@@ -149,7 +149,8 @@ internal final class ConformanceLeafBodyTypealiasVisitor: SyntaxVisitor {
   /// `Body = Never` anywhere in the file. Must be called after `walk`
   /// completes — the verdict is file-scope, not per-declaration-site.
   func finalizeMatches() {
-    for (key, position) in conformanceSite.sorted(by: { $0.value.utf8Offset < $1.value.utf8Offset }) {
+    for (key, position) in conformanceSite.sorted(by: { $0.value.utf8Offset < $1.value.utf8Offset })
+    {
       if typesWithBodyProperty.contains(key) || typesWithBodyNeverTypealias.contains(key) {
         continue
       }

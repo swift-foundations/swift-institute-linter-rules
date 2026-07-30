@@ -217,7 +217,9 @@ extension Lint.Rule.`wrapper backing exposed Tests`.`Edge Case` {
   }
 
   @Test
-  func `multi-binding var with tracked name second is still flagged once - break does not skip later bindings`() {
+  func
+    `multi-binding var with tracked name second is still flagged once - break does not skip later bindings`()
+  {
     let source = """
       struct Wrapper {
           var other: Int = 0, _backing: Int = 0
@@ -228,7 +230,8 @@ extension Lint.Rule.`wrapper backing exposed Tests`.`Edge Case` {
   }
 
   @Test
-  func `multi-binding var with two tracked names still fires once per decl - not once per binding`() {
+  func `multi-binding var with two tracked names still fires once per decl - not once per binding`()
+  {
     // The `break` after the first tracked binding stops scanning the
     // REST of this decl's bindings — one finding per var decl, not
     // one per tracked binding within it.

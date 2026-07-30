@@ -197,4 +197,3 @@ extension Lint.Rule.`uint8 forwarder missing disfavored Tests`.Integration {
     #expect(result.isEmpty)
   }
 }
-

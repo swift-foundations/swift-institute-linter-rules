@@ -116,7 +116,8 @@ internal final class ClosureLifecycleOrderVisitor: SyntaxVisitor {
       let tier = lifecycleTier(of: parameter)
       guard tier != .other else { continue }
 
-      for laterTier in LifecycleTier.allCases where laterTier != .other && laterTier.rank > tier.rank {
+      for laterTier in LifecycleTier.allCases
+      where laterTier != .other && laterTier.rank > tier.rank {
         guard let positions = pending[laterTier], !positions.isEmpty else { continue }
         for position in positions {
           emit(at: position)

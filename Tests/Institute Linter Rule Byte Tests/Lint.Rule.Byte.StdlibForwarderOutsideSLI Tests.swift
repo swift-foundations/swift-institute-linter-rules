@@ -352,4 +352,3 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.Integration {
     #expect(result.isEmpty)
   }
 }
-

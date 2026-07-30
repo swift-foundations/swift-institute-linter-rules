@@ -91,7 +91,9 @@ internal final class TestingPerformanceSuiteSerializedVisitor: SyntaxVisitor {
     return false
   }
 
-  private func check(name: TokenSyntax, attributes: AttributeListSyntax, members: MemberBlockItemListSyntax) {
+  private func check(
+    name: TokenSyntax, attributes: AttributeListSyntax, members: MemberBlockItemListSyntax
+  ) {
     guard name.text == "Performance" else { return }
     if let attribute = suiteAttribute(attributes) {
       guard !mentionsSerialized(attribute) else { return }

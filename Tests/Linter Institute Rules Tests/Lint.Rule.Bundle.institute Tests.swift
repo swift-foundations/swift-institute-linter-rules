@@ -17,8 +17,12 @@ import Testing
 
 /// Converts every rule declared across the 17 institute rule packs to a
 /// hand-maintained master list. This is the same enumeration the #1
-/// source-level review performed by hand (90 declared rules, 89 enabled +
-/// 1 deliberate exclusion) — this test converts that receipt into a
+/// source-level review performed by hand, since amended: 90 declared
+/// rules at #26 origination, +3 (#29/#30/#31 — sending return conditional
+/// sendable state, protocol sentinel under generic front door, foundation
+/// integration leaf target) landed enabled without a matching update
+/// here, discovered and backfilled here — 93 declared rules, 92 enabled +
+/// 1 deliberate exclusion — this test converts that receipt into a
 /// standing gate: whoever adds or removes a rule from a pack MUST update
 /// this list in the same change, or the composition-drift test below
 /// fails and says exactly which id is missing or extra.
@@ -60,6 +64,7 @@ private let allDeclaredRuleIDs: Swift.Set<Swift.String> = [
   "extension noncopyable constraint",
   "file name nested path",
   "foundation import",
+  "foundation integration leaf target",
   "generic throws missing never",
   "hoisted error in public throws",
   "hoisted protocol alias",
@@ -81,11 +86,13 @@ private let allDeclaredRuleIDs: Swift.Set<Swift.String> = [
   "phantom suppression",
   "pointer advanced by",
   "property named flags",
+  "protocol sentinel under generic front door",
   "raw value access",
   "redundant prefix",
   "result wrapper for rethrows shim",
   "safe attribute undocumented",
   "sendable struct with class member",
+  "sending return conditional sendable state",
   "single type namespace",
   "single type per file",
   "sli literal",

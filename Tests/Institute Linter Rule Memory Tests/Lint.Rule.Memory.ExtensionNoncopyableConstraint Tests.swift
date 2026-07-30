@@ -216,8 +216,7 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
-  func `consuming-self method with own generic params on a generic extension is not flagged`()
-  {
+  func `consuming-self method with own generic params on a generic extension is not flagged`() {
     let source = """
       extension Pool<Resource> {
           public consuming func consume<T>(_ type: T.Type) -> T { fatalError() }
@@ -228,8 +227,7 @@ extension Lint.Rule.`extension noncopyable constraint Tests`.Unit {
   }
 
   @Test
-  func `borrowing-self method with own generic params on a generic extension is not flagged`()
-  {
+  func `borrowing-self method with own generic params on a generic extension is not flagged`() {
     let source = """
       extension Pool<Resource> {
           public borrowing func inspect<T>(_ type: T.Type) -> Bool { false }

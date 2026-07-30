@@ -119,10 +119,35 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
     let calleeName = member.declName.baseName.text
     if calleeName == "library" {
       recordLibraryProduct(node)
-    } else if manifestFoundationIntegrationTargetFactories.contains(calleeName) {
+    } else if manifestFoundationIntegrationTargetFactories.contains(calleeName),
+      !isNestedInsideDependenciesArgument(Syntax(node))
+    {
       recordTargetDecl(node)
     }
     return .visitChildren
+  }
+
+  /// True when `node` sits inside some enclosing `dependencies:`
+  /// labeled array — i.e. it is a dependency REFERENCE spelling
+  /// (`.target(name: "X")` / `.byName(name: "X")` inside another
+  /// target's `dependencies:` list), not a target DECLARATION.
+  ///
+  /// Both spellings share the same factory-method name (`.target`),
+  /// so the generic `FunctionCallExprSyntax` walk visits both; without
+  /// this guard, a target referenced via the dot-target dependency
+  /// spelling (`dependencies: [.target(name: "X Foundation
+  /// Integration")]`) was ALSO recorded as a second, independent
+  /// declaration of that target, double-counting it in
+  /// `foundationIntegrationTargets` and doubling the finding.
+  private func isNestedInsideDependenciesArgument(_ node: Syntax) -> Swift.Bool {
+    var current: Syntax? = node.parent
+    while let candidate = current {
+      if let labeled = candidate.as(LabeledExprSyntax.self), labeled.label?.text == "dependencies" {
+        return true
+      }
+      current = candidate.parent
+    }
+    return false
   }
 
   private func recordLibraryProduct(_ node: FunctionCallExprSyntax) {

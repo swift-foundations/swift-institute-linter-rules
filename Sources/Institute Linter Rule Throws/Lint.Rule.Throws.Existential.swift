@@ -215,9 +215,11 @@ internal final class ThrowsExistentialVisitor: SyntaxVisitor {
     case "init(from:)":
       return throwsIsCanonicalWitnessSignature(
         protocolSuffix: "Decodable", parameters: signature.parameterClause.parameters)
+
     case "encode(to:)":
       return throwsIsCanonicalWitnessSignature(
         protocolSuffix: "Encodable", parameters: signature.parameterClause.parameters)
+
     default:
       return false
     }

@@ -292,7 +292,9 @@ extension Lint.Rule.`leaf body typealias missing Tests`.`Edge Case` {
   }
 
   @Test
-  func `conformance in one extension, body missing everywhere for that type, is still flagged once`() {
+  func
+    `conformance in one extension, body missing everywhere for that type, is still flagged once`()
+  {
     let source = """
       extension MyParser: Parser.`Protocol` {
           public typealias Input = [UInt8]

@@ -169,4 +169,3 @@ extension Lint.Rule.`byte conforms to arithmetic protocol Tests`.Integration {
     #expect(result.isEmpty)
   }
 }
-
