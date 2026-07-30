@@ -214,6 +214,41 @@ extension Lint.Rule.`file name nested path Tests`.Exemption {
   }
 
   @Test
+  func `rule-file shape with a private SyntaxVisitor helper is exempt per RULE-EXEMPT-7`() {
+    // The house rule-file shape: a public `extension Lint.Rule { public
+    // static let ... }` (the file's real, public API surface) paired
+    // with a private `SyntaxVisitor` subclass implementation helper.
+    // Without the [RULE-EXEMPT-7] exemption the collector resolves the
+    // private visitor as the file's "primary type" and demands a rename
+    // to its own (non-public) name.
+    let source = """
+      extension Lint.Rule {
+          public static let `try optional` = Lint.Rule(id: "try optional", default: .warning) { _, _ in [] }
+      }
+
+      internal final class TryOptionalVisitor: SyntaxVisitor {
+      }
+      """
+    let findings = Lint.Rule.`file name nested path Tests`.findings(
+      in: source,
+      file: "Sources/Institute Linter Rule Try/Lint.Rule.Try.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a non-visitor class still resolves as the primary type`() {
+    // Regression guard: [RULE-EXEMPT-7] must not blanket-exempt every
+    // top-level class — only ones that subclass the SwiftSyntax visitor
+    // family.
+    let findings = Lint.Rule.`file name nested path Tests`.findings(
+      in: "public final class Iterator {}",
+      file: "Sources/X/Wrong.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `multiple top-level primary types are out of scope - owned by single type per file`() {
     let source = """
       struct Foo {}

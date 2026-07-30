@@ -234,9 +234,28 @@ private func structureFileNameNestedPathOwnName(_ node: DeclSyntax) -> Swift.Str
   return nil
 }
 
+/// Returns true for a candidate "primary type" nominal declaration —
+/// `struct`/`class`/`enum`/`actor`/`protocol` — EXCLUDING a `class` that
+/// subclasses the SwiftSyntax visitor family (`SyntaxVisitor`,
+/// `SyntaxAnyVisitor`, `SyntaxRewriter`) per [RULE-EXEMPT-7]
+/// (syntax-visitor-subclass).
+///
+/// The rule-file house shape pairs a public `extension Lint.Rule { public
+/// static let \`x\` = … }` (the file's real, public API surface) with a
+/// private `internal final class FooVisitor: SyntaxVisitor { … }`
+/// implementation helper. Without this exemption the collector resolves
+/// the private visitor as the file's "primary type" and demands a rename
+/// to its (non-public, implementation-detail) name — wrong in every file
+/// of that shape. `minimal type body` already applies the same
+/// [RULE-EXEMPT-7] exemption via `structureExtendsSyntaxVisitor`; this
+/// rule now shares it rather than resolving the private helper as if it
+/// were the file's declared type.
 private func structureFileNameNestedPathIsPrimaryTypeDecl(_ decl: DeclSyntax) -> Swift.Bool {
-  decl.is(StructDeclSyntax.self)
-    || decl.is(ClassDeclSyntax.self)
+  if let classDecl = decl.as(ClassDeclSyntax.self) {
+    if structureExtendsSyntaxVisitor(classDecl.inheritanceClause) { return false }
+    return true
+  }
+  return decl.is(StructDeclSyntax.self)
     || decl.is(EnumDeclSyntax.self)
     || decl.is(ActorDeclSyntax.self)
     || decl.is(ProtocolDeclSyntax.self)
