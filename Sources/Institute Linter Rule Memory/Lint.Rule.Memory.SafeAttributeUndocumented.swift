@@ -183,66 +183,21 @@ internal final class MemorySafeAttributeUndocumentedVisitor: SyntaxVisitor {
   // MARK: - Invariant line-comment matcher
 
   /// True if the trivia contains a `// SAFETY:` or `// WHY:` line
-  /// (case-insensitive on the keyword), in an adjacent comment block
-  /// — i.e., walking backwards from the end, no blank line (a single
-  /// `newlines(N)` piece with `N >= 2`) sits between the comment and
-  /// the decl token. Non-invariant line comments (e.g.,
-  /// `// WHEN TO REMOVE:`, `// TRACKING:`) within the adjacent block
-  /// are tolerated — the institute idiom mixes invariant disclosure
-  /// with metadata comments.
+  /// (case-insensitive on the keyword), in an adjacent comment block.
+  /// Non-invariant line comments (e.g. `// WHEN TO REMOVE:`,
+  /// `// TRACKING:`) within the adjacent block are tolerated — the
+  /// institute idiom mixes invariant disclosure with metadata comments.
   ///
   /// Category citation is NOT required here (SHOULD-strength per
   /// [MEM-SAFE-025c]); free-form prose is acceptable when the site
   /// isn't categorizable. The matcher only checks for the
-  /// `// SAFETY:` or `// WHY:` prefix.
+  /// `// SAFETY:` or `// WHY:` prefix. See
+  /// `memoryTriviaHasAdjacentComment(_:matching:)` in Shared.swift for
+  /// the walk's semantics.
   private func triviaHasInvariantLineComment(_ trivia: Trivia) -> Bool {
-    let pieces = Swift.Array(trivia)
-    // Accumulate consecutive newline-like counts across pieces —
-    // spaces/tabs between two newline pieces do NOT reset the count
-    // (a whitespace-only blank line, `// SAFETY: …\n␠␠\n@safe`, is
-    // still a blank-line break, not adjacency). Only a comment piece
-    // resets the counter, since that's content rather than
-    // inter-line whitespace.
-    var newlineRun = 0
-    for piece in pieces.reversed() {
-      switch piece {
-      case .newlines(let count), .carriageReturns(let count), .carriageReturnLineFeeds(let count):
-        newlineRun += count
-        if newlineRun >= 2 { return false }
-
-      case .lineComment(let text):
-        newlineRun = 0
-        let body = stripCommentPrefix(text)
-        if isInvariantPrefix(body) {
-          return true
-        }
-        // Non-invariant line comment — keep walking, the
-        // `// SAFETY:` / `// WHY:` line might be earlier in
-        // the contiguous block.
-        continue
-
-      case .docLineComment, .docBlockComment, .blockComment:
-        // Doc / block comments are not the line-comment form.
-        // They might satisfy the `Safety Invariant`-doc-section
-        // branch (handled separately). Don't treat as adjacency
-        // boundary — keep walking.
-        newlineRun = 0
-        continue
-
-      case .spaces, .tabs:
-        continue
-
-      default:
-        continue
-      }
+    memoryTriviaHasAdjacentComment(trivia) { body in
+      isInvariantPrefix(body[...])
     }
-    return false
-  }
-
-  /// Drop the leading `//` and any horizontal whitespace.
-  private func stripCommentPrefix(_ text: Swift.String) -> Swift.Substring {
-    let trimmed = text.trimmingPrefix("//")
-    return trimmed.drop(while: { $0 == " " || $0 == "\t" })
   }
 
   /// `true` if the comment body begins with `WHY:` or `SAFETY:`

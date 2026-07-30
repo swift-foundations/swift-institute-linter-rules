@@ -11,6 +11,65 @@
 
 internal import SwiftSyntax
 
+/// Predicates shared across the Memory pack's rules.
+
+/// Walks `trivia` backwards from its end and returns `true` if a
+/// contiguous, adjacent comment block contains a line comment whose body
+/// satisfies `isWanted` — e.g. a `// SAFETY:` / `// WHY:` prefix. Consumed
+/// by `nonisolated unsafe without invariant`, `pointer advanced by`, and
+/// `safe attribute undocumented`, whose three independent copies of this
+/// walk had already diverged into two shipped bugs before consolidation
+/// (a CRLF-counting miscount, and a whitespace-only "blank" line that
+/// broke adjacency when it should not have).
+///
+/// Semantics:
+///   - Newline-like pieces (`.newlines`, `.carriageReturns`,
+///     `.carriageReturnLineFeeds`) accumulate a run count ACROSS pieces —
+///     intervening whitespace pieces do not reset the run. A run of 2 or
+///     more breaks adjacency and the walk returns `false`.
+///   - A `.lineComment` resets the run to zero. If its body satisfies
+///     `isWanted`, the walk succeeds immediately. Otherwise the walk
+///     continues past it (a non-matching line comment does not break
+///     adjacency — the institute idiom mixes invariant disclosure with
+///     metadata comments such as `// TRACKING:`).
+///   - A `.docLineComment` / `.docBlockComment` / `.blockComment` is
+///     content, not a break: the walk resets the run and continues. A
+///     `/// doc` comment sitting between a `// SAFETY:` line and the
+///     declaration does not separate them.
+internal func memoryTriviaHasAdjacentComment(
+  _ trivia: Trivia,
+  matching isWanted: (Swift.String) -> Swift.Bool
+) -> Swift.Bool {
+  var newlineRun = 0
+  for piece in Swift.Array(trivia).reversed() {
+    switch piece {
+    case .newlines(let count), .carriageReturns(let count), .carriageReturnLineFeeds(let count):
+      newlineRun += count
+      if newlineRun >= 2 { return false }
+
+    case .lineComment(let text):
+      newlineRun = 0
+      let trimmed = text.trimmingPrefix("//")
+      let body = trimmed.drop(while: { $0 == " " || $0 == "\t" })
+      if isWanted(Swift.String(body)) {
+        return true
+      }
+      continue
+
+    case .docLineComment, .docBlockComment, .blockComment:
+      newlineRun = 0
+      continue
+
+    case .spaces, .tabs:
+      continue
+
+    default:
+      continue
+    }
+  }
+  return false
+}
+
 /// Returns true if `clause` carries an explicit positive `Copyable`
 /// conformance requirement on any generic parameter. The author has
 /// deliberately scoped the surface to copyable element types — rules

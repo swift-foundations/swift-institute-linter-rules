@@ -150,6 +150,22 @@ extension Lint.Rule.`pointer advanced by Tests`.`Edge Case` {
     #expect(findings.isEmpty)
   }
 
+  /// A `// SAFETY:` comment followed by a doc comment before the site is
+  /// still adjacent — a doc comment is content, not a break.
+  @Test
+  func `last-resort unsafe advanced by with SAFETY comment then doc comment is NOT flagged`() {
+    let source = """
+      func op(_ ptr: UnsafeMutableRawPointer, n: Int) {
+          // SAFETY: last resort — move-out semantics MutableSpan cannot express
+          /// Advances past the header.
+          let p = unsafe ptr.advanced(by: n)
+          use(p)
+      }
+      """
+    let findings = Lint.Rule.`pointer advanced by Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
   /// The same site WITHOUT the justification comment DOES fire — proving the
   /// exemption keys on the comment, not on the `unsafe` keyword alone.
   @Test

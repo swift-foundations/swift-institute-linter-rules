@@ -76,6 +76,17 @@ extension Lint.Rule.`nonisolated unsafe without invariant Tests`.Unit {
   }
 
   @Test
+  func `SAFETY comment followed by a doc comment before the declaration is permitted`() {
+    let source = """
+      // SAFETY: Allocated once at module init; pointee never mutated.
+      /// The buffer's sentinel value.
+      nonisolated(unsafe) let _sentinel: UnsafeMutableRawPointer = .allocate(capacity: 0)
+      """
+    let findings = Lint.Rule.`nonisolated unsafe without invariant Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `non-adjacent SAFETY comment is flagged`() {
     let source = """
       // SAFETY: Allocated once at module init.

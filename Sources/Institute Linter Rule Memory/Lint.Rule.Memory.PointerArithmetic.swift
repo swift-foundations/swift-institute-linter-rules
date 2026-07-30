@@ -196,36 +196,11 @@ internal final class MemoryPointerArithmeticVisitor: SyntaxVisitor {
   /// Walks the leading trivia backwards from the declaration token; returns
   /// `true` if the first contiguous comment block carries a `// SAFETY:` or
   /// `// WHY:` prefix on any line, with no intervening blank line breaking
-  /// adjacency. Mirrors
-  /// `MemoryNonisolatedUnsafeInvariantVisitor.hasAdjacentInvariantComment`.
+  /// adjacency. See `memoryTriviaHasAdjacentComment(_:matching:)` in
+  /// Shared.swift for the walk's semantics.
   private func hasAdjacentJustificationComment(_ trivia: Trivia) -> Bool {
-    var newlinesSinceLastComment = 0
-    for piece in Swift.Array(trivia).reversed() {
-      switch piece {
-      case .newlines(let count):
-        newlinesSinceLastComment += count
-        if newlinesSinceLastComment >= 2 { return false }
-
-      case .carriageReturns(let count), .carriageReturnLineFeeds(let count):
-        newlinesSinceLastComment += count
-        if newlinesSinceLastComment >= 2 { return false }
-
-      case .lineComment(let text):
-        let trimmed = text.trimmingPrefix("//")
-        let body = trimmed.drop(while: { $0 == " " || $0 == "\t" })
-        if body.hasPrefix("SAFETY:") || body.hasPrefix("WHY:") {
-          return true
-        }
-        newlinesSinceLastComment = 0
-        continue
-
-      case .blockComment, .docLineComment, .docBlockComment:
-        return false
-
-      default:
-        continue
-      }
+    memoryTriviaHasAdjacentComment(trivia) { body in
+      body.hasPrefix("SAFETY:") || body.hasPrefix("WHY:")
     }
-    return false
   }
 }

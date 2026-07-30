@@ -85,79 +85,13 @@ internal final class MemoryNonisolatedUnsafeInvariantVisitor: SyntaxVisitor {
   }
 
   /// Returns `true` if the variable declaration's leading trivia
-  /// contains an adjacent `// SAFETY:` or `// WHY:` line.
-  ///
-  /// "Adjacent" means: starting from the end of the leading trivia,
-  /// walking backwards, the first `lineComment` we encounter MUST be
-  /// a `// SAFETY:` or `// WHY:` form AND there MUST NOT be a blank
-  /// line (two or more consecutive newlines) between that comment
-  /// and the declaration token.
+  /// contains an adjacent `// SAFETY:` or `// WHY:` line. See
+  /// `memoryTriviaHasAdjacentComment(_:matching:)` in Shared.swift for
+  /// the walk's semantics.
   private func hasAdjacentInvariantComment(_ trivia: Trivia) -> Bool {
-    let pieces = Swift.Array(trivia)
-    // Walk back from the end. State machine:
-    //   - newlinesSinceLastComment counts consecutive newlines AFTER
-    //     the last comment (i.e., between the comment and the token).
-    //   - We stop at the first lineComment we encounter and decide.
-    //   - If we see >=2 newlines before we reach any comment, no adjacency.
-    var newlinesSinceLastComment = 0
-    for piece in pieces.reversed() {
-      switch piece {
-      case .newlines(let count):
-        newlinesSinceLastComment += count
-        // 2+ consecutive newlines means a blank line between
-        // any earlier comment and the declaration — adjacency
-        // broken.
-        if newlinesSinceLastComment >= 2 { return false }
-
-      case .lineComment(let text):
-        // Walk back through CONTIGUOUS line comments looking for
-        // a `// SAFETY:` or `// WHY:` prefix on ANY line of the
-        // block (first-line-prefix convention). The block ends
-        // at: a blank line (>=2 newlines, handled in .newlines),
-        // a doc / block comment, or a non-comment trivia.
-        let trimmed = text.trimmingPrefix("//")
-        let body = trimmed.drop(while: { $0 == " " || $0 == "\t" })
-        if body.hasPrefix("SAFETY:") || body.hasPrefix("WHY:") {
-          return true
-        }
-        // This comment line isn't the prefix line — could be a
-        // continuation line, a `swift-linter:disable:next`
-        // directive, or an unrelated narrative comment.
-        // Reset the consecutive-newline counter (since this
-        // comment is between us and any earlier SAFETY/WHY
-        // line) and keep walking back. A subsequent blank line
-        // (>=2 newlines) in the trivia will still break
-        // adjacency via the .newlines branch.
-        newlinesSinceLastComment = 0
-        continue
-
-      case .blockComment, .docLineComment, .docBlockComment:
-        // Block / doc comments do not satisfy the convention
-        // (the institute uses `// SAFETY:` / `// WHY:` for
-        // the encapsulation invariant; doc comments are for
-        // API-surface documentation). Treat as adjacency
-        // boundary but not as the invariant.
-        return false
-
-      case .spaces, .tabs:
-        continue
-
-      case .carriageReturns(let count), .carriageReturnLineFeeds(let count):
-        // Regression fix: this previously added at most 1 regardless
-        // of `count`, so `.carriageReturnLineFeeds(2)` — a blank line
-        // in a CRLF file — incremented by 1 and never reached the
-        // `>= 2` threshold, silently admitting a non-adjacent
-        // disclosure. Add the actual count, matching the `.newlines`
-        // branch and the sibling implementation in
-        // `PointerArithmetic.swift`.
-        newlinesSinceLastComment += count
-        if newlinesSinceLastComment >= 2 { return false }
-
-      default:
-        continue
-      }
+    memoryTriviaHasAdjacentComment(trivia) { body in
+      body.hasPrefix("SAFETY:") || body.hasPrefix("WHY:")
     }
-    return false
   }
 
   override func visit(_ node: VariableDeclSyntax) -> SyntaxVisitorContinueKind {
