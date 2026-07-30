@@ -55,7 +55,7 @@ dependencies: [
 ### Requirements
 
 - Swift 6.3+
-- macOS 26.0+
+- macOS 26.0+, iOS 26.0+, tvOS 26.0+, watchOS 26.0+, visionOS 26.0+
 
 ---
 
@@ -74,18 +74,21 @@ Rule packs, one library product each:
 | `Foundation` | Foundation imports in Foundation-free targets |
 | `Framework` | XCTest imports, swift-testing suite categorization |
 | `Byte` | UInt8/Byte discrimination at byte-domain boundaries: conformances, witnesses, forwarders, ASCII extensions |
+| `Cardinal` | Cardinal-typed literal construction, `.count - 1` boundary arithmetic |
 | `Conformance` | Leaf body typealias presence |
 | `Closure` | Closure parameter position, lifecycle-closure ordering and labeling, configuration placement |
 | `Idiom` | Iteration intent, enumerated-with-subscript, bounded indices, UTF-8 string scanning |
+| `Manifest` | Package manifest dependency-declaration shape |
 | `Memory` | Noncopyable extension constraints, pointer arithmetic, Sendable struct shape, unsafe-assignment granularity, unchecked-Sendable anchors |
 | `Platform` | C types in public API, platform conditionals, dead cases per platform, platform namespace layering |
+| `RawValue` | `.rawValue` chaining and bit-pattern conversion anti-patterns, Tagged-newtype public initializer and unchecked-construction shapes |
 | `Structure` | Single type per file, raw-value access, wrapper shapes, minimal type bodies, hoisted protocol aliases |
 | `Testing` | Test function naming, performance-suite serialization |
 | `Throws` | Typed-throws adoption: untyped and existential throws, typed do-catch, hoisted errors, result-shim patterns |
 | `Try` | Optional-try usage |
 | `Unchecked` | Unchecked call sites |
 
-Every rule ships with a diagnostic message that states the default disposition (how to fix the finding) and the recognized exemptions, so a finding is actionable without consulting external documentation.
+Every rule's diagnostic message is meant to state the default disposition (how to fix the finding) and the recognized exemptions, so a finding is actionable without consulting external documentation — reviews occasionally find individual messages that fall short of this and file it as a defect against that rule.
 
 ---
 
