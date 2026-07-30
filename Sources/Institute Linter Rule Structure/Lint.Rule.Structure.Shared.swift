@@ -11,6 +11,42 @@
 
 internal import SwiftSyntax
 
+/// Flattens a top-level `CodeBlockItemListSyntax` (e.g.
+/// `SourceFileSyntax.statements`) into the declarations it contains,
+/// descending into `IfConfigDeclSyntax` (`#if os(...) ... #endif`)
+/// clauses recursively so that a type or extension declared inside a
+/// top-level `#if` is visible to a by-hand top-level-declaration scan.
+///
+/// Platform-conditional top-level declarations are ordinary under the
+/// Institute cross-platform mandate. Rules that dispatch through
+/// per-syntax-kind `visit` overrides see `#if` contents automatically
+/// via the source-accurate view; the two rules that instead enumerate
+/// `SourceFileSyntax.statements` by hand (`file name nested path`,
+/// `extension file naming`) do not, since `IfConfigDeclSyntax` matches
+/// `case .decl` but is neither a primary-type decl nor an extension —
+/// without this helper it silently drops through. Every clause's
+/// elements are included (not just the first / active one): the file
+/// judged here compiles under several distinct configurations, and any
+/// of them could hold the type or extension in question.
+internal func structureFlattenTopLevelItems(
+  _ statements: CodeBlockItemListSyntax
+) -> [CodeBlockItemSyntax] {
+  var result: [CodeBlockItemSyntax] = []
+  for item in statements {
+    guard case .decl(let decl) = item.item,
+      let ifConfig = decl.as(IfConfigDeclSyntax.self)
+    else {
+      result.append(item)
+      continue
+    }
+    for clause in ifConfig.clauses {
+      guard let elements = clause.elements?.as(CodeBlockItemListSyntax.self) else { continue }
+      result.append(contentsOf: structureFlattenTopLevelItems(elements))
+    }
+  }
+  return result
+}
+
 /// Returns true if `name` is the institute `Protocol` sentinel — a
 /// member name reserved for the hoisted-protocol pattern per
 /// [API-IMPL-009] / [PKG-NAME-001]. The sentinel can appear either

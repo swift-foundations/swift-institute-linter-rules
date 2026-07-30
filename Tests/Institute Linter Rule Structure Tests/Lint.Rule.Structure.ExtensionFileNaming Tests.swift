@@ -142,6 +142,28 @@ extension Lint.Rule.`extension file naming Tests`.Negative {
 
 extension Lint.Rule.`extension file naming Tests`.Edge {
   @Test
+  func `platform-conditional primary type paired with an unconditional extension is NOT misclassified as extension-only`() {
+    // A top-level `#if os(...)` type declaration must be visible to the
+    // by-hand top-level scan (IfConfigDeclSyntax descent), or the file is
+    // wrongly classified as extension-only and judged against the
+    // `+<Topic>` / ` where ` shapes it has no reason to satisfy.
+    let source = """
+      #if os(macOS)
+      public struct Iterator {}
+      #endif
+
+      extension Iterator {
+          public var count: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: source,
+      file: "Sources/X/Wrong.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   // swiftlint:disable:next function_name_whitespace
   func
     `conditional conformance restated on a conditional extension classifies as conformance-adding`()

@@ -225,7 +225,7 @@ private final class StructureExtensionFileNamingCollector: SyntaxVisitor {
   init() { super.init(viewMode: .sourceAccurate) }
 
   override func visit(_ node: SourceFileSyntax) -> SyntaxVisitorContinueKind {
-    for item in node.statements {
+    for item in structureFlattenTopLevelItems(node.statements) {
       guard case .decl(let decl) = item.item else { continue }
       if let extensionDecl = decl.as(ExtensionDeclSyntax.self) {
         extensions.append(extensionDecl)

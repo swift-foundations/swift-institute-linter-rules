@@ -54,6 +54,24 @@ extension Lint.Rule.`file name nested path Tests`.Positive {
   }
 
   @Test
+  func `platform-conditional top-level struct with mismatched basename still fires`() {
+    // A type declared inside a top-level `#if` must be visible to the
+    // by-hand top-level scan (IfConfigDeclSyntax descent) — otherwise
+    // `primaryTypes.count == 0` and the rule silently returns no finding
+    // for a file it should judge.
+    let source = """
+      #if os(macOS)
+      public struct Iterator {}
+      #endif
+      """
+    let findings = Lint.Rule.`file name nested path Tests`.findings(
+      in: source,
+      file: "Sources/X/Wrong.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `extension-nested struct with mismatched basename fires`() {
     let source = """
       extension Array.Dynamic {
