@@ -1,0 +1,408 @@
+// ===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-institute-linter-rules open source project
+//
+// Copyright (c) 2026 Coen ten Thije Boonkkamp and the swift-institute-linter-rules project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE for license information
+//
+// ===----------------------------------------------------------------------===//
+
+public import Linter_Primitives
+internal import SwiftSyntax
+
+/// Prohibits a `sending`-typed return position on a public/package
+/// member of a generic type whose Sendability is `@unchecked` and
+/// conditional on one of its own generic parameters
+/// (`extension State: @unchecked Sendable where Base: Sendable {}`).
+///
+/// Adjudication: `swift-primitives/swift-property-primitives#7`
+/// (recommendation, 2026-07-30) — `Property.Consume.State`'s
+/// `@unchecked Sendable where Base: Sendable` conformance is sound only
+/// as the conjunction of three facts, one of which cannot be expressed
+/// as a test: adding `sending` to a public member's return type
+/// mentioning `Base` is SOURCE-COMPATIBLE (no fixture breaks) yet
+/// converts a sound surface into a fully undiagnosed data race. Region
+/// isolation re-merges a PLAIN return with `self`'s region at the call
+/// site; a `sending`-typed return instead hands out a value
+/// disconnected from `self` while the guarded type stays reachable
+/// from the original region — exactly the race the lock exists to
+/// prevent. `-typecheck` cannot observe the difference (both spellings
+/// compile); this rule mechanizes the prohibition the test suite
+/// cannot express.
+///
+/// AST shape: within one file, an extension declares
+/// `SomeType: @unchecked Sendable where G: Sendable` for some generic
+/// parameter `G` of `SomeType`. Any public/package function or
+/// subscript on `SomeType` (declared on the primary type or in any
+/// extension, including ones with no access modifier of their own
+/// inside a `public`/`open extension`) whose return type carries the
+/// `sending` specifier AND mentions `G` (bare, optional-wrapped,
+/// array-wrapped, or as a generic argument) is flagged at the return
+/// type's position.
+///
+/// Scope is intentionally narrow (exactly the adjudicated shape) —
+/// `@unchecked` is the load-bearing signal that separates "the
+/// compiler already verifies this" (plain conditional `Sendable`) from
+/// "a human asserted this, and `sending` at a return site can quietly
+/// invalidate the assertion" (unchecked). A plain, non-`@unchecked`
+/// `Sendable where G: Sendable` conformance is unconditionally checked
+/// by the compiler at every member and is out of scope.
+///
+/// ADVISORY at introduction, per the standing graduation discipline
+/// (issue #11) — promote to `.error` only after fleet validation finds
+/// no false positives.
+extension Lint.Rule {
+  /// Flags a `sending`-typed return on a public/package member of a type whose `@unchecked Sendable` conformance is conditional on the mentioned generic parameter ([swift-property-primitives#7]).
+  public static let `sending return conditional sendable state` = Lint.Rule(
+    id: "sending return conditional sendable state",
+    default: .warning,
+    findings: { source, severity in
+      let visitor = MemorySendingReturnConditionalSendableVisitor(
+        source: source.file,
+        severity: severity,
+        converter: source.converter
+      )
+      visitor.walk(source.tree)
+      return visitor.resolvedMatches()
+    }
+  )
+}
+
+private let memorySendingReturnConditionalSendableMessage: Swift.String =
+  "[sending return conditional sendable state]: this type's `@unchecked "
+  + "Sendable` conformance is conditional on a generic parameter that "
+  + "this return type mentions under a `sending` specifier. Region "
+  + "isolation re-merges a plain return with `self`'s region at the call "
+  + "site; a `sending`-typed return instead hands out a value "
+  + "disconnected from `self` while this type stays reachable from the "
+  + "original region — the exact race the conditional-Sendable gate "
+  + "exists to prevent. Adding `sending` here is source-compatible with "
+  + "every existing caller, so no test observes the regression; keep the "
+  + "return type plain (per swift-property-primitives#7)."
+
+internal final class MemorySendingReturnConditionalSendableVisitor: SyntaxVisitor {
+  let source: Source.File
+  let severity: Diagnostic.Severity
+  let converter: SourceLocationConverter
+  private var matches: [Diagnostic.Record] = []
+
+  /// Nesting path of the physically-enclosing type declarations,
+  /// dot-joined. An `ExtensionDeclSyntax`'s extended-type path is
+  /// pushed here too (its own components, independent of physical
+  /// nesting) so that members declared inside an extension resolve to
+  /// the same qualified path as the primary declaration.
+  private var enclosingPath: [Swift.String] = []
+  /// How many path components each currently-open `ExtensionDeclSyntax`
+  /// pushed, so `visitPost` pops the right count.
+  private var extensionPushCounts: [Swift.Int] = []
+
+  /// Generic parameter names declared by each qualified type path's
+  /// PRIMARY declaration.
+  private var genericParamsByPath: [Swift.String: Swift.Set<Swift.String>] = [:]
+  /// Generic parameter names gated by an `@unchecked Sendable where
+  /// G: Sendable` extension, per qualified type path. Populated
+  /// regardless of file order relative to the members that mention
+  /// them; resolved after the walk completes.
+  private var gatedParamsByPath: [Swift.String: Swift.Set<Swift.String>] = [:]
+
+  private struct Candidate {
+    let path: Swift.String
+    let position: AbsolutePosition
+    let mentionedNames: Swift.Set<Swift.String>
+  }
+  private var candidates: [Candidate] = []
+
+  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+    self.source = source
+    self.severity = severity
+    self.converter = converter
+    super.init(viewMode: .sourceAccurate)
+  }
+
+  private var currentPath: Swift.String { enclosingPath.joined(separator: ".") }
+
+  // MARK: - Type-decl nesting (primary declarations)
+
+  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+    enclosingPath.append(sendingConditionalStripBackticks(node.name.text))
+    genericParamsByPath[currentPath] = sendingConditionalGenericParamNames(
+      node.genericParameterClause)
+    return .visitChildren
+  }
+  override func visitPost(_: StructDeclSyntax) { _ = enclosingPath.popLast() }
+
+  override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    enclosingPath.append(sendingConditionalStripBackticks(node.name.text))
+    genericParamsByPath[currentPath] = sendingConditionalGenericParamNames(
+      node.genericParameterClause)
+    return .visitChildren
+  }
+  override func visitPost(_: ClassDeclSyntax) { _ = enclosingPath.popLast() }
+
+  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+    enclosingPath.append(sendingConditionalStripBackticks(node.name.text))
+    genericParamsByPath[currentPath] = sendingConditionalGenericParamNames(
+      node.genericParameterClause)
+    return .visitChildren
+  }
+  override func visitPost(_: ActorDeclSyntax) { _ = enclosingPath.popLast() }
+
+  // MARK: - Extensions: extended-type path + conditional-unchecked-Sendable gate
+
+  override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
+    let pathComponents =
+      sendingConditionalQualifiedPathComponents(node.extendedType) ?? ["<unknown>"]
+    enclosingPath.append(contentsOf: pathComponents)
+    extensionPushCounts.append(pathComponents.count)
+
+    if sendingConditionalHasUncheckedSendable(node.inheritanceClause) {
+      let gated = sendingConditionalGatedGenericParamNames(node.genericWhereClause)
+      if !gated.isEmpty {
+        gatedParamsByPath[currentPath, default: []].formUnion(gated)
+      }
+    }
+    return .visitChildren
+  }
+  override func visitPost(_: ExtensionDeclSyntax) {
+    let count = extensionPushCounts.removeLast()
+    enclosingPath.removeLast(count)
+  }
+
+  // MARK: - Members
+
+  override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard sendingConditionalIsPublicOrPackageEffective(Syntax(node), modifiers: node.modifiers)
+    else {
+      return .visitChildren
+    }
+    if let returnType = node.signature.returnClause?.type {
+      recordCandidateIfSending(returnType, at: returnType.positionAfterSkippingLeadingTrivia)
+    }
+    return .visitChildren
+  }
+
+  override func visit(_ node: SubscriptDeclSyntax) -> SyntaxVisitorContinueKind {
+    guard sendingConditionalIsPublicOrPackageEffective(Syntax(node), modifiers: node.modifiers)
+    else {
+      return .visitChildren
+    }
+    let returnType = node.returnClause.type
+    recordCandidateIfSending(returnType, at: returnType.positionAfterSkippingLeadingTrivia)
+    return .visitChildren
+  }
+
+  private func recordCandidateIfSending(_ type: TypeSyntax, at position: AbsolutePosition) {
+    guard let attributed = type.as(AttributedTypeSyntax.self),
+      sendingConditionalHasSendingSpecifier(attributed)
+    else { return }
+    let mentioned = sendingConditionalMentionedIdentifierNames(attributed.baseType)
+    guard !mentioned.isEmpty else { return }
+    candidates.append(Candidate(path: currentPath, position: position, mentionedNames: mentioned))
+  }
+
+  /// Cross-references collected candidates against the (possibly
+  /// later-in-file) conditional-Sendable gate for their type path, and
+  /// emits a diagnostic per candidate whose mentioned names intersect
+  /// the gated set.
+  internal func resolvedMatches() -> [Diagnostic.Record] {
+    for candidate in candidates {
+      guard let gated = gatedParamsByPath[candidate.path], !gated.isEmpty else { continue }
+      guard !candidate.mentionedNames.isDisjoint(with: gated) else { continue }
+      let location = converter.location(for: candidate.position)
+      matches.append(
+        Diagnostic.Record(
+          location: Source.Location(
+            fileID: source.fileID,
+            filePath: source.filePath,
+            line: location.line,
+            column: location.column
+          ),
+          severity: severity,
+          identifier: "sending return conditional sendable state",
+          message: memorySendingReturnConditionalSendableMessage
+        ))
+    }
+    return matches
+  }
+}
+
+// MARK: - Free helpers
+
+private func sendingConditionalStripBackticks(_ text: Swift.String) -> Swift.String {
+  guard text.count >= 2, text.hasPrefix("`"), text.hasSuffix("`") else { return text }
+  return Swift.String(text.dropFirst().dropLast())
+}
+
+private func sendingConditionalGenericParamNames(_ clause: GenericParameterClauseSyntax?)
+  -> Swift.Set<Swift.String>
+{
+  guard let clause else { return [] }
+  var names: Swift.Set<Swift.String> = []
+  for parameter in clause.parameters {
+    names.insert(sendingConditionalStripBackticks(parameter.name.text))
+  }
+  return names
+}
+
+/// Builds the extended type's qualified path as individual components
+/// (`["Property", "Consume", "State"]` for `extension
+/// Property.Consume.State`), ignoring any generic-argument clause —
+/// the extension's OWN generic parameters (introduced via a trailing
+/// `<...>` on `ExtensionDeclSyntax`, not on the extended type) are not
+/// modeled here; this rule only needs the dotted nesting path to match
+/// members declared in the same extension or the primary declaration.
+private func sendingConditionalQualifiedPathComponents(_ type: TypeSyntax) -> [Swift.String]? {
+  if let identifier = type.as(IdentifierTypeSyntax.self) {
+    return [sendingConditionalStripBackticks(identifier.name.text)]
+  }
+  if let member = type.as(MemberTypeSyntax.self) {
+    guard var base = sendingConditionalQualifiedPathComponents(member.baseType) else {
+      return nil
+    }
+    base.append(sendingConditionalStripBackticks(member.name.text))
+    return base
+  }
+  return nil
+}
+
+/// True if `clause` inherits `@unchecked Sendable` — an
+/// `AttributedTypeSyntax` whose `attributes` contains `unchecked` and
+/// whose base type's leaf is `Sendable` (optionally `Swift`-qualified).
+private func sendingConditionalHasUncheckedSendable(_ clause: InheritanceClauseSyntax?) -> Swift.Bool
+{
+  guard let clause else { return false }
+  for inherited in clause.inheritedTypes {
+    guard let attributed = inherited.type.as(AttributedTypeSyntax.self) else { continue }
+    guard sendingConditionalIsSendableLeaf(attributed.baseType) else { continue }
+    for attribute in attributed.attributes {
+      guard let attr = attribute.as(AttributeSyntax.self) else { continue }
+      if attr.attributeName.trimmedDescription == "unchecked" {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+private func sendingConditionalIsSendableLeaf(_ type: TypeSyntax) -> Swift.Bool {
+  if let identifier = type.as(IdentifierTypeSyntax.self) {
+    return sendingConditionalStripBackticks(identifier.name.text) == "Sendable"
+  }
+  if let member = type.as(MemberTypeSyntax.self) {
+    return sendingConditionalStripBackticks(member.name.text) == "Sendable"
+  }
+  return false
+}
+
+/// Returns the set of generic-parameter names bound by a
+/// `ConformanceRequirementSyntax` of shape `<Param>: Sendable` (or
+/// `Swift.Sendable`) in `clause`.
+private func sendingConditionalGatedGenericParamNames(_ clause: GenericWhereClauseSyntax?)
+  -> Swift.Set<Swift.String>
+{
+  guard let clause else { return [] }
+  var names: Swift.Set<Swift.String> = []
+  for requirement in clause.requirements {
+    guard let conformance = requirement.requirement.as(ConformanceRequirementSyntax.self) else {
+      continue
+    }
+    guard sendingConditionalIsSendableLeaf(conformance.rightType) else { continue }
+    names.insert(sendingConditionalStripBackticks(conformance.leftType.trimmedDescription))
+  }
+  return names
+}
+
+private func sendingConditionalIsPublicOrPackageEffective(
+  _ node: Syntax,
+  modifiers: DeclModifierListSyntax
+) -> Swift.Bool {
+  if sendingConditionalHasPublicOrPackage(modifiers) {
+    return true
+  }
+  var current: Syntax? = node.parent
+  while let candidate = current {
+    if let ext = candidate.as(ExtensionDeclSyntax.self) {
+      return sendingConditionalHasPublicOrPackage(ext.modifiers)
+    }
+    current = candidate.parent
+  }
+  return false
+}
+
+private func sendingConditionalHasPublicOrPackage(_ modifiers: DeclModifierListSyntax) -> Swift.Bool
+{
+  for modifier in modifiers {
+    switch modifier.name.tokenKind {
+    case .keyword(.public), .keyword(.open), .keyword(.package): return true
+    default: continue
+    }
+  }
+  return false
+}
+
+private func sendingConditionalHasSendingSpecifier(_ type: AttributedTypeSyntax) -> Swift.Bool {
+  for specifier in type.specifiers {
+    guard let simple = specifier.as(SimpleTypeSpecifierSyntax.self) else { continue }
+    if simple.specifier.tokenKind == .keyword(.sending) {
+      return true
+    }
+  }
+  return false
+}
+
+/// Collects every bare identifier name mentioned anywhere in `type`
+/// (optional, array, dictionary, tuple, function, some/any, generic
+/// arguments, and the base of a member-type path) — used to test
+/// whether a `sending`-attributed return type mentions a gated generic
+/// parameter, wherever in the type shape it appears.
+private func sendingConditionalMentionedIdentifierNames(_ type: TypeSyntax)
+  -> Swift.Set<Swift.String>
+{
+  var names: Swift.Set<Swift.String> = []
+  func walk(_ type: TypeSyntax) {
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+      names.insert(sendingConditionalStripBackticks(identifier.name.text))
+      if let genericArgs = identifier.genericArgumentClause {
+        for argument in genericArgs.arguments {
+          if let inner = argument.argument.as(TypeSyntax.self) { walk(inner) }
+        }
+      }
+      return
+    }
+    if let optional = type.as(OptionalTypeSyntax.self) { walk(optional.wrappedType); return }
+    if let iuo = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
+      walk(iuo.wrappedType)
+      return
+    }
+    if let array = type.as(ArrayTypeSyntax.self) { walk(array.element); return }
+    if let dictionary = type.as(DictionaryTypeSyntax.self) {
+      walk(dictionary.key)
+      walk(dictionary.value)
+      return
+    }
+    if let attributed = type.as(AttributedTypeSyntax.self) { walk(attributed.baseType); return }
+    if let someOrAny = type.as(SomeOrAnyTypeSyntax.self) { walk(someOrAny.constraint); return }
+    if let member = type.as(MemberTypeSyntax.self) {
+      walk(member.baseType)
+      if let genericArgs = member.genericArgumentClause {
+        for argument in genericArgs.arguments {
+          if let inner = argument.argument.as(TypeSyntax.self) { walk(inner) }
+        }
+      }
+      return
+    }
+    if let tuple = type.as(TupleTypeSyntax.self) {
+      for element in tuple.elements { walk(element.type) }
+      return
+    }
+    if let function = type.as(FunctionTypeSyntax.self) {
+      for parameter in function.parameters { walk(parameter.type) }
+      walk(function.returnClause.type)
+      return
+    }
+  }
+  walk(type)
+  return names
+}

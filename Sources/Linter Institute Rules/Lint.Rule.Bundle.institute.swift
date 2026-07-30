@@ -118,6 +118,10 @@ extension Lint.Rule.Bundle {
       .enable(.`sendable struct with class member`),
       .enable(.`unchecked sendable revalidation anchor`),
       .enable(.`unsafe assignment granularity`),
+      // [swift-property-primitives#7 adjudication] — implemented per
+      // swift-institute-linter-rules#29. Advisory at introduction;
+      // error only after the standing graduation gate.
+      .enable(.`sending return conditional sendable state`),
       // Platform pack (Wave 3 2026-05-15)
       .enable(.`c type in public api`),
       .enable(.`convention c representability`),
