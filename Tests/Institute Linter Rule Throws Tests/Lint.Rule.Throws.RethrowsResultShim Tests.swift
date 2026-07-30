@@ -145,7 +145,7 @@ extension Lint.Rule.`result wrapper for rethrows shim Tests`.`Edge Case` {
   }
 
   @Test
-  func `try inside do-catch with materializing return is not flagged (bug 3b fix)`() {
+  func `try inside do-catch with typed-only catch is still flagged (not materializing, #19)`() {
     let source = """
       let results = items.map { input -> Result<Int, MyError> in
           do {
@@ -156,9 +156,13 @@ extension Lint.Rule.`result wrapper for rethrows shim Tests`.`Edge Case` {
       }
       """
     let findings = Lint.Rule.`result wrapper for rethrows shim Tests`.findings(in: source)
-    // The IMPL-109 message itself prescribes this shape. The rule
-    // MUST NOT fire on its own prescribed remediation.
-    #expect(findings.isEmpty)
+    // A typed-only catch (`catch let error as MyError`) is not catch-all:
+    // any error that doesn't match `MyError` propagates past it uncaught.
+    // Per the #19 defect-3 ruling (coordinator adjudication, 2026-07-30),
+    // materialization requires at least one catch-all clause, so this
+    // shape does NOT materialize and the rule MUST still fire. Positive
+    // control for that ruling.
+    #expect(findings.count == 1)
   }
 
   @Test
