@@ -283,3 +283,67 @@ extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
     Lint.Rule.`counter loop iteration fix Tests`.roundTrips(source)
   }
 }
+
+extension Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable` {
+  @Test
+  func `a loop in a builder-attributed body is not rewritten`() {
+    let source = """
+      struct Page {
+          @ViewBuilder
+          func rows(_ n: Int) -> Body {
+              for i in 0..<n {
+                  Row(i)
+              }
+          }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable`.declines(source)
+  }
+
+  @Test
+  func `a loop in an opaque-result body is not rewritten`() {
+    let source = """
+      struct Page {
+          var body: some View {
+              for i in 0..<count {
+                  Row(i)
+              }
+          }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable`.declines(source)
+  }
+
+  @Test
+  func `a loop in a bare trailing closure is not rewritten`() {
+    let source = """
+      func page(_ n: Int) {
+          Stack(.vertical) {
+              for i in 0..<n {
+                  Row(i)
+              }
+          }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable`.declines(source)
+  }
+}
+
+extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
+  @Test
+  func `a loop in a plain closure inside a builder body still climbs`() {
+    let source = """
+      struct Page {
+          @ViewBuilder
+          func rows(_ n: Int) -> Body {
+              Row(measure { size in
+                  for i in 0..<n {
+                      size.widen(i)
+                  }
+              })
+          }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.roundTrips(source)
+  }
+}

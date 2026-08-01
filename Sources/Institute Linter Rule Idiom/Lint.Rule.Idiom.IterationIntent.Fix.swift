@@ -62,7 +62,113 @@ internal func idiomIterationIntentIsFixable(_ loop: ForStmtSyntax) -> Swift.Bool
   // A labelled loop's label can only be the target of a `break`/`continue`
   // that names it, and neither survives the translation.
   guard loop.parent?.as(LabeledStmtSyntax.self) == nil else { return false }
+  guard !idiomIterationIntentProducesContent(loop) else { return false }
   return !idiomIterationIntentBodyEscapes(Syntax(loop.body))
+}
+
+/// Whether `loop` sits in a body whose statements PRODUCE a value rather
+/// than only perform effects — a `@resultBuilder`-applied body.
+///
+/// This is the second half of the closure-boundary problem, and the more
+/// dangerous half. The guards above concern control TRANSFER, where the
+/// translated program still compiles and merely means something else. Here
+/// the loop's own result is the payload: under a result builder a `for-in`
+/// lowers to `buildArray` and contributes content, while `forEach` returns
+/// `Void` and discards it. The rewritten body then fails to compile, or —
+/// worse, where the builder accepts `Void` — silently renders nothing.
+///
+/// Syntax cannot see a builder attribute that lives on the PARAMETER a
+/// closure is passed to, so this refuses wherever it cannot prove the
+/// context is a plain one, per the rule for any guard whose false-negative
+/// changes behaviour. The climb stops at the nearest declaration or closure
+/// boundary, because a builder attribute on an outer declaration says
+/// nothing about a plain closure nested inside it.
+private func idiomIterationIntentProducesContent(_ loop: ForStmtSyntax) -> Swift.Bool {
+  var node: Syntax? = Syntax(loop).parent
+  while let current = node {
+    // A closure is a boundary, and a bare one may be a builder body: the
+    // attribute lives on the parameter it is passed to, in another file,
+    // and no amount of local syntax can rule that out — `PDF.Stack(…) { … }`
+    // and `VStack { … }` are exactly this shape. A closure carrying its own
+    // parameter signature is a plain function value: a builder body has no
+    // parameters to name, so the signature proves the context.
+    if let closure = current.as(ClosureExprSyntax.self) {
+      guard closure.signature != nil else { return true }
+      return false
+    }
+    // A declaration is a boundary. It is a builder body when it carries a
+    // builder attribute, or when its result is opaque — `var body: some
+    // View` infers `@ViewBuilder` from the protocol without spelling it,
+    // and the syntax of the declaration is all this rule ever sees.
+    if let attributes = idiomDeclarationAttributes(current) {
+      return idiomAttributesNameABuilder(attributes)
+        || idiomDeclarationResultIsOpaque(current)
+    }
+    node = current.parent
+  }
+  return false
+}
+
+/// The attribute list of `node` when `node` is a declaration that can own a
+/// body, and `nil` for every other node.
+private func idiomDeclarationAttributes(_ node: Syntax) -> AttributeListSyntax? {
+  if let decl = node.as(FunctionDeclSyntax.self) { return decl.attributes }
+  if let decl = node.as(InitializerDeclSyntax.self) { return decl.attributes }
+  if let decl = node.as(SubscriptDeclSyntax.self) { return decl.attributes }
+  if let decl = node.as(VariableDeclSyntax.self) { return decl.attributes }
+  if let decl = node.as(AccessorDeclSyntax.self) { return decl.attributes }
+  return nil
+}
+
+/// Whether any attribute in `attributes` names a result builder.
+///
+/// A result builder is recognised by its name, because the declaration of
+/// the attribute lives in another module and a linter reads one file. Every
+/// result builder in the language and its libraries is named for what it
+/// builds and ends in `Builder` — `@ViewBuilder`, `@SceneBuilder`,
+/// `@RegexComponentBuilder` — and a plain attribute that happens to end the
+/// same way costs a refused fix, not a broken program.
+private func idiomAttributesNameABuilder(_ attributes: AttributeListSyntax) -> Swift.Bool {
+  for element in attributes {
+    guard case .attribute(let attribute) = element else { continue }
+    let name = attribute.attributeName.trimmedDescription
+    let simple = name.split(separator: ".").last.map(Swift.String.init) ?? name
+    if simple.hasSuffix("Builder") { return true }
+  }
+  return false
+}
+
+/// Whether the declaration's stated result type is opaque.
+private func idiomDeclarationResultIsOpaque(_ node: Syntax) -> Swift.Bool {
+  if let decl = node.as(FunctionDeclSyntax.self) {
+    return idiomTypeIsOpaque(decl.signature.returnClause?.type)
+  }
+  if let decl = node.as(SubscriptDeclSyntax.self) {
+    return idiomTypeIsOpaque(decl.returnClause.type)
+  }
+  if let decl = node.as(VariableDeclSyntax.self) {
+    for binding in decl.bindings where idiomTypeIsOpaque(binding.typeAnnotation?.type) {
+      return true
+    }
+    return false
+  }
+  if let decl = node.as(AccessorDeclSyntax.self) {
+    // An accessor's result is its property's, which is three levels up:
+    // accessor, accessor list, accessor block, binding.
+    let property = decl.parent?.parent?.parent?.as(PatternBindingSyntax.self)
+    return idiomTypeIsOpaque(property?.typeAnnotation?.type)
+  }
+  return false
+}
+
+/// Whether `type` is spelled `some …`.
+///
+/// `any …` is excluded deliberately. An existential result is an ordinary
+/// return type that no protocol turns into a builder body, and refusing it
+/// would cost fixes for nothing.
+private func idiomTypeIsOpaque(_ type: TypeSyntax?) -> Swift.Bool {
+  guard let type = type?.as(SomeOrAnyTypeSyntax.self) else { return false }
+  return type.someOrAnySpecifier.tokenKind == .keyword(.some)
 }
 
 /// Whether `node`'s subtree holds any construct whose meaning differs
