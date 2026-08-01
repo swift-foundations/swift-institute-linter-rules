@@ -199,6 +199,77 @@ extension Lint.Rule.`unchecked call site Tests`.`Edge Case` {
     #expect(findings.isEmpty)
   }
 
+  // MARK: - #38: the [CONV-001] extension-init bottom-out reserve
+
+  @Test
+  func `__unchecked in an extension init constructing its own type is NOT flagged`() {
+    let source = """
+      extension Cardinal {
+          public init(validated value: Int) {
+              self.init(__unchecked: value)
+          }
+      }
+      """
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `__unchecked spelled Self in an extension init is NOT flagged`() {
+    let source = """
+      extension Lint.Cardinal {
+          public init(validated value: Int) {
+              self = Self(__unchecked: value)
+          }
+      }
+      """
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // Near-miss: an extension init that bottoms out into a DIFFERENT type is
+  // an ordinary consumer bypass, not that type's own boundary.
+  @Test
+  func `__unchecked constructing a sibling type in an extension init is still flagged`() {
+    let source = """
+      extension Cardinal {
+          public init(validated value: Int) {
+              self.init(offset: Ordinal(__unchecked: value))
+          }
+      }
+      """
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss: a closure inside the extension init is ordinary code.
+  @Test
+  func `__unchecked inside a closure nested in an extension init is still flagged`() {
+    let source = """
+      extension Cardinal {
+          public init(values: [Int]) {
+              self.init(all: values.map { Cardinal(__unchecked: $0) })
+          }
+      }
+      """
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss: a plain function in the extension is not an initializer.
+  @Test
+  func `__unchecked in an extension function is still flagged`() {
+    let source = """
+      extension Cardinal {
+          public static func make(_ value: Int) -> Cardinal {
+              Cardinal(__unchecked: value)
+          }
+      }
+      """
+    let findings = Lint.Rule.`unchecked call site Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
   @Test
   func `a non-brand-owner consumer run still fires`() {
     let findings = Lint.Rule.`unchecked call site Tests`.findings(
