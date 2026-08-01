@@ -155,3 +155,113 @@ extension Lint.Rule.`swift protocol qualification fix Tests`.`Not Fixable` {
     #expect(Lint.Rule.`swift protocol qualification fix Tests`.fixed(source) == nil)
   }
 }
+
+extension Lint.Rule.`swift protocol qualification fix Tests`.`Not Fixable` {
+  /// Asserts the rule still fires but declines to rewrite — the finding
+  /// stands for a person, who is the only one who knows which `Error` the
+  /// file meant.
+  static func declines(
+    _ source: String,
+    sourceLocation: Testing.SourceLocation = #_sourceLocation
+  ) {
+    #expect(
+      !Lint.Rule.`swift protocol qualification fix Tests`.findings(in: source).isEmpty,
+      sourceLocation: sourceLocation
+    )
+    #expect(
+      Lint.Rule.`swift protocol qualification fix Tests`.fixed(source) == nil,
+      sourceLocation: sourceLocation
+    )
+  }
+
+  /// The rewrite here compiles and flips `x is Error` from true to false.
+  @Test
+  func `a file declaring its own Error protocol is not rewritten`() {
+    Self.declines(
+      """
+      protocol Error {
+          var code: Int { get }
+      }
+      struct Boom: Error { var code: Int { 7 } }
+      func handle(_ e: any Error) -> Int { e.code }
+      """
+    )
+  }
+
+  /// The rewrite here silently drops the `Sendable` bound.
+  @Test
+  func `a file aliasing Error to a constrained existential is not rewritten`() {
+    Self.declines(
+      """
+      typealias Error = Swift.Error & Sendable
+      struct E2: Error {}
+      func log(_ e: any Error) { _ = e }
+      """
+    )
+  }
+
+  /// The alias is nested, and the reference is inside the namespace that
+  /// declares it. Refusing the whole file is the file-local rule.
+  @Test
+  func `a nested Error typealias suppresses the fix file-wide`() {
+    Self.declines(
+      """
+      enum Namespace {
+          typealias Error = CustomStringConvertible
+      }
+      extension Namespace {
+          static func describe(_ e: any Error) -> String { e.description }
+      }
+      """
+    )
+  }
+
+  @Test
+  func `a file declaring its own Sequence type is not rewritten`() {
+    Self.declines(
+      """
+      struct Sequence {}
+      func op<T: Sequence>(_ value: T) {}
+      """
+    )
+  }
+
+  @Test
+  func `an associated type named Collection suppresses the fix`() {
+    Self.declines(
+      """
+      protocol Store {
+          associatedtype Collection
+      }
+      func op<T: Collection>(_ value: T) {}
+      """
+    )
+  }
+
+  @Test
+  func `a generic parameter named Error suppresses the fix`() {
+    Self.declines(
+      """
+      struct Box<Error> {
+          let value: Error
+      }
+      func op(_ e: any Error) {}
+      """
+    )
+  }
+
+  /// Only the shadowed name is withheld. A file that declares `Error` and
+  /// also references `Sequence` still gets its `Sequence` qualified.
+  @Test
+  func `an unshadowed name is still qualified in a shadowing file`() {
+    let source = """
+      protocol Error {}
+      func op<T: Sequence>(_ value: T) {}
+      func handle(_ e: any Error) {}
+      """
+    let output = Lint.Rule.`swift protocol qualification fix Tests`.fixed(source)
+    #expect(output?.contains("<T: Swift.Sequence>") == true)
+    #expect(output?.contains("any Error") == true)
+    #expect(output?.contains("Swift.Error") == false)
+  }
+}
