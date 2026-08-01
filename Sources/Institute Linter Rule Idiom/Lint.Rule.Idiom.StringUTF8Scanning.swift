@@ -30,6 +30,27 @@ internal import SwiftSyntax
 /// with this engine's own `// swift-linter:disable:next string utf8 scanning`
 /// directive (not a SwiftLint directive — the wrong tool for this
 /// engine).
+///
+/// ## Spec-mandated scalar algorithms — ruled disposition
+///
+/// Ruled 2026-08-01 (swift-institute/.github#90 comment 5150641576 item 1,
+/// sourced from the batch-1 backlog, comment 5150595934): a specification
+/// whose algorithm is DEFINED over Unicode scalars / code points rather
+/// than bytes — the confirmed instance is RFC 3492 Punycode, whose
+/// encoding is specified in code points — is **accept-as-warning**, NOT a
+/// predicate exemption.
+///
+/// Rationale: no stable syntactic property distinguishes a spec-mandated
+/// scalar algorithm from an ordinary `.unicodeScalars` misuse. "This file
+/// implements RFC 3492" is semantic knowledge, not syntax; the Foundation-
+/// import gate above works precisely because an `import` IS syntax, and
+/// there is no equivalent token here. Widening the predicate on a
+/// filename, a module name, or a comment would be a path/name exemption in
+/// disguise, and the engine already ships the correct instrument: a
+/// per-site `// swift-linter:disable:next string utf8 scanning` with a
+/// `// REASON:` continuation naming the specification section. The
+/// justification is then reviewable at the site that needs it, which a
+/// blanket predicate exemption would not be.
 extension Lint.Rule {
   public static let `string utf8 scanning` = Lint.Rule(
     id: "string utf8 scanning",
@@ -56,9 +77,16 @@ internal let idiomStringUTF8ScanningMessage: Swift.String =
   + "Use `.utf8` — byte-literal matching is O(n), no Unicode table "
   + "dependency, and the correct semantics for newline discovery, "
   + "substring search, percent decoding, path component splitting. "
-  + "Suppress a confirmed non-`String` receiver with a "
+  + "**Accept-as-warning** disposition (rule fires legitimately, leave the "
+  + "warning): a specification whose algorithm is DEFINED over Unicode "
+  + "scalars / code points rather than bytes — e.g. RFC 3492 Punycode, "
+  + "whose encoding is specified in code points, or a Unicode "
+  + "normalization / case-mapping algorithm. `.unicodeScalars` is the "
+  + "correct view there; the warning is the review signal, not a defect. "
+  + "Suppress a confirmed non-`String` receiver, or a spec-mandated "
+  + "scalar algorithm you have reviewed, with a "
   + "`// swift-linter:disable:next string utf8 scanning` and `// REASON:` "
-  + "continuation."
+  + "continuation naming the specification section."
 
 /// The Foundation module family — mirrors
 /// `Lint.Rule.Foundation.Import`'s `foundationModuleFamily`, kept as a
