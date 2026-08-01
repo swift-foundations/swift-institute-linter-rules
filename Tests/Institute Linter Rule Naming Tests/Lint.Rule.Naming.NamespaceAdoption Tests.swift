@@ -28,7 +28,8 @@ extension Lint.Rule {
 extension Lint.Rule.`namespace adoption typealias Tests` {
   static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
     let parsed = Lint.Source.parsed(from: source, file: file)
-    return Lint.Rule.`namespace adoption typealias`.findings(parsed, .warning)
+    let rule = Lint.Rule.`namespace adoption typealias`
+    return rule.findings(parsed, rule.severity.default)
   }
 }
 
@@ -38,10 +39,13 @@ extension Lint.Rule.`namespace adoption typealias Tests`.Unit {
     let source = """
       public typealias Event = Kernel.Event
       """
+    let rule = Lint.Rule.`namespace adoption typealias`
+    #expect(rule.severity.default == .note)
     let findings = Lint.Rule.`namespace adoption typealias Tests`.findings(in: source)
     #expect(findings.count == 1)
     if findings.count == 1 {
       #expect(findings[0].identifier == "namespace adoption typealias")
+      #expect(findings[0].severity == .note)
     }
   }
 

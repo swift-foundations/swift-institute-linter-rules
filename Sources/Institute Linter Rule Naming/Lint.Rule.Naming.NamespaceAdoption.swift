@@ -37,7 +37,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
   public static let `namespace adoption typealias` = Lint.Rule(
     id: "namespace adoption typealias",
-    default: .warning,
+    default: .note,
     findings: { source, severity in
       let visitor = NamingNamespaceAdoptionVisitor(
         source: source.file,
@@ -55,7 +55,7 @@ private let namingNamespaceAdoptionMessage: Swift.String =
   + "the namespace-adoption shape. Confirm the higher-layer namespace "
   + "declares ≥ 5 sibling types / extensions / methods on the adopted "
   + "concept — otherwise this is a rename bridge per [API-NAME-004]. "
-  + "Surfaced as a review prompt. (The parameterized-adoption idiom — a "
+  + "Surfaced as a non-counting review prompt. (The parameterized-adoption idiom — a "
   + "generic typealias forwarding its parameter(s) while binding the "
   + "enclosing Self-type into the underlying generic — does not fire.)"
 

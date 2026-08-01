@@ -21,7 +21,7 @@ internal import SwiftSyntax
 extension Lint.Rule {
   public static let `typealiased namespace bridge` = Lint.Rule(
     id: "typealiased namespace bridge",
-    default: .warning,
+    default: .note,
     findings: { source, severity in
       let visitor = PlatformTypealiasedNamespaceVisitor(
         source: source.file,
@@ -43,7 +43,8 @@ internal let platformTypealiasedNamespaceMessage: Swift.String =
   + "any existing type at the same foreign path conflicts silently. "
   + "Before adding sub-types via this aliased path, grep the foreign "
   + "module for collisions and choose a non-conflicting sub-path, a "
-  + "non-typealiased namespace entry, or relocate the foreign type."
+  + "non-typealiased namespace entry, or relocate the foreign type. "
+  + "Surfaced as a non-counting review prompt."
 
 internal final class PlatformTypealiasedNamespaceVisitor: SyntaxVisitor {
   let source: Source.File

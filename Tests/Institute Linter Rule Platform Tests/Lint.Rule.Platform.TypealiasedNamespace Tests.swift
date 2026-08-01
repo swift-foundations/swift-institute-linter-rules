@@ -30,7 +30,8 @@ extension Lint.Rule.`typealiased namespace bridge Tests` {
     .Record]
   {
     let parsed = Lint.Source.parsed(from: source, file: file)
-    return Lint.Rule.`typealiased namespace bridge`.findings(parsed, .warning)
+    let rule = Lint.Rule.`typealiased namespace bridge`
+    return rule.findings(parsed, rule.severity.default)
   }
 }
 
@@ -42,11 +43,13 @@ extension Lint.Rule.`typealiased namespace bridge Tests`.Unit {
           public typealias Kernel = Kernel_Primitives_Core.Kernel
       }
       """
+    let rule = Lint.Rule.`typealiased namespace bridge`
+    #expect(rule.severity.default == .note)
     let findings = Lint.Rule.`typealiased namespace bridge Tests`.findings(in: source)
     #expect(findings.count == 1)
     if findings.count == 1 {
       #expect(findings[0].identifier == "typealiased namespace bridge")
-      #expect(findings[0].severity == .warning)
+      #expect(findings[0].severity == .note)
     }
   }
 
