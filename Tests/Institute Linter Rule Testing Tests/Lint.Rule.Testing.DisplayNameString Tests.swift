@@ -21,6 +21,8 @@ extension Lint.Rule {
   @Suite
   struct `test display name string Tests` {
     @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
   }
 }
 
