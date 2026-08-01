@@ -227,3 +227,67 @@ extension Lint.Rule.`count minus one Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// Count-vs-count comparison false positive — ruled
+// swift-institute/.github#90 comment 5150641576 item 1(b). Predicate 2
+// (algebraic flip) targets an INDEX compared against a count; when both
+// sides are cardinalities the expression compiles unchanged under a typed
+// `Cardinal`, so [INFRA-200]'s "the typed form would not compile" test
+// does not hold.
+extension Lint.Rule.`count minus one Tests`.`Negative` {
+  @Test
+  func `count == count + 1 assertion comparison is NOT flagged`() {
+    let findings = Lint.Rule.`count minus one Tests`.findings(
+      in: "#expect(secure.middleware.count == plain.middleware.count + 1)"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `count + 1 == count with the plus on the left is NOT flagged`() {
+    let findings = Lint.Rule.`count minus one Tests`.findings(
+      in: "#expect(plain.middleware.count + 1 == secure.middleware.count)"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `count less-than count + 1 is NOT flagged`() {
+    let findings = Lint.Rule.`count minus one Tests`.findings(
+      in: "let ok = a.count < b.count + 1"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `paren-wrapped count + 1 against a count is NOT flagged`() {
+    let findings = Lint.Rule.`count minus one Tests`.findings(
+      in: "let ok = a.count == (b.count) + 1"
+    )
+    #expect(findings.isEmpty)
+  }
+}
+
+extension Lint.Rule.`count minus one Tests`.`Edge Case` {
+  // Near-miss controls: real index arithmetic must still fire after the
+  // count-vs-count refinement.
+  @Test
+  func `index + 1 compared against a count is still flagged`() {
+    let findings = Lint.Rule.`count minus one Tests`.findings(in: "let ok = i + 1 < seq.count")
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `count compared against index + 1 is still flagged`() {
+    let findings = Lint.Rule.`count minus one Tests`.findings(in: "let ok = seq.count == i + 1")
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `member-access subscript with count minus one is still flagged`() {
+    let findings = Lint.Rule.`count minus one Tests`.findings(
+      in: "let last = array[array.count - 1]"
+    )
+    #expect(findings.count == 1)
+  }
+}

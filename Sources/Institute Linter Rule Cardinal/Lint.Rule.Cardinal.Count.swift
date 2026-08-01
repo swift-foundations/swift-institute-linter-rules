@@ -116,9 +116,9 @@ internal final class CardinalCountVisitor: SyntaxVisitor {
     }
 
     if Self.isComparisonOperator(opText) {
-      if Self.isPlusOne(node.leftOperand), Self.isCountDerivedExpression(node.rightOperand) {
+      if Self.isIndexPlusOne(node.leftOperand), Self.isCountDerivedExpression(node.rightOperand) {
         report(at: binOp.operator)
-      } else if Self.isPlusOne(node.rightOperand),
+      } else if Self.isIndexPlusOne(node.rightOperand),
         Self.isCountDerivedExpression(node.leftOperand)
       {
         report(at: binOp.operator)
@@ -163,6 +163,39 @@ internal final class CardinalCountVisitor: SyntaxVisitor {
       binOp.operator.text == "+"
     else { return false }
     return isLiteralOne(infix.leftOperand) || isLiteralOne(infix.rightOperand)
+  }
+
+  /// The algebraic-flip arm's `<index> + 1` operand: a `+ 1` shape whose
+  /// OTHER (non-literal) operand is not itself count-derived.
+  ///
+  /// Predicate 2 exists to catch an INDEX compared against a count
+  /// (`i + 1 < seq.count` is `i < seq.count - 1` rewritten). When both
+  /// sides are cardinalities — `a.count == b.count + 1` — nothing is
+  /// being indexed: that is a comparison of two counts, the canonical
+  /// shape of a test assertion about collection size, and it compiles
+  /// unchanged under a typed `Cardinal` (`Cardinal` supports `+ .one`
+  /// and `==`). [INFRA-200]'s "the typed form would not compile" test
+  /// therefore does not hold, so the finding was a false positive.
+  ///
+  /// Confirmed instance: swift-institute/.github#90 comment 5150641576
+  /// item 1(b) — `#expect(secure.middleware.count == plain.middleware.count + 1)`,
+  /// 2 findings in one package.
+  ///
+  /// Real index arithmetic is unaffected: `array[count - 1]` and every
+  /// other predicate-1 subtraction shape never reaches this function, and
+  /// `i + 1 < seq.count` still fires because `i` is not count-derived.
+  static func isIndexPlusOne(_ expr: ExprSyntax) -> Bool {
+    guard let infix = expr.as(InfixOperatorExprSyntax.self),
+      let binOp = infix.operator.as(BinaryOperatorExprSyntax.self),
+      binOp.operator.text == "+"
+    else { return false }
+    if isLiteralOne(infix.rightOperand) {
+      return !isCountDerivedExpression(infix.leftOperand)
+    }
+    if isLiteralOne(infix.leftOperand) {
+      return !isCountDerivedExpression(infix.rightOperand)
+    }
+    return false
   }
 
   /// Returns true when `expr`, after peeling the specific wrapper
