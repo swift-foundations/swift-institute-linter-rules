@@ -39,14 +39,29 @@ extension Lint.Rule.`swift protocol qualification fix Tests` {
 
   /// The self-round-trip property: flagged before, rewritten, parses, and
   /// silent afterwards.
-  static func roundTrips(_ source: String, sourceLocation: Testing.SourceLocation = #_sourceLocation) {
-    #expect(!findings(in: source).isEmpty, "fixture must fire before it can round-trip", sourceLocation: sourceLocation)
+  static func roundTrips(
+    _ source: String,
+    sourceLocation: Testing.SourceLocation = #_sourceLocation
+  ) {
+    #expect(
+      !findings(in: source).isEmpty,
+      "fixture must fire before it can round-trip",
+      sourceLocation: sourceLocation
+    )
     guard let output = fixed(source) else {
       Issue.record("expected a rewrite", sourceLocation: sourceLocation)
       return
     }
-    #expect(!Parser.parse(source: output).hasError, "rewrite must parse: \(output)", sourceLocation: sourceLocation)
-    #expect(findings(in: output).isEmpty, "rewrite must re-lint clean: \(output)", sourceLocation: sourceLocation)
+    #expect(
+      !Parser.parse(source: output).hasError,
+      "rewrite must parse: \(output)",
+      sourceLocation: sourceLocation
+    )
+    #expect(
+      findings(in: output).isEmpty,
+      "rewrite must re-lint clean: \(output)",
+      sourceLocation: sourceLocation
+    )
   }
 }
 
@@ -57,7 +72,8 @@ extension Lint.Rule.`swift protocol qualification fix Tests`.`Round Trip` {
       func op<E: Error>(_ error: E) {}
       """
     Lint.Rule.`swift protocol qualification fix Tests`.roundTrips(source)
-    #expect(Lint.Rule.`swift protocol qualification fix Tests`.fixed(source)?.contains("<E: Swift.Error>") == true)
+    let output = Lint.Rule.`swift protocol qualification fix Tests`.fixed(source)
+    #expect(output?.contains("<E: Swift.Error>") == true)
   }
 
   @Test
@@ -67,7 +83,8 @@ extension Lint.Rule.`swift protocol qualification fix Tests`.`Round Trip` {
       """
     Lint.Rule.`swift protocol qualification fix Tests`.roundTrips(source)
     #expect(
-      Lint.Rule.`swift protocol qualification fix Tests`.fixed(source)?.contains("some Swift.Sequence<UInt8>") == true
+      Lint.Rule.`swift protocol qualification fix Tests`
+        .fixed(source)?.contains("some Swift.Sequence<UInt8>") == true
     )
   }
 
@@ -77,7 +94,8 @@ extension Lint.Rule.`swift protocol qualification fix Tests`.`Round Trip` {
       struct Bag: Collection {}
       """
     Lint.Rule.`swift protocol qualification fix Tests`.roundTrips(source)
-    #expect(Lint.Rule.`swift protocol qualification fix Tests`.fixed(source)?.contains(": Swift.Collection") == true)
+    let output = Lint.Rule.`swift protocol qualification fix Tests`.fixed(source)
+    #expect(output?.contains(": Swift.Collection") == true)
   }
 
   @Test

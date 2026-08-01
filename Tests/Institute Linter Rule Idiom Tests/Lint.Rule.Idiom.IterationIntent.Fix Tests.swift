@@ -46,14 +46,29 @@ extension Lint.Rule.`counter loop iteration fix Tests` {
   /// This is the whole contract a rewriter-backed rule owes the engine. A
   /// fix that produced unparseable text would be refused at run time; a fix
   /// whose output still fires would loop the fleet forever.
-  static func roundTrips(_ source: String, sourceLocation: Testing.SourceLocation = #_sourceLocation) {
-    #expect(!findings(in: source).isEmpty, "fixture must fire before it can round-trip", sourceLocation: sourceLocation)
+  static func roundTrips(
+    _ source: String,
+    sourceLocation: Testing.SourceLocation = #_sourceLocation
+  ) {
+    #expect(
+      !findings(in: source).isEmpty,
+      "fixture must fire before it can round-trip",
+      sourceLocation: sourceLocation
+    )
     guard let output = fixed(source) else {
       Issue.record("expected a rewrite", sourceLocation: sourceLocation)
       return
     }
-    #expect(!Parser.parse(source: output).hasError, "rewrite must parse: \(output)", sourceLocation: sourceLocation)
-    #expect(findings(in: output).isEmpty, "rewrite must re-lint clean: \(output)", sourceLocation: sourceLocation)
+    #expect(
+      !Parser.parse(source: output).hasError,
+      "rewrite must parse: \(output)",
+      sourceLocation: sourceLocation
+    )
+    #expect(
+      findings(in: output).isEmpty,
+      "rewrite must re-lint clean: \(output)",
+      sourceLocation: sourceLocation
+    )
   }
 }
 
@@ -69,7 +84,8 @@ extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
       """
     Lint.Rule.`counter loop iteration fix Tests`.roundTrips(source)
     #expect(
-      Lint.Rule.`counter loop iteration fix Tests`.fixed(source)?.contains("(0..<items.count).forEach { i in") == true
+      Lint.Rule.`counter loop iteration fix Tests`
+        .fixed(source)?.contains("(0..<items.count).forEach { i in") == true
     )
   }
 
@@ -120,9 +136,18 @@ extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
 extension Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable` {
   /// Asserts the rule still fires but declines to rewrite — the loop stays
   /// a finding for a person to restructure.
-  static func declines(_ source: String, sourceLocation: Testing.SourceLocation = #_sourceLocation) {
-    #expect(!Lint.Rule.`counter loop iteration fix Tests`.findings(in: source).isEmpty, sourceLocation: sourceLocation)
-    #expect(Lint.Rule.`counter loop iteration fix Tests`.fixed(source) == nil, sourceLocation: sourceLocation)
+  static func declines(
+    _ source: String,
+    sourceLocation: Testing.SourceLocation = #_sourceLocation
+  ) {
+    #expect(
+      !Lint.Rule.`counter loop iteration fix Tests`.findings(in: source).isEmpty,
+      sourceLocation: sourceLocation
+    )
+    #expect(
+      Lint.Rule.`counter loop iteration fix Tests`.fixed(source) == nil,
+      sourceLocation: sourceLocation
+    )
   }
 
   @Test
