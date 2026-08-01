@@ -261,3 +261,70 @@ extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
     }
   }
 }
+
+// Prescribed-fix-does-not-compile defect — ruled
+// swift-institute/.github#90 comment 5150641576 item 1 (batch-1 backlog,
+// comment 5150595934: "ordinal-primitives: phantom-suppression prescribed
+// fix doesn't compile (UnsafeMutablePointer Pointee structurally
+// Escapable)"). `UnsafeMutablePointer.Pointee` has no `~Escapable`
+// suppression, so `<P: ~Copyable & ~Escapable>` is rejected by the
+// compiler; such a parameter is not a pure phantom.
+extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
+  @Test
+  func `parameter used as UnsafeMutablePointer Pointee is NOT flagged`() {
+    let source = """
+      func store<E: ~Copyable>(
+          _ pointer: UnsafeMutablePointer<E>,
+          at index: Index<E>
+      ) {}
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `parameter used as UnsafePointer Pointee is NOT flagged`() {
+    let source = """
+      func load<E: ~Copyable>(
+          _ pointer: UnsafePointer<E>,
+          at index: Index<E>
+      ) {}
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `parameter used as UnsafeBufferPointer Element is NOT flagged`() {
+    let source = """
+      func scan<E: ~Copyable>(
+          _ buffer: UnsafeBufferPointer<E>,
+          from index: Index<E>
+      ) {}
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // Near-miss / positive control: the same declaration WITHOUT the pointer
+  // position is a pure phantom and still fires.
+  @Test
+  func `phantom discriminator without a pointer position is still flagged`() {
+    let source = """
+      func advance<E: ~Copyable>(_ index: Index<E>, by step: Int) {}
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss: a similarly-named but distinct type does not carry the
+  // stdlib Escapable constraint, so the exemption must not apply.
+  @Test
+  func `a non-stdlib pointer-like generic does NOT exempt the phantom`() {
+    let source = """
+      func advance<E: ~Copyable>(_ handle: MyPointer<E>, at index: Index<E>) {}
+      """
+    let findings = Lint.Rule.`phantom suppression Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}

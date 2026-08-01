@@ -151,7 +151,8 @@ internal final class NamingPhantomSuppressionVisitor: SyntaxVisitor {
         continue
       }
       guard usedAsPhantomDiscriminator(name, in: body), !usedAsStoredValue(name, in: body),
-        !usedAsWhereClauseContainerBinding(name, in: whereClause)
+        !usedAsWhereClauseContainerBinding(name, in: whereClause),
+        !usedAtStructurallyEscapablePosition(name, in: body)
       else {
         continue
       }
@@ -245,6 +246,52 @@ private func usedAsStoredValue(_ name: Swift.String, in body: Swift.String) -> S
     "consuming " + name, "borrowing " + name, "inout " + name,
   ] where body.contains(marker) {
     return true
+  }
+  return false
+}
+
+/// Stdlib generic types whose generic parameter is CONSTRAINED to be
+/// `Escapable` by the stdlib's own declaration — `UnsafePointer<Pointee>`
+/// and family do not carry `Pointee: ~Escapable`. A generic parameter
+/// passed to one of these cannot also be declared `~Escapable`.
+private let namingPhantomEscapableConstrainedGenericTypes: [Swift.String] = [
+  "UnsafePointer",
+  "UnsafeMutablePointer",
+  "UnsafeBufferPointer",
+  "UnsafeMutableBufferPointer",
+  "AutoreleasingUnsafeMutablePointer",
+  "ManagedBuffer",
+  "ManagedBufferPointer",
+]
+
+/// True when `name` reaches a generic position whose stdlib declaration
+/// already requires `Escapable` — the rule's own prescribed fix
+/// (`~Copyable & ~Escapable`) then does not compile.
+///
+/// Phantom-suppression defect (swift-institute/.github#90 comment
+/// 5150641576 item 1, sourced from the batch-1 backlog, comment
+/// 5150595934, `swift-primitives/swift-ordinal-primitives` entry
+/// "phantom-suppression prescribed fix doesn't compile"): a `<P: ~Copyable>`
+/// used as a `Tagged<P, …>` discriminator AND as `UnsafeMutablePointer<P>`'s
+/// `Pointee` is structurally `Escapable`. `Pointee` has no `~Escapable`
+/// suppression in the stdlib, so `<P: ~Copyable & ~Escapable>` is rejected
+/// by the compiler. A rule whose prescribed fix does not compile is a
+/// defect, not a finding: such a parameter is not a pure phantom and is
+/// out of scope.
+///
+/// Text heuristic, matching the surrounding `usedAsStoredValue` /
+/// `usedAsPhantomDiscriminator` style: the parameter must appear as a
+/// direct generic argument (`UnsafeMutablePointer<P>` or
+/// `UnsafeMutablePointer<P, …>`) of one of the listed types. Conservative
+/// by construction — any hit suppresses the flag.
+private func usedAtStructurallyEscapablePosition(
+  _ name: Swift.String,
+  in body: Swift.String
+) -> Swift.Bool {
+  for type in namingPhantomEscapableConstrainedGenericTypes {
+    if body.contains(type + "<" + name + ">") || body.contains(type + "<" + name + ",") {
+      return true
+    }
   }
   return false
 }
