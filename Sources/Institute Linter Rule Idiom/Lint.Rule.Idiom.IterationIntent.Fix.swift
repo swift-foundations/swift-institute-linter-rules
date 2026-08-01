@@ -131,6 +131,7 @@ private func idiomTriviaHasComment(_ trivia: Trivia) -> Swift.Bool {
     case .spaces, .tabs, .newlines, .carriageReturns, .carriageReturnLineFeeds,
       .formfeeds, .verticalTabs:
       continue
+
     default:
       return true
     }
