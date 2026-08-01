@@ -209,6 +209,9 @@ extension Lint.Rule.Bundle {
       .enable(.`test file suffix`),
       .enable(.`test function naming`),
       .enable(.`performance suite serialized`),
+      // [SWIFT-TEST-006] — implemented per swift-institute-linter-rules#37;
+      // advisory at introduction, error only after the graduation gate.
+      .enable(.`test display name string`),
       // Throws pack (Wave 3 2026-05-15)
       .enable(.`closure typed throws annotation`),
       .enable(.`do throws for typed catch`),

@@ -104,6 +104,7 @@ private let allDeclaredRuleIDs: Swift.Set<Swift.String> = [
   "tag suffix",
   "tagged extension public init",
   "tagged unchecked with typed alternative",
+  "test display name string",
   "test file suffix",
   "test function naming",
   "throwing wrapper init",
