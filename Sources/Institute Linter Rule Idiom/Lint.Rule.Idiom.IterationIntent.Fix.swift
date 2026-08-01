@@ -37,6 +37,32 @@ internal import SwiftSyntax
 /// over-refuses, and it should: the cost of refusing a fixable loop is that
 /// a person fixes it, and the cost of accepting an unfixable one is a
 /// behaviour change nobody reviewed.
+///
+/// ## Accepted false refusals
+///
+/// The predicate is deliberately coarser than the truth, in three places
+/// where the true test is not available to syntax. Each costs fixes on
+/// loops that would have translated correctly. All three are accepted:
+///
+/// - **Any loop lexically inside a closure.** Whether a closure is a result
+///   builder body is decided by an attribute on the parameter it is passed
+///   to, which lives in another file. So `xs.map { … }`, `Task { … }`,
+///   `withLock { … }`, and every other plainly-a-function-value closure
+///   keeps its loops unfixed, alongside the `VStack { … }` bodies this is
+///   actually aimed at. The earlier carve-out for closures with a parameter
+///   signature was unsound and is gone: a builder parameter may be a
+///   function type taking arguments.
+/// - **Any loop under a declaration returning `some …`, or carrying an
+///   attribute whose name ends in `Builder`.** Both are name-shaped
+///   evidence, and a `@ConfigurationBuilder` that is not a result builder
+///   refuses for nothing.
+/// - **Any loop with a comment in a position the rewrite rebuilds.** See
+///   ``idiomIterationIntentDropsComments(_:)``: a documented loop header is
+///   left alone rather than have its comment deleted.
+///
+/// A refused-but-safe loop stays a finding, which is a person reading one
+/// line. A fixed-but-broken loop is a silent behaviour change in a commit
+/// nobody looked at. The asymmetry is the whole argument.
 internal func idiomIterationIntentFixed(
   _ source: borrowing Lint.Source.Parsed
 ) -> Swift.String? {
@@ -63,7 +89,53 @@ internal func idiomIterationIntentIsFixable(_ loop: ForStmtSyntax) -> Swift.Bool
   // that names it, and neither survives the translation.
   guard loop.parent?.as(LabeledStmtSyntax.self) == nil else { return false }
   guard !idiomIterationIntentProducesContent(loop) else { return false }
+  guard !idiomIterationIntentDropsComments(loop) else { return false }
   return !idiomIterationIntentBodyEscapes(Syntax(loop.body))
+}
+
+/// Whether translating `loop` would discard a comment.
+///
+/// The `forEach` spelling keeps the loop's own leading trivia, its body
+/// statements, and its closing brace, and SYNTHESIZES everything in between:
+/// the `in` keyword, the parameter name, and the spacing around the receiver
+/// are built fresh. Whitespace there is reconstructed on purpose. A comment
+/// there is not reconstructible — `for i in 0 ..< 10 /* overflow guard */ {`
+/// and `for /* index into table */ j in 0..<5 {` both lose their comment
+/// with no diagnostic, and a fix that silently deletes what a person wrote
+/// is not a fix. There is no obviously right place to reattach either one,
+/// so the loop stays a finding.
+private func idiomIterationIntentDropsComments(_ loop: ForStmtSyntax) -> Swift.Bool {
+  let dropped: [Trivia] = [
+    loop.forKeyword.trailingTrivia,
+    loop.pattern.leadingTrivia,
+    loop.pattern.trailingTrivia,
+    loop.inKeyword.leadingTrivia,
+    loop.inKeyword.trailingTrivia,
+    loop.sequence.leadingTrivia,
+    loop.sequence.trailingTrivia,
+    loop.body.leftBrace.leadingTrivia,
+  ]
+  return dropped.contains(where: idiomTriviaHasComment)
+}
+
+/// Whether `trivia` holds anything a person wrote — that is, anything but
+/// whitespace.
+///
+/// Named for the case that matters. Every non-comment piece a rewritten
+/// position can carry is whitespace the fix rebuilds, and the default arm
+/// answers `true` so that a trivia kind this rule has never seen refuses
+/// rather than gets deleted.
+private func idiomTriviaHasComment(_ trivia: Trivia) -> Swift.Bool {
+  for piece in trivia {
+    switch piece {
+    case .spaces, .tabs, .newlines, .carriageReturns, .carriageReturnLineFeeds,
+      .formfeeds, .verticalTabs:
+      continue
+    default:
+      return true
+    }
+  }
+  return false
 }
 
 /// Whether `loop` sits in a body whose statements PRODUCE a value rather
@@ -86,16 +158,20 @@ internal func idiomIterationIntentIsFixable(_ loop: ForStmtSyntax) -> Swift.Bool
 private func idiomIterationIntentProducesContent(_ loop: ForStmtSyntax) -> Swift.Bool {
   var node: Syntax? = Syntax(loop).parent
   while let current = node {
-    // A closure is a boundary, and a bare one may be a builder body: the
-    // attribute lives on the parameter it is passed to, in another file,
-    // and no amount of local syntax can rule that out — `PDF.Stack(…) { … }`
-    // and `VStack { … }` are exactly this shape. A closure carrying its own
-    // parameter signature is a plain function value: a builder body has no
-    // parameters to name, so the signature proves the context.
-    if let closure = current.as(ClosureExprSyntax.self) {
-      guard closure.signature != nil else { return true }
-      return false
-    }
+    // A closure is a boundary, and ANY closure may be a builder body: the
+    // attribute lives on the parameter the closure is passed to, in another
+    // file, and no amount of local syntax can rule that out —
+    // `PDF.Stack(…) { … }` and `VStack { … }` are exactly this shape.
+    //
+    // A parameter signature does NOT prove otherwise. A result-builder
+    // parameter is an ordinary function type and may take arguments:
+    // `init(@ListBuilder content: (Int) -> [String])` is called
+    // `Reader { proxy in … }`, and a builder that accepts `Void` — every
+    // builder with a `buildExpression(_: Void)` overload, and the
+    // geometry-proxy shape generally — swallows the rewritten `forEach`
+    // and renders nothing where the loop produced content. That compiles.
+    // Nothing catches it.
+    if current.is(ClosureExprSyntax.self) { return true }
     // A declaration is a boundary. It is a builder body when it carries a
     // builder attribute, or when its result is opaque — `var body: some
     // View` infers `@ViewBuilder` from the protocol without spelling it,

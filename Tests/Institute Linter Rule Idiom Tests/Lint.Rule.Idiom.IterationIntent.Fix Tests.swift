@@ -329,9 +329,27 @@ extension Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable` {
   }
 }
 
-extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
+extension Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable` {
+  /// A closure's parameter signature does not prove the closure is a plain
+  /// function value. `init(@ListBuilder content: (Int) -> [String])` is
+  /// called exactly this way, and a builder with a `buildExpression(_:
+  /// Void)` overload accepts the rewritten `forEach` and renders nothing.
   @Test
-  func `a loop in a plain closure inside a builder body still climbs`() {
+  func `a loop in a parameterized closure is not rewritten`() {
+    let source = """
+      let reader = Reader { proxy in
+          for i in 0..<3 {
+              "row \\(i) at \\(proxy)"
+          }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable`.declines(source)
+  }
+
+  /// The accepted false refusal that pays for the fixture above: a closure
+  /// that plainly is a function value keeps its loop as a finding.
+  @Test
+  func `a loop in a plain closure inside a builder body is refused too`() {
     let source = """
       struct Page {
           @ViewBuilder
@@ -344,6 +362,80 @@ extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
           }
       }
       """
+    Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable`.declines(source)
+  }
+
+  @Test
+  func `a comment after the sequence is not deleted`() {
+    let source = """
+      func op(_ n: Int) {
+          var sum = 0
+          for i in 0 ..< n /* inclusive of overflow guard */ {
+              sum += i
+          }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable`.declines(source)
+  }
+
+  @Test
+  func `a comment between for and the pattern is not deleted`() {
+    let source = """
+      func op(_ n: Int) {
+          var sum = 0
+          for /* index into table */ j in 0..<n { sum += j }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable`.declines(source)
+  }
+
+  @Test
+  func `a line comment before the loop brace is not deleted`() {
+    let source = """
+      func op(_ n: Int) {
+          var sum = 0
+          for i in 0..<n  // running total
+          {
+              sum += i
+          }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable`.declines(source)
+  }
+}
+
+extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
+  /// The guard is about comments, not about whitespace: an unusually spaced
+  /// header still climbs.
+  @Test
+  func `extra whitespace in the loop header still climbs`() {
+    let source = """
+      func op(_ n: Int) {
+          var sum = 0
+          for   i   in   0 ..< n   {
+              sum += i
+          }
+      }
+      """
     Lint.Rule.`counter loop iteration fix Tests`.roundTrips(source)
+  }
+
+  /// A comment INSIDE the body is carried over with its statements, and is
+  /// not what the header guard refuses.
+  @Test
+  func `a comment inside the body is carried over`() {
+    let source = """
+      func op(_ n: Int) {
+          var sum = 0
+          for i in 0..<n {
+              // accumulate
+              sum += i
+          }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.roundTrips(source)
+    #expect(
+      Lint.Rule.`counter loop iteration fix Tests`.fixed(source)?.contains("// accumulate") == true
+    )
   }
 }
