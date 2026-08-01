@@ -302,6 +302,108 @@ extension Lint.Rule.`raw value access Tests`.`Edge Case` {
   }
 }
 
+// #38: the same-package implementation-site reserve. The message reserves
+// these accessors for the brand's own initializers AND same-package
+// implementations; this is the second clause, for the one shape with a
+// stable syntactic property — the receiver is the enclosing type's own
+// instance.
+extension Lint.Rule.`raw value access Tests`.`Edge Case` {
+  @Test
+  func `Self-typed operator parameters are NOT flagged`() {
+    // The brand's own arithmetic — the high-volume same-package shape.
+    let source = """
+      extension Cardinal {
+          public static func + (lhs: Self, rhs: Self) -> Self {
+              Cardinal(lhs.rawValue + rhs.rawValue)
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a parameter written as the enclosing type name is NOT flagged`() {
+    let source = """
+      extension Cardinal {
+          public func combined(with other: Cardinal) -> Int {
+              other.rawValue
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `self rawValue in the brand's own serializer is NOT flagged`() {
+    let source = """
+      extension Cardinal {
+          public var description: String {
+              String(self.rawValue)
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `a borrowing Self parameter is NOT flagged`() {
+    let source = """
+      struct Cardinal {
+          func compare(to other: borrowing Self) -> Bool {
+              other.rawValue == 0
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // Near-miss: a parameter of a FOREIGN brand inside the same extension is
+  // cross-package consumer access and still fires.
+  @Test
+  func `a foreign brand parameter in the brand's own extension is still flagged`() {
+    let source = """
+      extension Cardinal {
+          public func scaled(by factor: Ordinal) -> Int {
+              factor.rawValue
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss: a Self-typed parameter captured inside a nested closure is
+  // not the directly enclosing function's parameter.
+  @Test
+  func `a Self parameter accessed from a nested closure is still flagged`() {
+    let source = """
+      extension Cardinal {
+          public func each(_ other: Self) {
+              run { other.rawValue }
+          }
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss control: a top-level consumer function keeps firing.
+  @Test
+  func `a Self-named parameter outside any type is still flagged`() {
+    let source = """
+      func op(tag: Cardinal) -> Int {
+          tag.rawValue
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}
+
 // `.position` false-positive class — ruled swift-institute/.github#90
 // comment 5150641576 item 1 (batch-1 backlog, comment 5150595934, W2-D
 // entry). `position` is ordinary domain vocabulary; a file that declares

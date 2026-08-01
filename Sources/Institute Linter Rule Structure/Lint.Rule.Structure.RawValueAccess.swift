@@ -16,6 +16,27 @@ internal import SwiftSyntax
 /// at consumer call sites bypass typed-conversion ladders.
 ///
 /// Citation: `[PATTERN-017]` (implementation skill, the patterns note).
+///
+/// ## Same-package implementation sites — ruled disposition
+///
+/// Ruled 2026-08-01 (#38, from the 2026-08-01 fleet sweep): the message
+/// has always reserved these accessors for the brand's own initializers
+/// AND same-package implementations, but only the first clause was
+/// mechanized. The second clause is mechanized here for the ONE shape with
+/// a stable syntactic property — the receiver is the enclosing type's own
+/// instance, spelled either `self` or a parameter of the directly
+/// enclosing function whose WRITTEN type is `Self` or the enclosing type's
+/// own name. Both are syntax present at the site, in the same way the
+/// initializer reserve and the Foundation-import gate elsewhere are.
+///
+/// Every other same-package implementation is **accept-as-warning**, not a
+/// predicate exemption (the [IMPL-089] precedent): a local `let` bound
+/// from a foreign brand, or a parameter written as a typealias of the
+/// enclosing type, cannot be told apart from a genuine consumer call site
+/// without a type checker. Widening on the file's path, the module name,
+/// or a comment would be a path/name exemption in disguise. The engine's
+/// per-site `// swift-linter:disable:next raw value access` with a
+/// `// REASON:` continuation is the correct instrument there.
 extension Lint.Rule {
   public static let `raw value access` = Lint.Rule(
     id: "raw value access",
@@ -49,7 +70,18 @@ internal let structureRawValueAccessMessage: Swift.String =
   + "same-package implementations. Only the directly enclosing "
   + "initializer counts; a closure or nested function inside an "
   + "initializer is ordinary consumer code and still fires. Prefer the "
-  + "typed operation. `.position` does NOT fire in a file that declares "
+  + "typed operation. Same-package implementation sites do NOT fire when "
+  + "the receiver is the enclosing type's own instance — `self.rawValue`, "
+  + "or a parameter written `Self` / the enclosing type's own name (the "
+  + "brand's own operators and serializers). A stored member of `self` "
+  + "(`self.tag.rawValue`) is a foreign brand and still fires. "
+  + "**Accept-as-warning** disposition (rule fires legitimately, leave "
+  + "the warning): a same-package implementation whose receiver is "
+  + "neither of those two spellings — a local `let` bound from a foreign "
+  + "brand, or a parameter written as a typealias of the enclosing type. "
+  + "Whether two written names denote one type is type-checker knowledge, "
+  + "not syntax; the warning is the review signal. "
+  + "`.position` does NOT fire in a file that declares "
   + "its own `position` member — there the name is the file's own domain "
   + "vocabulary, not a foreign brand's raw accessor. Otherwise suppress with "
   + "`// swift-linter:disable:next raw value access` and a `// REASON:` "
@@ -84,6 +116,81 @@ internal func structureDeclaresPositionMember(_ node: Syntax) -> Swift.Bool {
     return true
   }
   return false
+}
+
+/// The parameter named `name` on the function-like declaration that most
+/// directly encloses `node`, or `nil` when the nearest enclosing
+/// function-like context declares no such parameter. The search stops at
+/// the FIRST function-like ancestor, so a closure's captured outer
+/// parameter does not qualify.
+internal func structureEnclosingParameter(
+  named name: Swift.String,
+  at node: Syntax
+) -> FunctionParameterSyntax? {
+  var current: Syntax? = node.parent
+  while let candidate = current {
+    if candidate.is(ClosureExprSyntax.self) { return nil }
+    var parameters: FunctionParameterListSyntax?
+    if let function = candidate.as(FunctionDeclSyntax.self) {
+      parameters = function.signature.parameterClause.parameters
+    } else if let initializer = candidate.as(InitializerDeclSyntax.self) {
+      parameters = initializer.signature.parameterClause.parameters
+    } else if let subscriptDecl = candidate.as(SubscriptDeclSyntax.self) {
+      parameters = subscriptDecl.parameterClause.parameters
+    }
+    if let parameters {
+      for parameter in parameters
+      where (parameter.secondName ?? parameter.firstName).text == name {
+        return parameter
+      }
+      return nil
+    }
+    current = candidate.parent
+  }
+  return nil
+}
+
+/// The written type name of a parameter, with ownership specifiers,
+/// attributes, optionality, and module qualification stripped —
+/// `borrowing Self` → `Self`, `Cardinal.Value?` → `Value`.
+internal func structureNormalizedTypeName(_ type: TypeSyntax) -> Swift.String {
+  var current = type
+  while true {
+    if let attributed = current.as(AttributedTypeSyntax.self) {
+      current = attributed.baseType
+      continue
+    }
+    if let optional = current.as(OptionalTypeSyntax.self) {
+      current = optional.wrappedType
+      continue
+    }
+    if let implicit = current.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
+      current = implicit.wrappedType
+      continue
+    }
+    break
+  }
+  if let member = current.as(MemberTypeSyntax.self) { return member.name.text }
+  if let identifier = current.as(IdentifierTypeSyntax.self) { return identifier.name.text }
+  return current.trimmedDescription
+}
+
+/// Every type name that lexically encloses `node` — nominal declarations by
+/// their own name, extensions by their extended type's last component.
+internal func structureEnclosingTypeNames(at node: Syntax) -> Swift.Set<Swift.String> {
+  var names: Swift.Set<Swift.String> = []
+  var current: Syntax? = node.parent
+  while let candidate = current {
+    if let structDecl = candidate.as(StructDeclSyntax.self) { names.insert(structDecl.name.text) }
+    if let classDecl = candidate.as(ClassDeclSyntax.self) { names.insert(classDecl.name.text) }
+    if let enumDecl = candidate.as(EnumDeclSyntax.self) { names.insert(enumDecl.name.text) }
+    if let actorDecl = candidate.as(ActorDeclSyntax.self) { names.insert(actorDecl.name.text) }
+    if let extensionDecl = candidate.as(ExtensionDeclSyntax.self) {
+      names.insert(structureNormalizedTypeName(extensionDecl.extendedType))
+    }
+    current = candidate.parent
+  }
+  return names
 }
 
 internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
@@ -201,6 +308,32 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
     if let receiver = node.base, receiverLooksLikeEnumCaseAccess(receiver) {
       return .visitChildren
     }
+    // Same-package implementation-site reserve (#38, sourced from the
+    // 2026-08-01 fleet sweep). The rule's own message reserves these
+    // accessors for "the brand-newtype's own initializers … and
+    // same-package implementations". The initializer arm above honors the
+    // first clause; this arm honors the second, for the ONE shape with a
+    // stable syntactic property: the receiver is the enclosing type's own
+    // instance.
+    //
+    // Two spellings qualify, and only these two:
+    //  1. `self.rawValue` / `self.position` — `self` can only denote the
+    //     directly enclosing declaration's own type, so the file that
+    //     contains the access also contains the declaration. There is no
+    //     foreign brand and no ladder to bypass.
+    //  2. `lhs.rawValue` where `lhs` is a parameter of the directly
+    //     enclosing function whose WRITTEN type is `Self` or the enclosing
+    //     type's own name — the brand's own operators, serializers, and
+    //     comparators (`static func + (lhs: Self, rhs: Self)`). The
+    //     parameter's type annotation is syntax, present at the site.
+    //
+    // Anything else still fires, including `self.tag.rawValue` (the
+    // receiver is a STORED MEMBER of `self`, i.e. a foreign brand held by
+    // this type, not this type's own raw form) and any parameter whose
+    // written type is some other brand.
+    if let receiver = node.base, receiverIsEnclosingTypeInstance(receiver, at: Syntax(node)) {
+      return .visitChildren
+    }
     // `.position` false-positive class (ruled swift-institute/.github#90
     // comment 5150641576 item 1, sourced from the batch-1 backlog, comment
     // 5150595934, W2-D entry: "PATTERN-017 matches plain stored property
@@ -263,6 +396,24 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
       current = candidate.parent
     }
     return false
+  }
+
+  /// True when `receiver` denotes an instance of the type that lexically
+  /// encloses `node` — either the `self` keyword, or a parameter of the
+  /// directly enclosing function whose written type is `Self` or the
+  /// enclosing type's own name. See the same-package implementation-site
+  /// reserve in `visit(_: MemberAccessExprSyntax)`.
+  private func receiverIsEnclosingTypeInstance(
+    _ receiver: ExprSyntax,
+    at node: Syntax
+  ) -> Swift.Bool {
+    guard let reference = receiver.as(DeclReferenceExprSyntax.self) else { return false }
+    let name = reference.baseName.text
+    if name == "self" { return true }
+    guard let parameter = structureEnclosingParameter(named: name, at: node) else { return false }
+    let written = structureNormalizedTypeName(parameter.type)
+    if written == "Self" { return true }
+    return structureEnclosingTypeNames(at: node).contains(written)
   }
 
   /// True if `base` parses as `<TypeChain>.<member>` — i.e. an enum
