@@ -301,3 +301,98 @@ extension Lint.Rule.`raw value access Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// `.position` false-positive class — ruled swift-institute/.github#90
+// comment 5150641576 item 1 (batch-1 backlog, comment 5150595934, W2-D
+// entry). `position` is ordinary domain vocabulary; a file that declares
+// its own `position` member owns the name, and `.position` there is not a
+// foreign brand's raw accessor.
+extension Lint.Rule.`raw value access Tests`.`Edge Case` {
+  @Test
+  func `position access is NOT flagged when the file declares a stored position property`() {
+    let source = """
+      struct Cursor {
+          var position: Int
+      }
+      func op(cursor: Cursor) {
+          let p = cursor.position
+          use(p)
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `position access is NOT flagged when the file declares a computed position property`() {
+    let source = """
+      struct Node {
+          var position: Offset { storage.offset }
+      }
+      func op(node: Node) {
+          use(node.position)
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `position access is NOT flagged when the file declares a position function`() {
+    let source = """
+      struct Layout {
+          func position() -> Point { .zero }
+      }
+      func op(layout: Layout) {
+          use(layout.position)
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // Near-miss / positive control: no local `position` declaration, so the
+  // brand-consumer signal is preserved.
+  @Test
+  func `position access is still flagged when the file declares no position member`() {
+    let source = """
+      func op(index: MyIndex) {
+          let p = index.position
+          use(p)
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss: the exemption is `.position`-only — a file declaring its
+  // own `position` does NOT gain a `.rawValue` exemption.
+  @Test
+  func `rawValue is still flagged in a file that declares a position property`() {
+    let source = """
+      struct Cursor {
+          var position: Int
+      }
+      func op(tag: MyTag) {
+          use(tag.rawValue)
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // A similarly-named but distinct member does not trigger the exemption.
+  @Test
+  func `a positionOffset declaration does NOT exempt position access`() {
+    let source = """
+      struct Cursor {
+          var positionOffset: Int
+      }
+      func op(index: MyIndex) {
+          use(index.position)
+      }
+      """
+    let findings = Lint.Rule.`raw value access Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}

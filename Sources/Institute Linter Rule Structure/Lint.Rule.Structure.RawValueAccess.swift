@@ -31,6 +31,9 @@ extension Lint.Rule {
         severity: severity,
         converter: source.converter
       )
+      // Whole-file pre-pass before the walk, so the `.position` gate does
+      // not depend on declaration order within the file.
+      visitor.fileDeclaresPositionMember = structureDeclaresPositionMember(Syntax(source.tree))
       visitor.walk(source.tree)
       return visitor.matches
     }
@@ -46,7 +49,9 @@ internal let structureRawValueAccessMessage: Swift.String =
   + "same-package implementations. Only the directly enclosing "
   + "initializer counts; a closure or nested function inside an "
   + "initializer is ordinary consumer code and still fires. Prefer the "
-  + "typed operation; suppress with "
+  + "typed operation. `.position` does NOT fire in a file that declares "
+  + "its own `position` member — there the name is the file's own domain "
+  + "vocabulary, not a foreign brand's raw accessor. Otherwise suppress with "
   + "`// swift-linter:disable:next raw value access` and a `// REASON:` "
   + "continuation for legitimate same-package use."
 
@@ -54,12 +59,44 @@ internal let structureRawValueAccessFlaggedAccessors: Swift.Set<Swift.String> = 
   "rawValue", "position",
 ]
 
+/// True when the file rooted at `node` declares a member named `position` —
+/// a stored/computed property binding, a function, an enum case, or a
+/// parameter's internal name. See the `.position` gate in
+/// ``StructureRawValueAccessVisitor``.
+internal func structureDeclaresPositionMember(_ node: Syntax) -> Swift.Bool {
+  if let variable = node.as(VariableDeclSyntax.self) {
+    for binding in variable.bindings {
+      if let pattern = binding.pattern.as(IdentifierPatternSyntax.self),
+        pattern.identifier.text == "position"
+      {
+        return true
+      }
+    }
+  }
+  if let function = node.as(FunctionDeclSyntax.self), function.name.text == "position" {
+    return true
+  }
+  if let enumCase = node.as(EnumCaseElementSyntax.self), enumCase.name.text == "position" {
+    return true
+  }
+  for child in node.children(viewMode: .sourceAccurate)
+  where structureDeclaresPositionMember(child) {
+    return true
+  }
+  return false
+}
+
 internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
   let source: Source.File
   let severity: Diagnostic.Severity
   let converter: SourceLocationConverter
   var matches: [Diagnostic.Record] = []
   var bodyDepth: Swift.Int = 0
+  /// True once the walk has seen a declaration named `position` anywhere in
+  /// this file — see the `.position` gate in `visit(_: MemberAccessExprSyntax)`.
+  /// Computed as a whole-file pre-pass by ``walk(_:)`` below, so declaration
+  /// order inside the file does not change the result.
+  var fileDeclaresPositionMember: Swift.Bool = false
 
   init(
     source: Source.File,
@@ -164,6 +201,29 @@ internal final class StructureRawValueAccessVisitor: SyntaxVisitor {
     if let receiver = node.base, receiverLooksLikeEnumCaseAccess(receiver) {
       return .visitChildren
     }
+    // `.position` false-positive class (ruled swift-institute/.github#90
+    // comment 5150641576 item 1, sourced from the batch-1 backlog, comment
+    // 5150595934, W2-D entry: "PATTERN-017 matches plain stored property
+    // named `position` as a Tagged/Index raw-accessor").
+    //
+    // `rawValue` is reserved vocabulary — `RawRepresentable`'s and the
+    // brand-newtype's, never an author's ordinary noun. `position` is not:
+    // it is ordinary domain vocabulary (a cursor's offset, a node's
+    // location, a layout coordinate). This rule targets access to a
+    // FOREIGN brand's raw accessor. When the file under analysis declares
+    // its own member named `position`, `.position` in that file is that
+    // member — the file owns the vocabulary and there is no ladder to
+    // bypass.
+    //
+    // Known false negative (accepted): a file that declares its own
+    // `position` AND separately consumes a foreign brand's `.position`.
+    // Known false positive (retained, suppressible with
+    // `// swift-linter:disable:next raw value access`): `.position` on an
+    // imported library's type in a file that declares no `position` of its
+    // own (e.g. SwiftSyntax's `node.position`) — a syntax-only rule has no
+    // type checker, and no stable syntactic property separates that from a
+    // brand access.
+    if name == "position", fileDeclaresPositionMember { return .visitChildren }
     let location = converter.location(
       for: node.declName.baseName.positionAfterSkippingLeadingTrivia
     )
