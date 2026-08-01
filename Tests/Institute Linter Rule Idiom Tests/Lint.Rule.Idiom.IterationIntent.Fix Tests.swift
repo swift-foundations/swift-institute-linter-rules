@@ -245,3 +245,16 @@ extension Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable` {
     #expect(Lint.Rule.`counter loop iteration fix Tests`.fixed(source) == nil)
   }
 }
+
+extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
+  @Test
+  func `a single-line body climbs too`() {
+    let source = """
+      func op(_ n: Int) {
+          var sum = 0
+          for i in 0..<n { sum += i }
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.roundTrips(source)
+  }
+}

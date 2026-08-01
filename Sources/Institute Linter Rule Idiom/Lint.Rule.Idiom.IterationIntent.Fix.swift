@@ -103,6 +103,19 @@ internal func idiomIterationIntentCall(for loop: ForStmtSyntax) -> ExprSyntax? {
     receiver = bare
   }
 
+  // The whitespace between the loop's `{` and its first statement is
+  // attached to whichever token owns it: everything up to the end of the
+  // line is the brace's TRAILING trivia, and the rest is the statement's
+  // leading trivia. So a single-line body `{ sum += i }` keeps its only
+  // space on the brace, and moving the statements alone would emit
+  // `{ i insum += i }`. The `in` keyword inherits that trivia, and
+  // supplies a space itself only when neither side has any — the
+  // multi-line case must NOT gain one, or every fixed loop would carry a
+  // trailing space before its newline.
+  let braceTrailing = loop.body.leftBrace.trailingTrivia
+  let firstLeading = loop.body.statements.first?.leadingTrivia ?? []
+  let inTrailing: Trivia =
+    braceTrailing.isEmpty && firstLeading.isEmpty ? .space : braceTrailing
   let closure = ClosureExprSyntax(
     leftBrace: .leftBraceToken(leadingTrivia: .space),
     signature: ClosureSignatureSyntax(
@@ -113,7 +126,7 @@ internal func idiomIterationIntentCall(for loop: ForStmtSyntax) -> ExprSyntax? {
           )
         ])
       ),
-      inKeyword: .keyword(.in, leadingTrivia: .space)
+      inKeyword: .keyword(.in, leadingTrivia: .space, trailingTrivia: inTrailing)
     ),
     statements: loop.body.statements,
     rightBrace: loop.body.rightBrace.with(\.leadingTrivia, loop.body.rightBrace.leadingTrivia)
