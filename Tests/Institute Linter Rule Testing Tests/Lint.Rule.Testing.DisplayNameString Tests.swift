@@ -95,8 +95,7 @@ extension Lint.Rule.`test display name string Tests`.Unit {
 
 extension Lint.Rule.`test display name string Tests`.Unit {
   @Test
-  func `Test display string duplicating its own backticked name is flagged as the compile-error shape`()
-  {
+  func `Test display string duplicating its own name is the compile-error shape`() {
     let source = """
       @Test("init creates empty buffer")
       func `init creates empty buffer`() {}
@@ -107,8 +106,7 @@ extension Lint.Rule.`test display name string Tests`.Unit {
   }
 
   @Test
-  func `Suite display string duplicating its own backticked name is flagged as the compile-error shape`()
-  {
+  func `Suite display string duplicating its own name is the compile-error shape`() {
     let source = """
       @Suite("Domain Standard Tests", .serialized)
       struct `Domain Standard Tests` {}
