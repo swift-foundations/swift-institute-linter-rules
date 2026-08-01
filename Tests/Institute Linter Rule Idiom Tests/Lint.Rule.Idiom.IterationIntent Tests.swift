@@ -215,3 +215,117 @@ extension Lint.Rule.`counter loop iteration Tests`.`Edge Case` {
     #expect(findings.isEmpty)
   }
 }
+
+// [IMPL-033] typed-throws loop recognition — ruled
+// swift-institute/.github#90 comment 5150641576 item 1 (batch-1 backlog,
+// comment 5150595934, W1-E entry). `Sequence.forEach(_:)` is `rethrows`
+// and erases `throws(E)`, so a counter loop whose body performs a `try`
+// inside a `throws(E)` function is the lawful spelling.
+extension Lint.Rule.`counter loop iteration Tests`.`Edge Case` {
+  @Test
+  func `typed-throws function with throwing loop body is NOT flagged`() {
+    let source = """
+      func op(_ items: [Int]) throws(Failure) {
+          for i in 0..<items.count {
+              try handle(items[i])
+          }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `typed-throws initializer with throwing loop body is NOT flagged`() {
+    let source = """
+      struct Holder {
+          init(_ items: [Int]) throws(Failure) {
+              for i in 0..<items.count {
+                  try handle(items[i])
+              }
+          }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // Near-miss 1: typed throws, but the body never throws — ordinary
+  // mechanism, `forEach` erases nothing. Still fires.
+  @Test
+  func `typed-throws function with non-throwing loop body is still flagged`() {
+    let source = """
+      func op(_ items: [Int]) throws(Failure) {
+          for i in 0..<items.count {
+              handle(items[i])
+          }
+          try finish()
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss 2: the body throws, but the function is UNTYPED `throws` —
+  // `forEach`'s `rethrows` erases nothing that isn't already `any Error`.
+  @Test
+  func `untyped-throws function with throwing loop body is still flagged`() {
+    let source = """
+      func op(_ items: [Int]) throws {
+          for i in 0..<items.count {
+              try handle(items[i])
+          }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss 3: `try?` discards the typed error, so nothing is preserved.
+  @Test
+  func `typed-throws function whose loop body uses try-optional is still flagged`() {
+    let source = """
+      func op(_ items: [Int]) throws(Failure) {
+          for i in 0..<items.count {
+              _ = try? handle(items[i])
+          }
+          try finish()
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Near-miss 4: the loop's DIRECTLY enclosing context is an untyped
+  // closure nested inside a `throws(E)` function — the exemption must not
+  // leak through the closure boundary.
+  @Test
+  func `loop inside an untyped closure within a typed-throws function is still flagged`() {
+    let source = """
+      func op(_ items: [Int]) throws(Failure) {
+          run { () throws -> Void in
+              for i in 0..<items.count {
+                  try handle(items[i])
+              }
+          }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // Positive control: a typed-throws CLOSURE body is itself a lawful
+  // typed-throws context.
+  @Test
+  func `typed-throws closure with throwing loop body is NOT flagged`() {
+    let source = """
+      let run = { (items: [Int]) throws(Failure) -> Void in
+          for i in 0..<items.count {
+              try handle(items[i])
+          }
+      }
+      """
+    let findings = Lint.Rule.`counter loop iteration Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+}
