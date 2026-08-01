@@ -20,6 +20,10 @@ extension Lint.Rule {
     id: "compound type name",
     default: .warning,
     findings: { source, severity in
+      // Scan-scope gate (BEFORE the walk), symmetric with
+      // `compound identifier`: a SwiftPM manifest is build configuration,
+      // not API surface. See `namingIsPackageManifest`.
+      guard !namingIsPackageManifest(source.file.filePath) else { return [] }
       let visitor = NamingCompoundTypeVisitor(
         source: source.file,
         severity: severity,

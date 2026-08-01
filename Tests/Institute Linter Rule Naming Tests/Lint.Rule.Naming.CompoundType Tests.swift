@@ -359,3 +359,63 @@ extension Lint.Rule.`compound type name Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// Scan-scope gate, symmetric with `compound identifier` — a SwiftPM
+// manifest is build configuration, not API surface. Ruled
+// swift-institute/.github#90 comment 5150641576 item 1(a).
+extension Lint.Rule.`compound type name Tests`.`Edge Case` {
+  @Test
+  func `bare Package swift filename is out of scan scope`() {
+    // Bare-filename positive control.
+    let findings = Lint.Rule.`compound type name Tests`.findings(
+      in: "struct FooBar {}",
+      file: "Package.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `nested Package swift path is out of scan scope`() {
+    let findings = Lint.Rule.`compound type name Tests`.findings(
+      in: "struct FooBar {}",
+      file: "Tests/Fixtures/Package.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `version-specific Package at swift manifest is out of scan scope`() {
+    let findings = Lint.Rule.`compound type name Tests`.findings(
+      in: "struct FooBar {}",
+      file: "Package@swift-6.3.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `the same source in an ordinary file is still flagged`() {
+    let findings = Lint.Rule.`compound type name Tests`.findings(
+      in: "struct FooBar {}",
+      file: "Sources/Core/FooBar.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `PackageInfo swift is NOT treated as a manifest`() {
+    let findings = Lint.Rule.`compound type name Tests`.findings(
+      in: "struct FooBar {}",
+      file: "Sources/Core/PackageInfo.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `a directory segment named Package swift does NOT gate the file`() {
+    let findings = Lint.Rule.`compound type name Tests`.findings(
+      in: "struct FooBar {}",
+      file: "Sources/Package.swift/FooBar.swift"
+    )
+    #expect(findings.count == 1)
+  }
+}

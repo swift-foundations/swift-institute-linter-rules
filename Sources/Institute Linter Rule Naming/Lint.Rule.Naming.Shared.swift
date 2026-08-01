@@ -533,10 +533,72 @@ extension Naming {
         if hasFileprivateOrPrivate(typeDecl.modifiers) { return true }
       } else if let ext = candidate.as(ExtensionDeclSyntax.self) {
         if hasFileprivateOrPrivate(ext.modifiers) { return true }
+        // An `extension T { … }` that carries no access modifier is NOT
+        // automatically public — its members' effective access is capped
+        // by `T`'s own access. When `T` is declared `private`/`fileprivate`
+        // in this same file, every member added by the extension (and every
+        // member of a type nested inside it) is effectively fileprivate and
+        // has no consumer-observable surface. The modifier-only walk-up
+        // missed this: the extension has no modifier and the extended type's
+        // declaration is a SIBLING node, not an ancestor.
+        //
+        // Confirmed instance (2026-08-01, swift-institute/.github#90
+        // comment 5150641576): compound `Codable` payload properties inside
+        // `extension BulkTrackJob { struct Payload { let identityId … } }`
+        // where `private struct BulkTrackJob` is declared earlier in the
+        // same file still fired API-NAME-002.
+        if extendsFilePrivateType(ext) { return true }
       }
       current = candidate.parent
     }
     return false
+  }
+
+  /// True when `ext` extends a type whose declaration in the SAME file
+  /// carries `private` or `fileprivate`.
+  ///
+  /// Only the root segment of the extended type is resolved
+  /// (`extension A.B.C` → `A`): in Swift a nested type can never be more
+  /// visible than its outermost enclosing type, so a private root caps the
+  /// whole chain. Cross-file resolution is deliberately not attempted — a
+  /// syntax-only rule cannot see another file, and `private`/`fileprivate`
+  /// types are file-scoped by definition, so same-file resolution is
+  /// complete for this access level.
+  private static func extendsFilePrivateType(_ ext: ExtensionDeclSyntax) -> Bool {
+    guard let root = extendedTypeRootName(ext.extendedType) else { return false }
+    return filePrivateTypeNames(in: ext.root).contains(root)
+  }
+
+  /// The leftmost identifier segment of an extended type
+  /// (`A` for `A`, `A.B`, and `A.B.C`).
+  private static func extendedTypeRootName(_ type: TypeSyntax) -> Swift.String? {
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+      return identifier.name.text
+    }
+    if let member = type.as(MemberTypeSyntax.self) {
+      return extendedTypeRootName(member.baseType)
+    }
+    return nil
+  }
+
+  /// Names of every `private` / `fileprivate` nominal type declared
+  /// anywhere in `root`'s file.
+  private static func filePrivateTypeNames(in root: Syntax) -> Swift.Set<Swift.String> {
+    var names: Swift.Set<Swift.String> = []
+    func collect(_ node: Syntax) {
+      if let decl = node.as(StructDeclSyntax.self), hasFileprivateOrPrivate(decl.modifiers) {
+        names.insert(decl.name.text)
+      } else if let decl = node.as(ClassDeclSyntax.self), hasFileprivateOrPrivate(decl.modifiers) {
+        names.insert(decl.name.text)
+      } else if let decl = node.as(EnumDeclSyntax.self), hasFileprivateOrPrivate(decl.modifiers) {
+        names.insert(decl.name.text)
+      } else if let decl = node.as(ActorDeclSyntax.self), hasFileprivateOrPrivate(decl.modifiers) {
+        names.insert(decl.name.text)
+      }
+      for child in node.children(viewMode: .sourceAccurate) { collect(child) }
+    }
+    collect(root)
+    return names
   }
 
   /// Returns true if `modifiers` includes a `public` or `open`
@@ -664,4 +726,32 @@ internal func namingHasStoredInstanceProperty(_ block: MemberBlockSyntax) -> Swi
 internal func namingHasEnumCase(_ block: MemberBlockSyntax) -> Swift.Bool {
   for member in block.members where member.decl.is(EnumCaseDeclSyntax.self) { return true }
   return false
+}
+
+/// Returns true when `filePath` names a SwiftPM package manifest:
+/// `Package.swift` or a versioned `Package@swift-<version>.swift` variant.
+///
+/// Scan-scope gate for the compound-identifier family ([API-NAME-002] /
+/// [API-NAME-001]): a package manifest is BUILD CONFIGURATION, not API
+/// surface. Its `extension String` / `extension Target.Dependency`
+/// name-vocabulary constants (`static let multipartFormCoding`,
+/// `static var htmlFormCoderMultipart`) are SwiftPM identifiers for
+/// products and targets — they cannot be restructured into nested
+/// accessors, because `PackageDescription` dictates the shape. Confirmed
+/// instance: swift-institute/.github#90 comment 5150641576 (3 findings on
+/// one manifest).
+///
+/// Whole-filename matching only — `PackageInfo.swift`, `MyPackage.swift`
+/// and any file inside a directory literally named `Package.swift` are NOT
+/// manifests and remain in scope. The check is applied BEFORE the visitor
+/// walks, so nothing inside a manifest is ever visited.
+///
+/// Pack-local duplicate of `manifestIsPackageManifest` from the Manifest
+/// rule pack — cross-pack visibility isn't available across the target
+/// boundary; semantics match.
+internal func namingIsPackageManifest(_ filePath: Swift.String) -> Swift.Bool {
+  guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
+  else { return false }
+  if filename == "Package.swift" { return true }
+  return filename.hasPrefix("Package@swift-") && filename.hasSuffix(".swift")
 }

@@ -874,3 +874,181 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// API-NAME-002 private-visibility exemption — extension of a same-file
+// private type. Ruled swift-institute/.github#90 comment 5150641576 item 1
+// (confirmed instance: compound `Codable` payload properties inside
+// `extension BulkTrackJob { struct Payload { … } }` where
+// `private struct BulkTrackJob` is declared earlier in the same file).
+extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
+  @Test
+  func `properties in an extension of a same-file private struct are NOT flagged`() {
+    let source = """
+      private struct BulkTrackJob {}
+
+      extension BulkTrackJob {
+          struct Payload: Codable, Sendable {
+              let identityId: String
+              let statusId: String
+          }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `methods in an extension of a same-file private struct are NOT flagged`() {
+    let source = """
+      private struct Job {}
+
+      extension Job {
+          func openWrite() {}
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `extension of a same-file fileprivate enum is NOT flagged`() {
+    let source = """
+      fileprivate enum Namespace {}
+
+      extension Namespace {
+          static func walkFiles() {}
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `extension of a nested member type whose root is private is NOT flagged`() {
+    let source = """
+      private struct Root {
+          struct Inner {}
+      }
+
+      extension Root.Inner {
+          func openWrite() {}
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // Near-miss / positive controls.
+  @Test
+  func `extension of a same-file internal struct is still flagged`() {
+    let source = """
+      struct Job {}
+
+      extension Job {
+          func openWrite() {}
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `extension of a type not declared in this file is still flagged`() {
+    let source = """
+      private struct Other {}
+
+      extension BulkTrackJob {
+          func openWrite() {}
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+}
+
+// Scan-scope gate — a SwiftPM manifest is build configuration, not API
+// surface. Ruled swift-institute/.github#90 comment 5150641576 item 1(a).
+extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
+  /// The manifest shape that produced the 3 confirmed findings.
+  static let manifestSource = """
+    // swift-tools-version: 6.3.3
+    import PackageDescription
+
+    extension String {
+        static let multipartFormCoding: Self = "MultipartFormCoding"
+    }
+
+    extension Target.Dependency {
+        static var multipartFormCoding: Self { .target(name: .multipartFormCoding) }
+        static var htmlFormCoderMultipart: Self {
+            .product(name: "HTML Form Coder Multipart", package: "swift-html-form-coder")
+        }
+    }
+    """
+
+  @Test
+  func `bare Package swift filename is out of scan scope`() {
+    // Bare-filename positive control: the gate must match a path with no
+    // directory component at all.
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: Self.manifestSource,
+      file: "Package.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `nested Package swift path is out of scan scope`() {
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: Self.manifestSource,
+      file: "Tests/Fixtures/Package.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `version-specific Package at swift manifest is out of scan scope`() {
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: Self.manifestSource,
+      file: "Package@swift-6.3.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  // Both-directions controls: whole-filename matching only.
+  @Test
+  func `the same manifest source in an ordinary file is still flagged`() {
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: Self.manifestSource,
+      file: "Sources/Core/Names.swift"
+    )
+    #expect(findings.count == 3)
+  }
+
+  @Test
+  func `PackageInfo swift is NOT treated as a manifest`() {
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: "func openWrite() {}",
+      file: "Sources/Core/PackageInfo.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `MyPackage swift is NOT treated as a manifest`() {
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: "func openWrite() {}",
+      file: "Sources/Core/MyPackage.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `a directory segment named Package swift does NOT gate the file`() {
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: "func openWrite() {}",
+      file: "Sources/Package.swift/Names.swift"
+    )
+    #expect(findings.count == 1)
+  }
+}
