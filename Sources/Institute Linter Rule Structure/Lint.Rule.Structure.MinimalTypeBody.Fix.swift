@@ -61,6 +61,21 @@ internal import SwiftSyntax
 ///   unconditionally, so fixing a declaration that exists only under a
 ///   platform condition would reference a type absent on every other
 ///   platform the output must still compile on.
+/// - A struct/enum carrying `@available` — on the declaration itself, OR
+///   inherited from an enclosing `extension` on the climb this fix already
+///   performs — is ALSO excluded. The generated extension carries no
+///   attribute list, so `extension Widget { … }` for a `@available(macOS
+///   15, *) struct Widget` fails to compile: `'Widget' is only available
+///   in macOS 15 or newer`. The enclosing-extension case is not
+///   incidental — it is the repository's own house idiom (`extension
+///   Lint.Rule { @available(...) ... struct \`X Tests\` { ... } }`), and a
+///   predicate that inspected only the declaration's own attributes would
+///   miss it entirely. Copying the attribute list into the generated
+///   extension is not attempted: it is not safe in general (an
+///   `@available` platform/version pair does not always transfer
+///   correctly onto a same-file `extension` of the same type — see the
+///   package's `class`/`actor` refusal above for the same asymmetry
+///   argument), so this fix refuses rather than propagates.
 ///
 /// A refused-but-safe declaration stays a finding — a person reading one
 /// line. A fixed-but-broken file is a silent behaviour change nobody
@@ -105,7 +120,16 @@ internal func structureMinimalTypeBodyIsFixEligible(_ node: Syntax) -> Swift.Boo
     if ancestor.is(SourceFileSyntax.self) {
       return true
     }
-    if ancestor.is(ExtensionDeclSyntax.self) {
+    if let ext = ancestor.as(ExtensionDeclSyntax.self) {
+      // An `@available` on an enclosing extension is inherited by every
+      // member declared inside it, including a nested struct/enum with no
+      // attribute of its own. The generated extension carries no
+      // attribute list, so this must refuse exactly like a directly
+      // attributed declaration does (checked separately, on the
+      // declaration's own attributes, by the caller).
+      if structureMinimalTypeBodyHasAvailableAttribute(ext.attributes) {
+        return false
+      }
       current = ancestor.parent
       continue
     }
@@ -134,6 +158,26 @@ internal func structureMinimalTypeBodyIsFixEligible(_ node: Syntax) -> Swift.Boo
     // `MemberBlockItemSyntax`/`MemberBlockSyntax` inside an extension) is
     // transparent — keep climbing.
     current = ancestor.parent
+  }
+  return false
+}
+
+/// Returns true if `attributes` contains `@available` in any form
+/// (`@available(macOS 15, *)`, `@available(*, deprecated)`, and so on — any
+/// argument list). Shared by ``structureMinimalTypeBodyIsFixEligible(_:)``
+/// (checking every climbed `extension` ancestor) and the rewriter's own
+/// `fixed(node:name:block:)` (checking the declaration's own attributes):
+/// an extension's `@available` is inherited by its members, but a nested
+/// declaration's own `@available` must refuse independently of its
+/// ancestors too.
+internal func structureMinimalTypeBodyHasAvailableAttribute(
+  _ attributes: AttributeListSyntax
+) -> Swift.Bool {
+  for attribute in attributes {
+    guard let attr = attribute.as(AttributeSyntax.self) else { continue }
+    if attr.attributeName.trimmedDescription == "available" {
+      return true
+    }
   }
   return false
 }
@@ -347,9 +391,12 @@ internal final class StructureMinimalTypeBodyRewriter: SyntaxRewriter {
     guard !structureMinimalTypeBodyHasExtensionPatternAttribute(attributes(of: node)) else {
       return nil
     }
+    guard !structureMinimalTypeBodyHasAvailableAttribute(attributes(of: node)) else { return nil }
     guard let (remaining, moved) = structureMinimalTypeBodyPartition(block) else { return nil }
     let extendedType = structureMinimalTypeBodyExtendedType(for: Syntax(node), ownName: name)
-    pendingExtensions.append(structureMinimalTypeBodyExtension(extendedType: extendedType, members: moved))
+    pendingExtensions.append(
+      structureMinimalTypeBodyExtension(extendedType: extendedType, members: moved)
+    )
     return block.with(\.members, remaining)
   }
 

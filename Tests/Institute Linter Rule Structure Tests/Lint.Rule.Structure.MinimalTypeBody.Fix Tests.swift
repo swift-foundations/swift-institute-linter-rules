@@ -178,7 +178,7 @@ extension Lint.Rule.`minimal type body fix Tests`.`Round Trip` {
   }
 
   @Test
-  func `a struct declared inside a top-level extension (house idiom) is fixed with a qualified path`() {
+  func `a struct in a top-level extension is fixed via a qualified path`() {
     let source = """
       extension Lint.Rule {
           struct `Foo Tests` {
@@ -370,5 +370,79 @@ extension Lint.Rule.`minimal type body fix Tests`.`Not Fixable` {
       """
     #expect(Lint.Rule.`minimal type body fix Tests`.findings(in: source).isEmpty)
     #expect(Lint.Rule.`minimal type body fix Tests`.fixed(source) == nil)
+  }
+
+  @Test
+  func `an @available struct is never rewritten - the generated extension carries no attribute`() {
+    // The generated extension has no attribute list at all, so
+    // `extension Widget { ... }` for `@available(macOS 15, *) struct
+    // Widget` fails to compile: 'Widget' is only available in macOS 15
+    // or newer. Refusal, not attribute propagation — see the class/actor
+    // refusal for the same asymmetry argument.
+    Lint.Rule.`minimal type body fix Tests`.declines(
+      """
+      @available(macOS 15, *)
+      struct Widget {
+          var x: Int
+          func doubled() -> Int { x * 2 }
+      }
+      """
+    )
+  }
+
+  @Test
+  func `@available inherited from an enclosing extension also refuses - house idiom`() {
+    // The repository's own idiom: `extension Lint.Rule { @available(...)
+    // struct \`X Tests\` { ... } }`. `Inner` carries no attribute of its
+    // own, so a predicate reading only the declaration's own attributes
+    // would miss this; the enclosing extension ancestor this fix already
+    // climbs must be checked too, or `extension Parent.Inner { ... }`
+    // would compile-fail identically to the direct-attribute case.
+    Lint.Rule.`minimal type body fix Tests`.declines(
+      """
+      @available(macOS 15, *)
+      extension Parent {
+          struct Inner {
+              var x: Int
+              func doubled() -> Int { x * 2 }
+          }
+      }
+      """
+    )
+  }
+
+  @Test
+  func `an @available struct does not block an unrelated top-level struct's fix`() {
+    // Partial application across the file: the refusal is per-declaration,
+    // not whole-file. The unattributed struct elsewhere in the same file
+    // is still fixed, and the @available struct's finding remains
+    // standing in the rewritten output.
+    let source = """
+      @available(macOS 15, *)
+      struct Skipped {
+          var x: Int
+          func doubled() -> Int { x * 2 }
+      }
+
+      struct Fixed {
+          var y: Int
+          func tripled() -> Int { y * 3 }
+      }
+      """
+    #expect(Lint.Rule.`minimal type body fix Tests`.findings(in: source).count == 2)
+    guard let output = Lint.Rule.`minimal type body fix Tests`.fixed(source) else {
+      Issue.record("expected a partial rewrite")
+      return
+    }
+    #expect(!Parser.parse(source: output).hasError)
+    #expect(output.contains("extension Fixed"))
+    #expect(output.contains("func tripled() -> Int { y * 3 }"))
+    // The @available struct's own method is untouched, and its finding
+    // still fires.
+    let remaining = Lint.Rule.`minimal type body fix Tests`.findings(in: output)
+    #expect(remaining.count == 1)
+    if remaining.count == 1 {
+      #expect(remaining[0].identifier == "minimal type body")
+    }
   }
 }
