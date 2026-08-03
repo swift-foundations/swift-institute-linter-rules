@@ -40,9 +40,9 @@ internal import SwiftSyntax
 ///
 /// ## Accepted false refusals
 ///
-/// The predicate is deliberately coarser than the truth, in three places
+/// The predicate is deliberately coarser than the truth, in four places
 /// where the true test is not available to syntax. Each costs fixes on
-/// loops that would have translated correctly. All three are accepted:
+/// loops that would have translated correctly. All four are accepted:
 ///
 /// - **Any loop lexically inside a closure.** Whether a closure is a result
 ///   builder body is decided by an attribute on the parameter it is passed
@@ -59,6 +59,13 @@ internal import SwiftSyntax
 /// - **Any loop with a comment in a position the rewrite rebuilds.** See
 ///   ``idiomIterationIntentDropsComments(_:)``: a documented loop header is
 ///   left alone rather than have its comment deleted.
+/// - **Any loop whose body mentions a name that matches a `borrowing`/
+///   `consuming` parameter of the enclosing declaration, even one shadowed
+///   by a same-named local.** See
+///   ``idiomIterationIntentReferencesOwnershipAnnotatedBinding(_:)``: the
+///   match is by name, not by resolving the binding, because the parameter
+///   set considered is exactly the enclosing signature and nothing beyond
+///   it is guessed at.
 ///
 /// A refused-but-safe loop stays a finding, which is a person reading one
 /// line. A fixed-but-broken loop is a silent behaviour change in a commit
@@ -90,7 +97,106 @@ internal func idiomIterationIntentIsFixable(_ loop: ForStmtSyntax) -> Swift.Bool
   guard loop.parent?.as(LabeledStmtSyntax.self) == nil else { return false }
   guard !idiomIterationIntentProducesContent(loop) else { return false }
   guard !idiomIterationIntentDropsComments(loop) else { return false }
+  guard !idiomIterationIntentReferencesOwnershipAnnotatedBinding(loop) else { return false }
   return !idiomIterationIntentBodyEscapes(Syntax(loop.body))
+}
+
+/// Whether `loop`'s body references a `borrowing` or `consuming` parameter
+/// of its nearest enclosing function, initializer, or subscript.
+///
+/// A `borrowing`/`consuming` parameter is guaranteed not to escape the
+/// activation frame that declares it. The `forEach` translation moves the
+/// loop's own statements into a closure — a distinct activation frame — and
+/// referencing the parameter there does not compile: witnessed at
+/// swift-affine-geometry-primitives PR #5, `error: 'rhs' is borrowed and
+/// cannot be consumed` on exactly this rewrite. `Lint.Fix.apply`'s guard is
+/// re-parse only; this shape parses cleanly and fails at typecheck, so
+/// nothing downstream catches it.
+///
+/// Resolution is by NAME, not by full binding resolution — the same
+/// technique ``MemoryBorrowingSelfShortCircuitFinder`` uses for borrowing
+/// `self`. Syntax alone cannot tell whether a body identifier shadows the
+/// parameter with a same-named local, so a shadowed reference over-refuses.
+/// That costs a fix, never a broken program, and matches this file's
+/// standing asymmetry (see the type doc above): the parameter set considered
+/// is exactly the enclosing declaration's own signature, so the predicate
+/// never runs unresolvable full-program name lookup and never refuses a
+/// loop for a name it cannot explain.
+private func idiomIterationIntentReferencesOwnershipAnnotatedBinding(
+  _ loop: ForStmtSyntax
+) -> Swift.Bool {
+  let names = idiomEnclosingOwnershipAnnotatedParameterNames(Syntax(loop))
+  guard !names.isEmpty else { return false }
+  return idiomSubtreeReferencesAnyName(names, in: Syntax(loop.body))
+}
+
+/// The `borrowing`/`consuming` parameter names declared by the nearest
+/// enclosing function, initializer, or subscript.
+///
+/// The climb stops at the first such declaration — the narrowest activation
+/// frame the `forEach` closure escapes. A loop reaching this guard cannot be
+/// nested inside a closure: ``idiomIterationIntentProducesContent`` already
+/// refused any loop under a ``ClosureExprSyntax``, so the climb never needs
+/// to cross one and never needs to decide what a closure parameter's
+/// ownership would mean.
+private func idiomEnclosingOwnershipAnnotatedParameterNames(
+  _ node: Syntax
+) -> Swift.Set<Swift.String> {
+  var current: Syntax? = node.parent
+  while let candidate = current {
+    if let function = candidate.as(FunctionDeclSyntax.self) {
+      return idiomOwnershipAnnotatedParameterNames(function.signature.parameterClause.parameters)
+    }
+    if let initializer = candidate.as(InitializerDeclSyntax.self) {
+      return idiomOwnershipAnnotatedParameterNames(
+        initializer.signature.parameterClause.parameters)
+    }
+    if let subscriptDecl = candidate.as(SubscriptDeclSyntax.self) {
+      return idiomOwnershipAnnotatedParameterNames(subscriptDecl.parameterClause.parameters)
+    }
+    current = candidate.parent
+  }
+  return []
+}
+
+/// The local (body-visible) names of every parameter in `parameters` whose
+/// type carries an explicit `borrowing` or `consuming` specifier.
+private func idiomOwnershipAnnotatedParameterNames(
+  _ parameters: FunctionParameterListSyntax
+) -> Swift.Set<Swift.String> {
+  var names: Swift.Set<Swift.String> = []
+  for parameter in parameters {
+    guard let attributed = parameter.type.as(AttributedTypeSyntax.self) else { continue }
+    for specifier in attributed.specifiers {
+      guard let simple = specifier.as(SimpleTypeSpecifierSyntax.self) else { continue }
+      let kind = simple.specifier.tokenKind
+      guard kind == .keyword(.borrowing) || kind == .keyword(.consuming) else { continue }
+      names.insert((parameter.secondName ?? parameter.firstName).text)
+      break
+    }
+  }
+  return names
+}
+
+/// Whether `node`'s subtree references any identifier in `names`.
+///
+/// A nested closure or local function declaration is its own activation
+/// frame both before and after this rewrite — the `forEach` translation
+/// does not change whether IT can capture an outer ownership-annotated
+/// parameter, so a reference confined to one is not this guard's concern
+/// and the walk does not descend into it.
+private func idiomSubtreeReferencesAnyName(
+  _ names: Swift.Set<Swift.String>, in node: Syntax
+) -> Swift.Bool {
+  if node.is(ClosureExprSyntax.self) { return false }
+  if node.is(FunctionDeclSyntax.self) { return false }
+  if let reference = node.as(DeclReferenceExprSyntax.self) {
+    return names.contains(reference.baseName.text)
+  }
+  for child in node.children(viewMode: .sourceAccurate) {
+    if idiomSubtreeReferencesAnyName(names, in: child) { return true }
+  }
+  return false
 }
 
 /// Whether translating `loop` would discard a comment.

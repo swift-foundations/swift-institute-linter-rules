@@ -103,11 +103,20 @@ internal final class FrameworkSuiteCategoriesVisitor: SyntaxVisitor {
 }
 
 /// Returns true if `attrs` contains a `@Suite` attribute (with or without
-/// trait arguments).
+/// trait arguments), bare or qualified (`@Testing.Suite`).
+///
+/// Suffix-based, matching the `.Suite`-suffix handling this package's other
+/// predicates already use (`Lint.Rule.Structure.MinimalTypeBody`'s
+/// extension-pattern-attribute check, `Lint.Rule.Throws.Untyped`'s leaf
+/// match) — see swift-foundations/swift-institute-linter-rules#45. A bare
+/// name that merely ENDS IN "Suite" without the separating dot (`@BarSuite`)
+/// does not match: `"BarSuite".hasSuffix(".Suite")` is false because there
+/// is no dot before the suffix.
 internal func suiteCategoriesHasSuiteAttribute(_ attrs: AttributeListSyntax) -> Swift.Bool {
   for attr in attrs {
     guard case .attribute(let a) = attr else { continue }
-    if a.attributeName.trimmedDescription == "Suite" {
+    let name = a.attributeName.trimmedDescription
+    if name == "Suite" || name.hasSuffix(".Suite") {
       return true
     }
   }
