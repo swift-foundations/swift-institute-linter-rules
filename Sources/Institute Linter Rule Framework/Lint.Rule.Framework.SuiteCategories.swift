@@ -103,11 +103,17 @@ internal final class FrameworkSuiteCategoriesVisitor: SyntaxVisitor {
 }
 
 /// Returns true if `attrs` contains a `@Suite` attribute (with or without
-/// trait arguments).
+/// trait arguments), recognizing both the bare `Suite` spelling and the
+/// qualified `Testing.Suite` spelling. Matching is suffix-based on the
+/// qualified form (`.Suite`) so an unrelated attribute whose name merely
+/// ends in `Suite` (e.g. `MySuite`) is still excluded, consistent with
+/// the qualified-spelling handling used elsewhere in this package (see
+/// the minimal-type-body and untyped-throws rules).
 internal func suiteCategoriesHasSuiteAttribute(_ attrs: AttributeListSyntax) -> Swift.Bool {
   for attr in attrs {
     guard case .attribute(let a) = attr else { continue }
-    if a.attributeName.trimmedDescription == "Suite" {
+    let name = a.attributeName.trimmedDescription
+    if name == "Suite" || name.hasSuffix(".Suite") {
       return true
     }
   }

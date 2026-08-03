@@ -249,6 +249,57 @@ extension Lint.Rule.`suite categories Tests`.`Edge Case` {
   }
 
   @Test
+  func `qualified @Testing_Suite spelling missing categories is flagged`() {
+    // Bug #45: the qualified `Testing.Suite` spelling must be
+    // recognized wherever the bare `Suite` spelling is, in the rule
+    // gate as well as the declared-category collection.
+    let source = """
+      @Testing.Suite
+      struct `Foo Tests` {
+          @Suite struct Unit {}
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.count == 1)
+    if findings.count == 1 {
+      #expect(findings[0].message.contains("Edge Case"))
+      #expect(findings[0].message.contains("Integration"))
+    }
+  }
+
+  @Test
+  func `qualified @Testing_Suite spelled category structs count as declared`() {
+    // Bug #45: category structs spelled with the qualified attribute
+    // must count as declared, not just the bare `@Suite` spelling.
+    let source = """
+      @Suite
+      struct `Foo Tests` {
+          @Testing.Suite struct Unit {}
+          @Testing.Suite struct `Edge Case` {}
+          @Testing.Suite struct Integration {}
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `attribute name merely ending in Suite is not mistaken for qualified Suite`() {
+    // Suffix-based matching on the qualified form must not false-positive
+    // on an unrelated attribute whose bare name happens to end in
+    // `Suite` (e.g. `MySuite`), since that isn't the `.Suite` qualified
+    // suffix.
+    let source = """
+      @MySuite
+      struct `Foo Tests` {
+          @Test func basic() {}
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `suite declared inside a non-extension nominal type stays out of scope`() {
     // Only ExtensionDeclSyntax is transparent. A @Suite struct nested
     // inside an ordinary struct/class/enum/actor is genuinely nested,
