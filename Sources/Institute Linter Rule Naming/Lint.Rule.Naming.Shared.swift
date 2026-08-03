@@ -173,6 +173,140 @@ extension Naming {
     return false
   }
 
+  /// Returns true when `attributes` carries an attribute named `name`,
+  /// bare (`@Test`) or module-qualified (`@Testing.Test`), matching the
+  /// qualified spelling on its leaf. Mirrors `testingHasAttribute` in the
+  /// Testing pack; the Naming pack keeps its own copy rather than taking a
+  /// cross-pack target dependency for one predicate, since the rule packs
+  /// are deliberately flat siblings over `Linter Primitives`.
+  internal static func hasAttribute(
+    _ attributes: AttributeListSyntax,
+    named name: Swift.String
+  ) -> Swift.Bool {
+    for attribute in attributes {
+      guard case .attribute(let attr) = attribute else { continue }
+      let attributeName = attr.attributeName.trimmedDescription
+      if attributeName == name || attributeName.hasSuffix(".\(name)") {
+        return true
+      }
+    }
+    return false
+  }
+
+  /// Returns true when `node` is swift-testing scaffolding rather than
+  /// consumer-observable API surface — the declaration itself carries
+  /// `@Test` or `@Suite`, or it is lexically enclosed in a `@Suite` type.
+  ///
+  /// Implements the #53 ruling. Two distinct shapes reach this predicate,
+  /// and they are exempted for two different reasons:
+  ///
+  /// - **Compound `@Test` function names** are *not* a "leave it". They
+  ///   violate [SWIFT-TEST-002], whose remedy is the backticked descriptive
+  ///   raw identifier (`` @Test func `hex round-trip on DEAD BE EF`() ``) —
+  ///   already exempt here via ``isBackticked``. That surface is owned by the
+  ///   `test function naming` rule, which prescribes the correct fix; this
+  ///   rule prescribes nested accessors, which for a test method yields
+  ///   nonsense (`dead.beefRoundTrip()`). The exemption **retargets** rather
+  ///   than silences: measured over the #53 pilot's six repositories, all 60
+  ///   compound `@Test` function names remain flagged by `test function
+  ///   naming` at the identical source location.
+  /// - **Fixture members of a `@Suite` type** (`static var intSemigroup`,
+  ///   `static let hexAlphabet`) are genuine "leave it": [API-NAME-002]
+  ///   governs consumer-observable API surface, and a fixture nested in a
+  ///   suite is scaffolding the test runtime discovers, never an export.
+  ///
+  /// **This is deliberately not a `Tests/` path scope**, and the reason is
+  /// load-bearing rather than stylistic. Test-support targets live under
+  /// `Tests/` but ship as `.library` products imported across packages
+  /// (`Binary_Base_Primitives_Test_Support` is imported by the very suites
+  /// above) — they *are* consumer API and must stay covered. A path gate
+  /// would silence them. It also fails in the wrong direction: an attribute
+  /// gate that misses a case still fires and an author complains, whereas a
+  /// path gate that overreaches goes quiet and the drop reads as progress.
+  internal static func isTestScaffolding(_ node: Syntax, attributes: AttributeListSyntax) -> Bool {
+    if hasAttribute(attributes, named: "Test") || hasAttribute(attributes, named: "Suite") {
+      return true
+    }
+    var current: Syntax? = node.parent
+    while let candidate = current {
+      if let decl = candidate.as(StructDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
+        return true
+      }
+      if let decl = candidate.as(ClassDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
+        return true
+      }
+      if let decl = candidate.as(EnumDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
+        return true
+      }
+      if let decl = candidate.as(ActorDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
+        return true
+      }
+      // The institute suite shape declares fixtures in a bare extension of
+      // the suite type (`extension Algebra.Law.Test { static var … }`), so
+      // no walk-up reaches the `@Suite` attribute. Resolve the extended
+      // type against the `@Suite` types declared in THIS file. When the
+      // suite is declared in a sibling file the set does not contain it and
+      // the rule still fires — under-exempting, which is the safe direction.
+      if let ext = candidate.as(ExtensionDeclSyntax.self) {
+        if let leaf = extendedTypeLeafName(ext.extendedType),
+          suiteTypeNames(in: ext.root).contains(leaf)
+        {
+          return true
+        }
+      }
+      current = candidate.parent
+    }
+    return false
+  }
+
+  /// The rightmost identifier segment of an extended type
+  /// (`C` for `A.B.C`, `A` for `A`). The suite shape nests the suite as the
+  /// leaf (`Algebra.Law.Test`, `` `Algebra.Field Tests`.Unit ``), so the
+  /// leaf — not the root — is what names the `@Suite` type.
+  private static func extendedTypeLeafName(_ type: TypeSyntax) -> Swift.String? {
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+      return identifier.name.text
+    }
+    if let member = type.as(MemberTypeSyntax.self) {
+      return member.name.text
+    }
+    return nil
+  }
+
+  /// Names of every `@Suite`-attributed nominal type declared anywhere in
+  /// `root`'s file.
+  private static func suiteTypeNames(in root: Syntax) -> Swift.Set<Swift.String> {
+    var names: Swift.Set<Swift.String> = []
+    func collect(_ node: Syntax) {
+      if let decl = node.as(StructDeclSyntax.self), hasAttribute(decl.attributes, named: "Suite") {
+        names.insert(decl.name.text)
+      } else if let decl = node.as(ClassDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
+        names.insert(decl.name.text)
+      } else if let decl = node.as(EnumDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
+        names.insert(decl.name.text)
+      } else if let decl = node.as(ActorDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
+        names.insert(decl.name.text)
+      }
+      for child in node.children(viewMode: .sourceAccurate) { collect(child) }
+    }
+    collect(root)
+    return names
+  }
+
   /// Returns true if `node` is declared inside an enclosing context
   /// that introduces a protocol conformance — either an extension
   /// with a non-empty inheritance clause, or a type declaration
