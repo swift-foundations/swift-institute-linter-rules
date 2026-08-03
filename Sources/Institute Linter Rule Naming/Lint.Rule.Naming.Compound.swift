@@ -51,12 +51,33 @@ private let namingCompoundMessage: Swift.String =
   + "declarations per `feedback_compound_package_scope`; `fileprivate`/`private` "
   + "declarations including members whose effective visibility is reduced "
   + "by an enclosing fileprivate/private type per "
-  + "the API-NAME-002 private-surface-applicability note; documented "
+  + "the API-NAME-002 private-surface-applicability note; swift-testing "
+  + "scaffolding — declarations carrying `@Test`/`@Suite` and members of a "
+  + "`@Suite` type, per #53 (a compound `@Test` name is still reported, by "
+  + "`test function naming`, whose fix is the backticked descriptive form); "
+  + "documented "
   + "stdlib-vocabulary names (`rawValue`, `flatMap`, `swapAt`, `storeBytes`, "
   + "`withUnsafeBufferPointer`, etc. — see "
   + "`namingCompoundSwiftNativeIdiomCitations` in this rule's source for "
   + "the full citation set); the 8 `@resultBuilder` method names per "
   + "SE-0289/SE-0348. "
+  + "**A finding does not by itself mean the name must change.** This rule "
+  + "checks the SHAPE of the name; it cannot see whether a namespace to "
+  + "group into exists, nor why the name was chosen. Measured over the #53 "
+  + "pilot, most surviving findings correctly resolve to leaving the code "
+  + "alone. Two shapes are known-legitimate and are NOT recognizable from "
+  + "syntax, so the rule still fires on them by design: (a) a two-word "
+  + "property with no sibling in its type sharing a leading word — there is "
+  + "nothing to group, and the single-member decision tree says not to "
+  + "manufacture a namespace (the rule cannot check this: the "
+  + "one-extension-per-member file convention scatters a type's members "
+  + "across files, and a same-file sibling test would exempt nearly "
+  + "everything); (b) vocabulary held deliberately in lockstep with a cited "
+  + "external reference implementation, where renaming breaks traceability "
+  + "to the source. For either, leave the code and — where the site warrants "
+  + "a durable record — suppress that one site with "
+  + "`// swift-linter:disable:next compound identifier` plus a `// REASON:` "
+  + "naming the shape or citing the reference. "
   + "**Accept-as-warning** disposition (rule fires legitimately, leave the "
   + "warning): when the name mirrors a stdlib type's API at a consumer-"
   + "facing typed-input bridge (e.g., a typed-Cardinal-input overload of "
@@ -313,6 +334,14 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
     if Naming.isBackticked(node.name) {
       return .visitChildren
     }
+    // Test-scaffolding exemption (#53). A compound `@Test` function name is
+    // retargeted to `test function naming`, which prescribes the correct
+    // fix; a fixture in a `@Suite` type is not API surface at all. See
+    // `Naming.isTestScaffolding` for why this is an attribute gate and not
+    // a `Tests/` path gate.
+    if Naming.isTestScaffolding(Syntax(node), attributes: node.attributes) {
+      return .visitChildren
+    }
     let name = node.name.text
     guard isCompoundIdentifier(name) else {
       return .visitChildren
@@ -385,6 +414,12 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
     // surface; local lets and vars are implementation detail and
     // not part of the named-export surface.
     if isInsideFunctionLikeContext(Syntax(node)) {
+      return .visitChildren
+    }
+    // Test-scaffolding exemption (#53) — fixture properties declared in a
+    // `@Suite` type or in a bare extension of one. See
+    // `Naming.isTestScaffolding`.
+    if Naming.isTestScaffolding(Syntax(node), attributes: node.attributes) {
       return .visitChildren
     }
     for binding in node.bindings {

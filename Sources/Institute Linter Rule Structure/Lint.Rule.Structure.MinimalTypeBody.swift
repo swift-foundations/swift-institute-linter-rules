@@ -29,7 +29,8 @@ extension Lint.Rule {
       )
       visitor.walk(source.tree)
       return visitor.matches
-    }
+    },
+    fix: { source in structureMinimalTypeBodyFixed(source) }
   )
 }
 
@@ -151,22 +152,22 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
         continue
       }
       if let nested = decl.as(StructDeclSyntax.self) {
-        if hasExtensionPatternAttribute(nested.attributes) { continue }
+        if structureMinimalTypeBodyHasExtensionPatternAttribute(nested.attributes) { continue }
         emit(at: nested.structKeyword.positionAfterSkippingLeadingTrivia)
         continue
       }
       if let nested = decl.as(ClassDeclSyntax.self) {
-        if hasExtensionPatternAttribute(nested.attributes) { continue }
+        if structureMinimalTypeBodyHasExtensionPatternAttribute(nested.attributes) { continue }
         emit(at: nested.classKeyword.positionAfterSkippingLeadingTrivia)
         continue
       }
       if let nested = decl.as(EnumDeclSyntax.self) {
-        if hasExtensionPatternAttribute(nested.attributes) { continue }
+        if structureMinimalTypeBodyHasExtensionPatternAttribute(nested.attributes) { continue }
         emit(at: nested.enumKeyword.positionAfterSkippingLeadingTrivia)
         continue
       }
       if let nested = decl.as(ActorDeclSyntax.self) {
-        if hasExtensionPatternAttribute(nested.attributes) { continue }
+        if structureMinimalTypeBodyHasExtensionPatternAttribute(nested.attributes) { continue }
         emit(at: nested.actorKeyword.positionAfterSkippingLeadingTrivia)
         continue
       }
@@ -177,38 +178,8 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
     }
   }
 
-  /// Implements [RULE-EXEMPT-4] (extension-pattern attribute) for the
-  /// MinimalTypeBody rule. Types marked `@resultBuilder` or `@Suite`
-  /// have their member shape dictated by an external informal-protocol
-  /// contract — SE-0289 for `@resultBuilder` (static builder methods)
-  /// and swift-testing for `@Suite` (nested `@Suite` substructures per
-  /// the extension-pattern). The attribute IS the spec; forcing
-  /// extraction yields empty-body + extension-with-only-witnesses for
-  /// zero semantic gain.
-  ///
-  /// Pack-local duplicate of `namingHasExtensionPatternAttribute` in
-  /// `Lint.Rule.Naming.Shared.swift` — the two packs are independently
-  /// consumable library products, so the contract is copied rather
-  /// than shared; semantics match. See the rule-exemptions skill.
-  private func hasExtensionPatternAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
-    for attribute in attributes {
-      guard let attr = attribute.as(AttributeSyntax.self) else { continue }
-      let name = attr.attributeName.trimmedDescription
-      // #28 defect 7.4: accept the qualified spelling
-      // (`@Testing.Suite`) too, matching `Shared.swift`'s handling —
-      // the bare-name-only comparison previously dropped the
-      // [RULE-EXEMPT-4] exemption for it.
-      if name == "resultBuilder" || name == "Suite"
-        || name.hasSuffix(".resultBuilder") || name.hasSuffix(".Suite")
-      {
-        return true
-      }
-    }
-    return false
-  }
-
   override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    if hasExtensionPatternAttribute(node.attributes) {
+    if structureMinimalTypeBodyHasExtensionPatternAttribute(node.attributes) {
       return .visitChildren
     }
     checkMembers(node.memberBlock)
@@ -216,7 +187,7 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-    if hasExtensionPatternAttribute(node.attributes) {
+    if structureMinimalTypeBodyHasExtensionPatternAttribute(node.attributes) {
       return .visitChildren
     }
     // Exempt per [RULE-EXEMPT-7] (syntax-visitor-subclass): a
@@ -237,7 +208,7 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-    if hasExtensionPatternAttribute(node.attributes) {
+    if structureMinimalTypeBodyHasExtensionPatternAttribute(node.attributes) {
       return .visitChildren
     }
     checkMembers(node.memberBlock)
@@ -245,10 +216,47 @@ internal final class StructureMinimalTypeBodyVisitor: SyntaxVisitor {
   }
 
   override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-    if hasExtensionPatternAttribute(node.attributes) {
+    if structureMinimalTypeBodyHasExtensionPatternAttribute(node.attributes) {
       return .visitChildren
     }
     checkMembers(node.memberBlock)
     return .visitChildren
   }
+}
+
+/// Implements [RULE-EXEMPT-4] (extension-pattern attribute) for the
+/// MinimalTypeBody rule. Types marked `@resultBuilder` or `@Suite`
+/// have their member shape dictated by an external informal-protocol
+/// contract — SE-0289 for `@resultBuilder` (static builder methods)
+/// and swift-testing for `@Suite` (nested `@Suite` substructures per
+/// the extension-pattern). The attribute IS the spec; forcing
+/// extraction yields empty-body + extension-with-only-witnesses for
+/// zero semantic gain.
+///
+/// Pack-local duplicate of `namingHasExtensionPatternAttribute` in
+/// `Lint.Rule.Naming.Shared.swift` — the two packs are independently
+/// consumable library products, so the contract is copied rather
+/// than shared; semantics match. See the rule-exemptions skill.
+///
+/// Hoisted from a private method on `StructureMinimalTypeBodyVisitor` to a
+/// free function (#43) so `Lint.Rule.Structure.MinimalTypeBody.Fix.swift`
+/// can share the exact same exemption the detector uses — the fix must
+/// never act where the finding does not fire.
+internal func structureMinimalTypeBodyHasExtensionPatternAttribute(
+  _ attributes: AttributeListSyntax
+) -> Swift.Bool {
+  for attribute in attributes {
+    guard let attr = attribute.as(AttributeSyntax.self) else { continue }
+    let name = attr.attributeName.trimmedDescription
+    // #28 defect 7.4: accept the qualified spelling
+    // (`@Testing.Suite`) too, matching `Shared.swift`'s handling —
+    // the bare-name-only comparison previously dropped the
+    // [RULE-EXEMPT-4] exemption for it.
+    if name == "resultBuilder" || name == "Suite"
+      || name.hasSuffix(".resultBuilder") || name.hasSuffix(".Suite")
+    {
+      return true
+    }
+  }
+  return false
 }
