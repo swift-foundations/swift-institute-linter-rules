@@ -65,10 +65,20 @@ you are in:
 | A **`package`**-effective declaration renamed | Every target in the same package. |
 | A **`public`** declaration renamed | Every dependent package in the ecosystem, transitively. |
 
-The last row is the expensive one, and it is where the largest rule class lives: `compound
-identifier` fires only on effectively-public surface by construction, because the predicate
-exempts `package`, `fileprivate`, `private`-effective, and local declarations. A rename there is
-an ecosystem-wide API change, not a file edit.
+The last row is the expensive one, and a rename there is an ecosystem-wide API change rather than a
+file edit. But do not assume a rule class sits entirely in one row — the largest class in the
+ledger straddles two, and reading it into the bottom row alone would misprice it.
+
+`compound identifier` is the case to have in mind. Its predicate exempts `package`,
+`fileprivate`, `private`-effective, and local declarations — and **`internal` is not among the
+exemptions**, so an `internal` compound-named member fires exactly as a `public` one does. The
+findings therefore split across the `internal` row, whose consumer set is one module plus its
+`@testable` importers and is fully enumerable, and the `public` row, which is the transitive one.
+Those two halves have different costs, different instruments, and different sequencing, and the
+playbook for that rule orders the work around the split.
+
+Establish which row a finding is in before pricing it. Effective visibility, not the declaration's
+own modifier, is what decides — a member of an `internal` type is `internal` whatever it says.
 
 **Never estimate the ripple from a grep.** `@_exported public import` lets a consumer bind a
 package's types without naming that package in any manifest, so both a manifest census and a

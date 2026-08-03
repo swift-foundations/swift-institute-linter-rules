@@ -67,8 +67,10 @@ Both produce findings, or the absence of findings, that the convention does not 
   rules handle the `.Suite` suffix and this one does not.
 - **Category members inside `#if` are not counted.** The body scan reads the member block
   directly rather than splicing `#if` clauses, so a category declared inside a conditional reads
-  as absent and the rule fires even though the category is there. Do not "fix" this by declaring
-  a second copy outside the conditional — see step 2.
+  as absent and the rule fires even though the category is there. Filed as
+  [#47](https://github.com/swift-foundations/swift-institute-linter-rules/issues/47); the sibling
+  `minimal type body` predicate does splice conditional members, and this one does not. Do not
+  "fix" it by declaring a second copy outside the conditional — see step 2.
 
 ### And one class of suite the rule never sees
 
@@ -161,8 +163,10 @@ reason.
 
 ### Categories are declared inside an `#if`
 
-The categories exist; the predicate cannot see them. Do **not** add a second declaration outside
-the conditional — that is a redeclaration in whichever configuration the `#if` is active.
+The categories exist; the predicate cannot see them
+([#47](https://github.com/swift-foundations/swift-institute-linter-rules/issues/47)). Do **not**
+add a second declaration outside the conditional — that is a redeclaration in whichever
+configuration the `#if` is active.
 
 The lawful shape is to declare all three categories unconditionally and confine the conditional
 to the tests inside them:
@@ -328,8 +332,9 @@ This rule has few lawful suppressions, because in most cases the fix is three li
 // swift-linter:disable:next suite categories
 // REASON: the three categories are declared inside the `#if canImport(Darwin)`
 // clause below; the rule's body scan does not splice `#if` members, so they
-// read as absent. Declaring them unconditionally is not possible here because
-// the enclosing suite is itself platform-gated.
+// read as absent (swift-institute-linter-rules#47). Declaring them
+// unconditionally is not possible here because the enclosing suite is itself
+// platform-gated.
 @Suite struct `Kernel Tests` { … }
 ```
 
@@ -379,6 +384,10 @@ The test run matters more here than the build. Two rule-specific checks:
 - The `@Testing.Suite` blind spot ([#45](https://github.com/swift-foundations/swift-institute-linter-rules/issues/45))
   bounds what any remediation of this class can reach. Until it is fixed, this rule's zero is a
   statement about the bare spelling only.
+- The `#if` non-splice ([#47](https://github.com/swift-foundations/swift-institute-linter-rules/issues/47))
+  cuts the other way: it makes the count too high rather than too low, since a suite whose
+  categories are conditional fires despite being compliant. Some share of the 1,276 is that false
+  positive, and the share is not knowable until #47 lands.
 - `#Tests`-generated suites are outside the rule's sight entirely, so the ledger count for this
   rule under-reports the true population of uncategorised suites by however many packages use the
   macro.
