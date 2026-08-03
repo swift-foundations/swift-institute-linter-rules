@@ -42,7 +42,8 @@ extension Lint.Rule {
       )
       visitor.walk(source.tree)
       return visitor.matches
-    }
+    },
+    fix: { source in frameworkSuiteCategoriesFixed(source) }
   )
 }
 
