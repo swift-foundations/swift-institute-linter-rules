@@ -1052,3 +1052,141 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     #expect(findings.count == 1)
   }
 }
+
+// MARK: - Test-scaffolding exemption (#53)
+//
+// Fixtures in every direction for the `@Test` / `@Suite` exemption:
+// a violation that must fire, the exempt shapes, near-misses that must
+// STILL fire, and a bare-filename positive control proving the suite is
+// not silenced wholesale by a path predicate.
+
+extension Lint.Rule.`compound identifier Tests`.Unit {
+
+  // --- Exempt: the declaration carries the attribute itself ---
+
+  @Test
+  func `compound Test function name is exempt`() {
+    let source = """
+      @Suite struct S {}
+      extension S { @Test func deadBeefRoundTrip() {} }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `qualified Testing Test attribute is exempt`() {
+    let source = """
+      @Suite struct S {}
+      extension S { @Testing.Test func deadBeefRoundTrip() {} }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // --- Exempt: member of a `@Suite` type ---
+
+  @Test
+  func `fixture property inside a Suite type is exempt`() {
+    let source = """
+      @Suite struct `Binary.Base Tests` {
+          static let hexAlphabet: [UInt8] = []
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `fixture in a bare extension of a same-file Suite type is exempt`() {
+    // The institute suite shape: fixtures live in a bare extension of the
+    // suite, so no walk-up reaches the `@Suite` attribute. Resolved by
+    // matching the extended type's LEAF against the file's `@Suite` names.
+    let source = """
+      extension Algebra.Law {
+          @Suite struct Test {
+              @Suite struct Unit {}
+          }
+      }
+      extension Algebra.Law.Test {
+          static var intSemigroup: Int { 0 }
+          static var intMonoid: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // --- Near-miss: must STILL fire ---
+
+  @Test
+  func `NEAR MISS plain helper beside a Suite in the same file still fires`() {
+    // No `@Test`, not inside the suite, and the extended type's leaf is not
+    // a declared suite name. This is the shape a careless file-scoped gate
+    // would silence.
+    let source = """
+      @Suite struct `Binary.Base Tests` {}
+      struct Helper { static var sampleBytes: Int { 0 } }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `NEAR MISS test-support library API in a Tests path still fires`() {
+    // Test-support targets live under `Tests/` but ship as `.library`
+    // products imported across packages — they ARE consumer API. This is
+    // the case a `Tests/` PATH exemption would have wrongly silenced, and
+    // is the reason the exemption is an attribute gate.
+    let source = "public struct Support { public static var sampleBytes: Int { 0 } }"
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: source,
+      file: "Tests/Support/Binary Base Primitives Test Support/Support.swift"
+    )
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `NEAR MISS extension of a non-suite type in a suite file still fires`() {
+    let source = """
+      @Suite struct Unit {}
+      extension SomeProductionType.Encoder {
+          static var defaultAlphabet: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `NEAR MISS resultBuilder member is not covered by the Suite exemption`() {
+    let source = """
+      @resultBuilder struct B { static var lastResult: Int { 0 } }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `NEAR MISS Suite-named type WITHOUT the attribute still fires`() {
+    let source = """
+      struct Test { static var intSemigroup: Int { 0 } }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  // --- Positive control ---
+
+  @Test
+  func `POSITIVE CONTROL bare filename with no directory component fires`() {
+    // Guards the whole fixture suite: if a future path-scoped predicate
+    // mis-handles a path with no directory separator, every other
+    // expectation in this file would silently read as a clean zero.
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: "func openWrite() {}",
+      file: "Names.swift"
+    )
+    #expect(findings.count == 1)
+  }
+}
