@@ -1190,3 +1190,61 @@ extension Lint.Rule.`compound identifier Tests`.Unit {
     #expect(findings.count == 1)
   }
 }
+
+// MARK: - #53 review follow-up (PR #56 review 4845547846)
+
+extension Lint.Rule.`compound identifier Tests`.Unit {
+
+  // --- The `@Test`-on-the-declaration clause, isolated ---
+  //
+  // The two exempt fixtures above wrap the `@Test` func in an extension of a
+  // same-file `@Suite`, so the EXTENSION branch already exempts them and
+  // deleting `hasAttribute(attributes, named: "Test")` left the whole suite
+  // green. These two are bare top-level `@Test` functions with no suite type
+  // anywhere in the file, so nothing but that clause can exempt them — they
+  // fail if it is removed. Verified by deleting the clause: these two, and
+  // only these two, go red.
+
+  @Test
+  func `bare top-level Test function is exempt via the attribute clause`() {
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: "@Test func deadBeefRoundTrip() {}"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `bare top-level qualified Testing Test function is exempt via the attribute clause`() {
+    let findings = Lint.Rule.`compound identifier Tests`.findings(
+      in: "@Testing.Test func deadBeefRoundTrip() {}"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  // --- Known limitation: same-file suite-leaf collision ---
+
+  @Test
+  func `KNOWN LIMITATION same-file suite leaf name collides with a production type`() {
+    // `suiteTypeNames(in:)` collects `@Suite` type names file-wide and matches
+    // the extended type's LEAF, so a production `Measurement.Unit` extension
+    // sharing a leaf with a `@Suite struct Unit` in the same file is silenced.
+    //
+    // This is the one clause of the exemption that fails toward SILENCE, and
+    // the Institute suite leaves (`Unit`, `Test`, `EdgeCase`) are exactly the
+    // collision-prone names — so it is pinned here rather than left untested.
+    // Zero instances in the #53 pilot corpus. Narrowing this needs the
+    // extension's full qualified path checked against the suite's nesting
+    // path, not just the leaf; deliberately out of scope for #53.
+    //
+    // The opposite direction is safe by construction: a suite declared in a
+    // SIBLING file is absent from the set, so the rule still fires.
+    let source = """
+      @Suite struct Unit {}
+      extension Measurement.Unit {
+          static var meterPerSecond: Int { 0 }
+      }
+      """
+    let findings = Lint.Rule.`compound identifier Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+}
