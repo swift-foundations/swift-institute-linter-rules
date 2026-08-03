@@ -54,23 +54,26 @@ fires, and that combination is the trap described under step 2.
 Backticked names are normalized before comparison, so `` `Edge Case` `` matches. Extras such as
 `Performance` or `Snapshot` are ignored.
 
-### Two predicate limitations to know before you remediate
+### One predicate limitation to know before you remediate, and one fixed
 
-Both produce findings, or the absence of findings, that the convention does not explain.
+This produces findings, or the absence of findings, that the convention does not explain.
 
-- **Only the bare `@Suite` spelling is recognized.** `suiteCategoriesHasSuiteAttribute` compares
-  against `Suite` exactly, so **`@Testing.Suite` is invisible to this rule** — neither the
-  enclosing suite nor a category declared with the qualified spelling is seen. A package written
-  with the qualified spelling therefore reports zero for reasons that have nothing to do with
-  compliance. This is a rule-semantics inconsistency, filed as
-  [#45](https://github.com/swift-foundations/swift-institute-linter-rules/issues/45); sibling
-  rules handle the `.Suite` suffix and this one does not.
 - **Category members inside `#if` are not counted.** The body scan reads the member block
   directly rather than splicing `#if` clauses, so a category declared inside a conditional reads
   as absent and the rule fires even though the category is there. Filed as
   [#47](https://github.com/swift-foundations/swift-institute-linter-rules/issues/47); the sibling
   `minimal type body` predicate does splice conditional members, and this one does not. Do not
   "fix" it by declaring a second copy outside the conditional — see step 2.
+
+The other predicate limitation once documented here — the bare `@Suite` spelling being the only
+one recognized, with the qualified `@Testing.Suite` spelling invisible to the rule — is fixed as
+of [`e24b426`](https://github.com/swift-foundations/swift-institute-linter-rules/commit/e24b426fcaf81f11c54a0209e3b18b9d6a89a67c)
+(landed via [#48](https://github.com/swift-foundations/swift-institute-linter-rules/pull/48),
+closing [#45](https://github.com/swift-foundations/swift-institute-linter-rules/issues/45)).
+`suiteCategoriesHasSuiteAttribute` now recognizes the qualified spelling at both call sites, the
+rule gate and the declared-category collection, matching the `.Suite`-suffix handling this
+package's other predicates already use. A package written with the qualified spelling now reports
+findings, or their absence, on the same terms as the bare spelling.
 
 ### And one class of suite the rule never sees
 
@@ -191,9 +194,11 @@ finding is a predicate limitation and a lawful suppression.
 
 ### The suite uses `@Testing.Suite`
 
-Then this rule did not fire on it, and you are not looking at a finding. Mentioned only so that
-a zero over such a package is read correctly: it is [#45](https://github.com/swift-foundations/swift-institute-linter-rules/issues/45),
-not compliance. Do not respell attributes to make the rule fire.
+As of [`e24b426`](https://github.com/swift-foundations/swift-institute-linter-rules/commit/e24b426fcaf81f11c54a0209e3b18b9d6a89a67c)
+(closing [#45](https://github.com/swift-foundations/swift-institute-linter-rules/issues/45)),
+the qualified spelling is recognized on the same terms as the bare `@Suite` spelling, at both
+call sites. A finding here is a real finding, and a zero is real compliance — treat it exactly
+as you would a bare-spelling suite. Do not respell attributes to make the rule fire either way.
 
 ### The plain case — categories simply missing
 
@@ -382,8 +387,8 @@ The test run matters more here than the build. Two rule-specific checks:
   can tell whether a test is in the **right** category. Category membership is a claim the rule
   checks the shape of and not the truth of.
 - The `@Testing.Suite` blind spot ([#45](https://github.com/swift-foundations/swift-institute-linter-rules/issues/45))
-  bounds what any remediation of this class can reach. Until it is fixed, this rule's zero is a
-  statement about the bare spelling only.
+  is fixed as of [`e24b426`](https://github.com/swift-foundations/swift-institute-linter-rules/commit/e24b426fcaf81f11c54a0209e3b18b9d6a89a67c);
+  this rule's zero is now a statement about both spellings, not the bare one only.
 - The `#if` non-splice ([#47](https://github.com/swift-foundations/swift-institute-linter-rules/issues/47))
   cuts the other way: it makes the count too high rather than too low, since a suite whose
   categories are conditional fires despite being compliant. Some share of the 1,276 is that false
