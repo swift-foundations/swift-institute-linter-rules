@@ -439,3 +439,84 @@ extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
     )
   }
 }
+
+extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
+  /// Positive control for #49: a plain body with no ownership-annotated
+  /// parameter in scope still climbs to `forEach`, matching every other
+  /// round-trip fixture in this file. Guards against a predicate that
+  /// over-refuses generally rather than specifically on ownership.
+  @Test
+  func `a plain body with no ownership-annotated parameter still climbs`() {
+    let source = """
+      func op(lhs: [Int], rhs: [Int]) -> [Int] {
+          var result = lhs
+          for i in 0..<lhs.count {
+              result[i] = lhs[i] + rhs[i]
+          }
+          return result
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.roundTrips(source)
+  }
+
+  /// Near-miss for #49: `rhs` carries an explicit `borrowing` modifier, but
+  /// the loop body never references it — only `lhs`, an ordinary parameter,
+  /// appears inside the loop. The rewrite may proceed: the refusal is keyed
+  /// to a REFERENCE inside the body, not to the parameter's mere presence
+  /// in the signature.
+  @Test
+  func `an unreferenced borrowing parameter does not block the rewrite`() {
+    let source = """
+      func op(lhs: [Int], rhs: borrowing [Int]) -> [Int] {
+          var result = lhs
+          for i in 0..<lhs.count {
+              result[i] = lhs[i] * 2
+          }
+          return result
+      }
+      """
+    Lint.Rule.`counter loop iteration fix Tests`.roundTrips(source)
+  }
+}
+
+extension Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable` {
+  /// #49 witness reproduction (swift-affine-geometry-primitives PR #5,
+  /// head 499186f): a `borrowing` parameter referenced inside the loop
+  /// body. The `forEach` translation would move the reference into a
+  /// closure — a distinct activation frame a `borrowing` parameter is
+  /// guaranteed not to escape — and fails at typecheck with `'rhs' is
+  /// borrowed and cannot be consumed`, which the fix pipeline's re-parse
+  /// guard cannot catch. The diagnostic still fires; only the rewrite
+  /// declines.
+  @Test
+  func `a borrowing parameter referenced in the body blocks the rewrite`() {
+    Self.declines(
+      """
+      func op(lhs: [Int], rhs: borrowing [Int]) -> [Int] {
+          var result = lhs
+          for i in 0..<lhs.count {
+              result[i] = lhs[i] - rhs[i]
+          }
+          return result
+      }
+      """
+    )
+  }
+
+  /// The `consuming` counterpart: a `consuming` parameter referenced in the
+  /// body is refused for the same reason a `borrowing` one is — neither
+  /// binding may be captured by the `forEach` closure the rewrite would
+  /// introduce.
+  @Test
+  func `a consuming parameter referenced in the body blocks the rewrite`() {
+    Self.declines(
+      """
+      func op(_ n: Int, extra: consuming [Int]) {
+          for i in 0..<n {
+              use(extra)
+          }
+      }
+      """
+    )
+  }
+}
