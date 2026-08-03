@@ -229,16 +229,24 @@ extension Naming {
     }
     var current: Syntax? = node.parent
     while let candidate = current {
-      if let decl = candidate.as(StructDeclSyntax.self), hasAttribute(decl.attributes, named: "Suite") {
+      if let decl = candidate.as(StructDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
         return true
       }
-      if let decl = candidate.as(ClassDeclSyntax.self), hasAttribute(decl.attributes, named: "Suite") {
+      if let decl = candidate.as(ClassDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
         return true
       }
-      if let decl = candidate.as(EnumDeclSyntax.self), hasAttribute(decl.attributes, named: "Suite") {
+      if let decl = candidate.as(EnumDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
         return true
       }
-      if let decl = candidate.as(ActorDeclSyntax.self), hasAttribute(decl.attributes, named: "Suite") {
+      if let decl = candidate.as(ActorDeclSyntax.self),
+        hasAttribute(decl.attributes, named: "Suite")
+      {
         return true
       }
       // The institute suite shape declares fixtures in a bare extension of
