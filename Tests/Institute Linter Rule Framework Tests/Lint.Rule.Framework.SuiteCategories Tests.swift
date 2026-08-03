@@ -118,6 +118,43 @@ extension Lint.Rule.`suite categories Tests`.Unit {
   }
 
   @Test
+  func `qualified @Testing.Suite spelling with missing categories is flagged`() {
+    // #45: the qualified spelling must fire the rule gate exactly like the
+    // bare spelling does — a suite declared `@Testing.Suite` with only one
+    // sub-suite is still a violation.
+    let source = """
+      @Testing.Suite
+      struct `Foo Tests` {
+          @Suite struct Unit {}
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.count == 1)
+    if findings.count == 1 {
+      #expect(findings[0].message.contains("Edge Case"))
+      #expect(findings[0].message.contains("Integration"))
+    }
+  }
+
+  @Test
+  func `qualified @Testing.Suite spelling on category structs counts as declared`() {
+    // #45: the declared-category collection (the OTHER call site sharing
+    // `suiteCategoriesHasSuiteAttribute`) must also recognize the qualified
+    // spelling — a suite whose three sub-suites are all `@Testing.Suite`
+    // must pass, not be reported as missing all three.
+    let source = """
+      @Suite
+      struct `Foo Tests` {
+          @Testing.Suite struct Unit {}
+          @Testing.Suite struct `Edge Case` {}
+          @Testing.Suite struct Integration {}
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `top-level @Suite enum (not struct) is not the rule's target`() {
     // The rule scopes to `struct` declarations; the canonical test
     // surface always uses `struct`. An @Suite-annotated enum is rare
@@ -246,6 +283,41 @@ extension Lint.Rule.`suite categories Tests`.`Edge Case` {
       """
     let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
     #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `near-miss attribute name that merely ends in Suite (no separating dot) is excluded`() {
+    // #45: the qualified-spelling recognition is suffix-based on ".Suite",
+    // not a bare "ends with the letters Suite" test. `@BarSuite` shares no
+    // dot-delimited leaf with `Suite`, so it must NOT be treated as a
+    // `@Suite` attribute — the outer struct isn't a suite at all, so the
+    // rule stays silent, and (separately) a `@BarSuite`-attributed nested
+    // struct must not count as a declared category either.
+    let source = """
+      @BarSuite
+      struct `Foo Tests` {
+          @Suite struct Unit {}
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `near-miss category attribute that merely ends in Suite does not count as declared`() {
+    let source = """
+      @Suite
+      struct `Foo Tests` {
+          @BarSuite struct Unit {}
+          @Suite struct `Edge Case` {}
+          @Suite struct Integration {}
+      }
+      """
+    let findings = Lint.Rule.`suite categories Tests`.findings(in: source)
+    #expect(findings.count == 1)
+    if findings.count == 1 {
+      #expect(findings[0].message.contains("Unit"))
+    }
   }
 
   @Test
