@@ -100,6 +100,10 @@ extension Lint.Rule.Bundle {
       // Receipt: Research/promote-phantom-suppression-tower-validation-2026-07-07.md.
       .enable(.`phantom suppression`),
       .enable(.`unification typealias`),
+      // [API-NAME-009] — mirrors validate-diagnostic-format.py
+      // (swift-institute/.github#358 F9, predicate parity). Advisory at
+      // introduction; error only after the standing graduation gate.
+      .enable(.`diagnostic message format`),
       // Foundation pack
       .enable(.`foundation import`),
       // Framework pack
@@ -167,6 +171,11 @@ extension Lint.Rule.Bundle {
       .enable(.`compound platform namespace root`),
       .enable(.`optimize suppression attribute`),  // [ISSUE-008] (/promote-rule 2026-07-06)
       .enable(.`optionset shell pattern`),
+      // [PLAT-ARCH-008] — mirrors validate-layer-deps.py
+      // check_plat_arch_008 (swift-institute/.github#358 F9, predicate
+      // parity). Advisory at introduction; error only after the standing
+      // graduation gate.
+      .enable(.`platform layer import`),
       .enable(.`canimport conditional`),
       .enable(.`swift protocol qualification`),
       .enable(.`system subdomain`),
