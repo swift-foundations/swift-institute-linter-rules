@@ -23,6 +23,13 @@ let package = Package(
         .visionOS(.v26),
     ],
     products: [
+        // Architecture pack (TX-A2, swift-foundations/swift-linter#44) —
+        // AST-local architecture predicates; derived-model enforcement
+        // binds at TX-A4, not here.
+        .library(
+            name: "Institute Linter Rule Architecture",
+            targets: ["Institute Linter Rule Architecture"]
+        ),
         .library(
             name: "Institute Linter Rule Naming",
             targets: ["Institute Linter Rule Naming"]
@@ -117,6 +124,14 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
     ],
     targets: [
+        // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
+        .target(
+            name: "Institute Linter Rule Architecture",
+            dependencies: [
+                .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+            ]
+        ),
         .target(
             name: "Institute Linter Rule Naming",
             dependencies: [
@@ -244,6 +259,8 @@ let package = Package(
             name: "Linter Institute Rules",
             dependencies: [
                 .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+                // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
+                .target(name: "Institute Linter Rule Architecture"),
                 .target(name: "Institute Linter Rule Naming"),
                 .target(name: "Institute Linter Rule Foundation"),
                 .target(name: "Institute Linter Rule Framework"),
@@ -264,6 +281,15 @@ let package = Package(
                 .target(name: "Institute Linter Rule RawValue"),
                 .target(name: "Institute Linter Rule Cardinal"),
                 .product(name: "Linter Rules", package: "swift-linter-rules"),
+            ]
+        ),
+        // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
+        .testTarget(
+            name: "Institute Linter Rule Architecture Tests",
+            dependencies: [
+                .target(name: "Institute Linter Rule Architecture"),
+                .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
             ]
         ),
         .testTarget(
