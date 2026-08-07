@@ -15,7 +15,7 @@ import Testing
 
 @testable import Linter_Institute_Rules
 
-/// Converts every rule declared across the 17 institute rule packs to a
+/// Converts every rule declared across the 18 institute rule packs to a
 /// hand-maintained master list. This is the same enumeration the #1
 /// source-level review performed by hand, since amended: 90 declared
 /// rules at #26 origination, +3 (#29/#30/#31 — sending return conditional
@@ -33,6 +33,10 @@ import Testing
 /// the property this test exists to enforce.
 private let allDeclaredRuleIDs: Swift.Set<Swift.String> = [
   "ad hoc box class",
+  // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
+  "architecture foundation type",
+  "architecture import boundary",
+  "architecture namespace shape",
   "bare string dependency",
   "benchmark timed required",
   "binary serializable rawvalue uint8",
@@ -151,7 +155,7 @@ struct `Lint Rule Bundle institute Tests` {
 /// `Lint.Rule.Bundle.institute` is `Lint.Rule.Bundle.universal + [...]` —
 /// the FULL enabled-id set therefore always contains every universal id
 /// too, by construction. Every test below that means to reason about
-/// "what THIS package's 17 rule packs contribute" first subtracts the
+/// "what THIS package's 18 rule packs contribute" first subtracts the
 /// universal tier's own ids back out, or it would be comparing the
 /// master list against a set it can never equal.
 private func instituteContributedEnabledIDs() -> Swift.Set<Swift.String> {
@@ -214,7 +218,7 @@ extension `Lint Rule Bundle institute Tests`.`Id integrity` {
 
   @Test
   func `institute-declared ids do not collide with the universal-tier bundle`() {
-    // Compares the 17 institute packs' OWN declared ids (not the
+    // Compares the 18 institute packs' OWN declared ids (not the
     // concatenated bundle, which trivially contains every universal id)
     // against the universal tier.
     let universalIDs = Swift.Set(Lint.Rule.Bundle.universal.map(\.rule.id.underlying))

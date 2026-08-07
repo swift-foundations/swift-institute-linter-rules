@@ -9,6 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
+public import Institute_Linter_Rule_Architecture
 public import Institute_Linter_Rule_Byte
 public import Institute_Linter_Rule_Cardinal
 public import Institute_Linter_Rule_Closure
@@ -79,6 +80,14 @@ public import Linter_Rules
 extension Lint.Rule.Bundle {
   public static let institute: [Lint.Rule.Configuration] =
     Lint.Rule.Bundle.universal + [
+      // Architecture pack (TX-A2, swift-foundations/swift-linter#44) —
+      // AST-local architecture predicates supplied for the derived-model
+      // programme; advisory at introduction per this bundle's severity-tier
+      // policy, and fleet enforcement binds at TX-A4 (.github#85 amendment
+      // 5), never here.
+      .enable(.`architecture import boundary`),
+      .enable(.`architecture foundation type`),
+      .enable(.`architecture namespace shape`),
       // Naming pack
       .enable(.`bool public parameter`),
       .enable(.`ad hoc box class`),
