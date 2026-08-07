@@ -43,8 +43,7 @@ extension Lint.Rule.`architecture foundation type Tests` {
 
   @Test
   func `every family member's qualification is flagged`() {
-    for module in ["Foundation", "FoundationEssentials", "FoundationNetworking", "FoundationXML"]
-    {
+    for module in ["Foundation", "FoundationEssentials", "FoundationNetworking", "FoundationXML"] {
       let findings = Self.findings(in: "let value: \(module).Data")
       #expect(findings.count == 1, "expected a finding for \(module).Data")
     }
