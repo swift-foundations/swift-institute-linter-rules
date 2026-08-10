@@ -27,7 +27,9 @@ internal import SwiftSyntax
 /// 2. **Product/target names**: the `name:` string of every product
 ///    factory (`.library`, `.executable`, `.plugin`) and target factory
 ///    (`.target`, `.testTarget`, `.executableTarget`, `.macro`,
-///    `.plugin`) declared by THIS package must be a spaced Nest.Name
+///    `.plugin`, and — per the C-shim naming ruling, #65 principal
+///    ruling 2026-08-10 — `.systemLibrary`) declared by THIS package
+///    must be a spaced Nest.Name
 ///    form: space-separated words, none of which is a concatenated
 ///    compound by the shared compound-word predicate
 ///    (`namingWordIsCompound`, the [API-NAME-001] owner — brand tokens
@@ -126,14 +128,20 @@ internal func namingManifestGrammarPathMessage(
 /// The product- and target-declaring manifest factory members whose
 /// `name:` argument this rule inspects. `.product` is deliberately
 /// absent: it references a dependency's product, which the upstream
-/// owner names.
+/// owner names. `.systemLibrary` is present per the C-shim naming
+/// ruling (#65, principal 2026-08-10): system-library targets take the
+/// same spaced grammar as every other target; note that a single
+/// lowercase word (`imagemagick`) is silent here by the grammar's own
+/// single-word rule — the `* Shims` shape half of that ruling is the
+/// validator family's predicate, not this rule's.
 private let namingManifestDeclaringFactories: Swift.Set<Swift.String> = [
   "library", "executable", "target", "testTarget", "executableTarget", "macro", "plugin",
+  "systemLibrary",
 ]
 
 /// The subset of factories that declare targets (and may carry `path:`).
 private let namingManifestTargetFactories: Swift.Set<Swift.String> = [
-  "target", "testTarget", "executableTarget", "macro", "plugin",
+  "target", "testTarget", "executableTarget", "macro", "plugin", "systemLibrary",
 ]
 
 internal final class NamingManifestGrammarVisitor: SyntaxVisitor {
