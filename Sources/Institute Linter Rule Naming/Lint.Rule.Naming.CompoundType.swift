@@ -211,44 +211,44 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
 /// the #65 grammar rules (`manifest naming grammar`, `path name
 /// grammar` — manifest / directory / file-name surfaces).
 internal func namingWordIsCompound(_ name: Swift.String) -> Bool {
-    // Stdlib-method-mirror exemption per [API-NAME-003]: type names
-    // that elevate a Swift.Sequence (or adjacent) compound method
-    // name to a namespace inherit the compound spelling.
-    if namingCompoundTypeStdlibMethodMirrorCitations[name] != nil {
-      return false
-    }
-    // Brand-token exemption per #16 Option C Entries III.a/III.b: the
-    // token's internal capitals are brand/spec orthography, not word
-    // boundaries. Exact-match only.
-    if namingCompoundTypeBrandTokenCitations[name] != nil {
-      return false
-    }
-    // Spec-namespace forms (`RFC_4122`, `ISO_9945`) — exempt.
-    if name.contains("_") { return false }
-    // Empty / single-char names — degenerate, not compound.
-    guard name.count >= 2 else { return false }
-    // Must start with uppercase to be a type identifier (sanity).
-    let chars = Array(name)
-    guard chars[0].isUppercase else { return false }
-    // Word-boundary count.
-    var words = 1
-    var i = 1
-    while i < chars.count {
-      let prev = chars[i - 1]
-      let curr = chars[i]
-      let next: Swift.Character? = i + 1 < chars.count ? chars[i + 1] : nil
-      if curr.isUppercase {
-        // lowercase → uppercase: word boundary (FooBar)
-        if prev.isLowercase {
-          words += 1
-        } else if prev.isUppercase, let next, next.isLowercase {
-          // uppercase → uppercase → lowercase: acronym → word
-          // boundary (IOError ⇒ IO + Error at the E).
-          words += 1
-        }
-      }
-      if words >= 2 { return true }
-      i += 1
-    }
+  // Stdlib-method-mirror exemption per [API-NAME-003]: type names
+  // that elevate a Swift.Sequence (or adjacent) compound method
+  // name to a namespace inherit the compound spelling.
+  if namingCompoundTypeStdlibMethodMirrorCitations[name] != nil {
     return false
+  }
+  // Brand-token exemption per #16 Option C Entries III.a/III.b: the
+  // token's internal capitals are brand/spec orthography, not word
+  // boundaries. Exact-match only.
+  if namingCompoundTypeBrandTokenCitations[name] != nil {
+    return false
+  }
+  // Spec-namespace forms (`RFC_4122`, `ISO_9945`) — exempt.
+  if name.contains("_") { return false }
+  // Empty / single-char names — degenerate, not compound.
+  guard name.count >= 2 else { return false }
+  // Must start with uppercase to be a type identifier (sanity).
+  let chars = Array(name)
+  guard chars[0].isUppercase else { return false }
+  // Word-boundary count.
+  var words = 1
+  var i = 1
+  while i < chars.count {
+    let prev = chars[i - 1]
+    let curr = chars[i]
+    let next: Swift.Character? = i + 1 < chars.count ? chars[i + 1] : nil
+    if curr.isUppercase {
+      // lowercase → uppercase: word boundary (FooBar)
+      if prev.isLowercase {
+        words += 1
+      } else if prev.isUppercase, let next, next.isLowercase {
+        // uppercase → uppercase → lowercase: acronym → word
+        // boundary (IOError ⇒ IO + Error at the E).
+        words += 1
+      }
+    }
+    if words >= 2 { return true }
+    i += 1
+  }
+  return false
 }

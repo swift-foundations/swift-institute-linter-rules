@@ -92,7 +92,8 @@ extension Lint.Rule.`manifest naming grammar Tests`.Unit {
       """
     let findings = Lint.Rule.`manifest naming grammar Tests`.findings(in: source)
     #expect(findings.count == 1)
-    #expect(findings.first?.message.contains("differs from the target name only by spacing") == true)
+    #expect(
+      findings.first?.message.contains("differs from the target name only by spacing") == true)
   }
 
   // Negative controls — current correct spellings.

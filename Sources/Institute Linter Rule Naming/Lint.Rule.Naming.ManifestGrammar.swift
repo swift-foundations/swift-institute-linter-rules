@@ -58,7 +58,7 @@ extension Lint.Rule {
     id: "manifest naming grammar",
     default: .warning,
     findings: { source, severity in
-      guard namingManifestIsPackageManifest(source.file.filePath) else { return [] }
+      guard namingIsPackageManifest(source.file.filePath) else { return [] }
       let visitor = NamingManifestGrammarVisitor(
         source: source.file,
         severity: severity,
@@ -68,18 +68,6 @@ extension Lint.Rule {
       return visitor.matches
     }
   )
-}
-
-/// Returns true when `filePath` names a SwiftPM package manifest:
-/// `Package.swift` or a versioned `Package@swift-*.swift` variant.
-/// Mirrors the Manifest pack's `manifestIsPackageManifest`; the packs
-/// are leaf targets with no lateral edges, so the five-line filename
-/// gate is restated here rather than importing a rule pack for it.
-internal func namingManifestIsPackageManifest(_ filePath: Swift.String) -> Swift.Bool {
-  guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
-  else { return false }
-  if filename == "Package.swift" { return true }
-  return filename.hasPrefix("Package@swift-") && filename.hasSuffix(".swift")
 }
 
 /// Returns true when `name` is a kebab-case package slug:
@@ -209,7 +197,8 @@ internal final class NamingManifestGrammarVisitor: SyntaxVisitor {
         let despacedSegment = Swift.String(segment.filter { $0 != " " })
         let despacedName = Swift.String(name.filter { $0 != " " })
         if segment != name, despacedSegment == despacedName {
-          emit(at: position, message: namingManifestGrammarPathMessage(name: name, segment: segment))
+          emit(
+            at: position, message: namingManifestGrammarPathMessage(name: name, segment: segment))
         }
       }
     }
