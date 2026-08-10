@@ -52,6 +52,9 @@ private let allDeclaredRuleIDs: Swift.Set<Swift.String> = [
   "chained rawvalue access",
   "closure typed throws annotation",
   "compound identifier",
+  // Naming grammar pair (#65, principal directive 2026-08-09).
+  "manifest naming grammar",
+  "path name grammar",
   "compound platform namespace root",
   "compound suite name",
   "compound type name",
