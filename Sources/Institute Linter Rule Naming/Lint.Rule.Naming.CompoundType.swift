@@ -199,6 +199,18 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
   }
 
   private func isCompoundTypeIdentifier(_ name: Swift.String) -> Bool {
+    namingWordIsCompound(name)
+  }
+}
+
+/// The single owner of the compound-word predicate (one predicate, one
+/// owner — #65): returns true when `name` is a concatenation of two or
+/// more words by the internal-capital heuristic, after the stdlib-
+/// method-mirror ([API-NAME-003]) and brand-token (#16 Option C)
+/// exemptions. Shared by `compound type name` (declaration surface) and
+/// the #65 grammar rules (`manifest naming grammar`, `path name
+/// grammar` — manifest / directory / file-name surfaces).
+internal func namingWordIsCompound(_ name: Swift.String) -> Bool {
     // Stdlib-method-mirror exemption per [API-NAME-003]: type names
     // that elevate a Swift.Sequence (or adjacent) compound method
     // name to a namespace inherit the compound spelling.
@@ -239,5 +251,4 @@ internal final class NamingCompoundTypeVisitor: SyntaxVisitor {
       i += 1
     }
     return false
-  }
 }

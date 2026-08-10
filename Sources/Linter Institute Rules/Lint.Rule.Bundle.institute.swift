@@ -155,6 +155,22 @@ extension Lint.Rule.Bundle {
       // is not evidence of compliance for a manifest that hoists
       // every dependency array behind a computed value.
       .enable(.`bare string dependency`),
+      // [#65, principal directive 2026-08-09] — manifest naming
+      // grammar: package kebab slug, spaced product/target names,
+      // declared-path correspondence. Advisory at introduction; error
+      // only after the standing graduation gate. Known-open findings
+      // (institute-application's pre-split InstituteArchitecture*
+      // names) are enumerated on #65 as the respacing transaction's
+      // work list, not forced to zero.
+      .enable(.`manifest naming grammar`),
+      // [#65, principal directive 2026-08-09; Nest.Name directory
+      // ruling 2026-08-06] — path naming grammar: directory segments
+      // and declared-type file basename segments. The ruled Workspace
+      // validator was audited and found unimplemented; the owner
+      // decision (linter Naming family) is recorded in the rule doc.
+      // Advisory at introduction; error only after the standing
+      // graduation gate.
+      .enable(.`path name grammar`),
       // [swift-structured-queries-primitives#2 ruling, 2026-07-30] —
       // implemented per swift-institute-linter-rules#31. Advisory at
       // introduction; error only after the standing graduation gate.
