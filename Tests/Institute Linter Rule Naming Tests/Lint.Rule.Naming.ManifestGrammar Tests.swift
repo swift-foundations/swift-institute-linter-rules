@@ -251,4 +251,76 @@ extension Lint.Rule.`manifest naming grammar Tests`.`Edge Case` {
     let findings = Lint.Rule.`manifest naming grammar Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
+
+  // ── .systemLibrary factory (C-shim naming ruling, #65 principal
+  //    ruling 2026-08-10: system-library targets take the same spaced
+  //    grammar as every other target). ──
+
+  // Positive control for the amended factory set: a concatenated
+  // compound systemLibrary name fires exactly like a .target name.
+  @Test
+  func `concatenated system library name is flagged`() {
+    let source = """
+      let package = Package(
+        name: "swift-image-magick",
+        targets: [
+          .systemLibrary(name: "CImageMagickShim", pkgConfig: "MagickWand-7.Q16HDRI")
+        ]
+      )
+      """
+    let findings = Lint.Rule.`manifest naming grammar Tests`.findings(in: source)
+    #expect(findings.count == 1)
+    #expect(findings.first?.message.contains("CImageMagickShim") == true)
+  }
+
+  // The ruled shape is silent.
+  @Test
+  func `spaced system library name is permitted`() {
+    let source = """
+      let package = Package(
+        name: "swift-image-magick",
+        targets: [
+          .systemLibrary(name: "Image Magick Shims", pkgConfig: "MagickWand-7.Q16HDRI")
+        ]
+      )
+      """
+    let findings = Lint.Rule.`manifest naming grammar Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // Near-miss, recorded owner boundary: a single lowercase word
+  // (`imagemagick`, the live fleet instance) is silent HERE by the
+  // grammar's own single-word rule (the `institute` executable
+  // precedent); the `* Shims` shape half of the ruling is the
+  // validator family's predicate (R2a), not this rule's.
+  @Test
+  func `single lowercase system library name is silent residue owned by the validator`() {
+    let source = """
+      let package = Package(
+        name: "swift-image-magick",
+        targets: [
+          .systemLibrary(name: "imagemagick", pkgConfig: "MagickWand-7.Q16HDRI")
+        ]
+      )
+      """
+    let findings = Lint.Rule.`manifest naming grammar Tests`.findings(in: source)
+    #expect(findings.isEmpty)
+  }
+
+  // The path-correspondence predicate covers .systemLibrary too (it
+  // carries `path:` like any target factory).
+  @Test
+  func `concatenated path segment under a spaced system library is flagged`() {
+    let source = """
+      let package = Package(
+        name: "swift-image-magick",
+        targets: [
+          .systemLibrary(name: "Image Magick Shims", path: "Sources/ImageMagickShims")
+        ]
+      )
+      """
+    let findings = Lint.Rule.`manifest naming grammar Tests`.findings(in: source)
+    #expect(findings.count == 1)
+    #expect(findings.first?.message.contains("ImageMagickShims") == true)
+  }
 }
