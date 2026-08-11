@@ -183,6 +183,12 @@ extension Lint.Rule.Bundle {
       .enable(.`safe attribute undocumented`),
       .enable(.`pointer advanced by`),
       .enable(.`sendable struct with class member`),
+      // [MEM-SEND-007] (swift-institute-linter-rules#76) — ownership
+      // preference is scoped borrow/non-escape, then consuming/sending
+      // transfer, then isolated/region transfer; @Sendable is reserved for
+      // justified concurrent sharing. Advisory at introduction; the rule is
+      // structurally ready for promotion under the standing graduation gate.
+      .enable(.`sendable sharing requirement`),
       .enable(.`unchecked sendable revalidation anchor`),
       .enable(.`unsafe assignment granularity`),
       // [swift-property-primitives#7 adjudication] — implemented per

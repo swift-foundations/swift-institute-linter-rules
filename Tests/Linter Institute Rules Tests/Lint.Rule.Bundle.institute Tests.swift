@@ -21,7 +21,7 @@ import Testing
 /// rules at #26 origination, +3 (#29/#30/#31 — sending return conditional
 /// sendable state, protocol sentinel under generic front door, foundation
 /// integration leaf target) landed enabled without a matching update
-/// here, discovered and backfilled here — 93 declared rules, 92 enabled +
+/// here, discovered and backfilled here — 94 declared rules, 93 enabled +
 /// 1 deliberate exclusion — this test converts that receipt into a
 /// standing gate: whoever adds or removes a rule from a pack MUST update
 /// this list in the same change, or the composition-drift test below
@@ -101,6 +101,7 @@ private let allDeclaredRuleIDs: Swift.Set<Swift.String> = [
   "result wrapper for rethrows shim",
   "safe attribute undocumented",
   "sendable struct with class member",
+  "sendable sharing requirement",
   "sending return conditional sendable state",
   "single type namespace",
   "single type per file",
