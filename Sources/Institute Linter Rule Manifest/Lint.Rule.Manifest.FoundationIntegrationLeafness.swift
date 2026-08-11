@@ -13,8 +13,8 @@ public import Linter_Primitives
 internal import SwiftSyntax
 
 /// A target whose name ends in `Foundation Integration` MUST be a
-/// leaf: declared as a `.library` product of its own, and depended on
-/// by no other target.
+/// leaf: declared as a `.library` or `.executable` product of its own,
+/// and depended on by no other target.
 ///
 /// The architecture doctrine's Foundation-freedom exception has three
 /// conditions: the target must (a) be named `* Foundation
@@ -24,7 +24,8 @@ internal import SwiftSyntax
 /// checks only (a) — a source-path regex exclusion has no view of
 /// `Package.swift`'s target graph, so it cannot see (b) or (c). This
 /// rule mechanizes what the manifest CAN prove: (b) directly (is
-/// there a dedicated `.library` product?), and one edge of (c) (does
+/// there a dedicated `.library` or `.executable` product?), and one edge
+/// of (c) (does
 /// any OTHER target list it in `dependencies:`?) — the manifest states
 /// direct edges; a fully transitive closure would additionally need
 /// this package's dependencies' own manifests, out of scope for a
@@ -44,7 +45,7 @@ internal import SwiftSyntax
 /// ADVISORY at introduction, per the standing graduation discipline
 /// (issue #11) — promote to `.error` only after fleet validation.
 extension Lint.Rule {
-  /// Flags a `* Foundation Integration` target that is not its own leaf `.library` product, or that another target depends on ([swift-structured-queries-primitives#2]).
+  /// Flags a `* Foundation Integration` target that is not its own leaf product, or that another target depends on ([swift-structured-queries-primitives#2]).
   public static let `foundation integration leaf target` = Lint.Rule(
     id: "foundation integration leaf target",
     default: .warning,
@@ -63,11 +64,13 @@ extension Lint.Rule {
 
 private let manifestFoundationIntegrationLeafnessMessage: Swift.String =
   "[foundation integration leaf target]: a target named `* Foundation "
-  + "Integration` must be a LEAF — declared as a `.library` product of "
+  + "Integration` must be a LEAF — declared as a `.library` or `.executable` product "
+  + "of "
   + "its own, and depended on by no other target. A name-based "
   + "exclusion (the Tier 2 SwiftLint carve-out) grants the "
   + "Foundation-freedom exception on the name alone and cannot see "
-  + "this. Either declare a dedicated `.library` product exposing only "
+  + "this. Either declare a dedicated `.library` or `.executable` product exposing "
+  + "only "
   + "this target, or remove it from whichever other target's "
   + "`dependencies:` still lists it (per "
   + "swift-structured-queries-primitives#2)."
@@ -100,10 +103,11 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
   /// product and can never alias a local target name).
   private var dependencyEdgesByDepender: [Swift.String: Swift.Set<Swift.String>] = [:]
 
-  /// Each `.library(name:targets:)` product's `targets:` array,
-  /// verbatim (order and duplicates preserved) — used to test for an
-  /// exact single-element match.
-  private var libraryProductTargetLists: [[Swift.String]] = []
+  /// Each admitted product's `targets:` array, verbatim (order and duplicates
+  /// preserved) — used to test for an exact single-element match. Foundation
+  /// Integration is a target boundary, not a library-only boundary: a command
+  /// entrypoint may lawfully be the target's sole executable product.
+  private var leafProductTargetLists: [[Swift.String]] = []
 
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
     self.source = source
@@ -117,8 +121,8 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
       return .visitChildren
     }
     let calleeName = member.declName.baseName.text
-    if calleeName == "library" {
-      recordLibraryProduct(node)
+    if calleeName == "library" || calleeName == "executable" {
+      recordLeafProduct(node)
     } else if manifestFoundationIntegrationTargetFactories.contains(calleeName),
       !isNestedInsideDependenciesArgument(Syntax(node))
     {
@@ -150,7 +154,7 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
     return false
   }
 
-  private func recordLibraryProduct(_ node: FunctionCallExprSyntax) {
+  private func recordLeafProduct(_ node: FunctionCallExprSyntax) {
     for argument in node.arguments where argument.label?.text == "targets" {
       guard let array = argument.expression.as(ArrayExprSyntax.self) else { continue }
       var names: [Swift.String] = []
@@ -160,7 +164,7 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
         else { continue }
         names.append(text)
       }
-      libraryProductTargetLists.append(names)
+      leafProductTargetLists.append(names)
     }
   }
 
@@ -211,7 +215,7 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
   /// (possibly later-in-file) product/dependency data.
   internal func resolvedMatches() -> [Diagnostic.Record] {
     for target in foundationIntegrationTargets {
-      let isLeafProduct = libraryProductTargetLists.contains { $0 == [target.name] }
+      let isLeafProduct = leafProductTargetLists.contains { $0 == [target.name] }
       let hasIncomingEdge = dependencyEdgesByDepender.contains { depender, referenced in
         depender != target.name && referenced.contains(target.name)
       }
