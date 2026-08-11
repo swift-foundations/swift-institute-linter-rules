@@ -103,6 +103,15 @@ extension Lint.Rule.`path name grammar Tests`.Unit {
 
 extension Lint.Rule.`path name grammar Tests`.`Edge Case` {
   @Test
+  func `bare filename without a directory is out of surface`() {
+    let findings = Lint.Rule.`path name grammar Tests`.findings(
+      in: "struct Fixture {}",
+      file: "Fixture.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `docc catalogue directory is exempt`() {
     let findings = Lint.Rule.`path name grammar Tests`.findings(
       in: "struct Snippet {}",
@@ -112,12 +121,33 @@ extension Lint.Rule.`path name grammar Tests`.`Edge Case` {
   }
 
   @Test
-  func `snapshots directory is exempt`() {
+  func `canonical dot snapshots directory is exempt`() {
+    let findings = Lint.Rule.`path name grammar Tests`.findings(
+      in: "struct Fixture {}",
+      file: "Tests/Institute Application Snapshot Tests/.snapshots/Fixture.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `legacy snapshots directory is flagged`() {
     let findings = Lint.Rule.`path name grammar Tests`.findings(
       in: "struct Fixture {}",
       file: "Tests/Institute Application Snapshot Tests/__Snapshots__/Fixture.swift"
     )
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
+    #expect(findings.first?.identifier == "path name grammar")
+    #expect(findings.first?.message.contains(".snapshots") == true)
+  }
+
+  @Test
+  func `snapshot directory case near miss is flagged`() {
+    let findings = Lint.Rule.`path name grammar Tests`.findings(
+      in: "struct Fixture {}",
+      file: "Tests/Institute Application Snapshot Tests/.Snapshots/Fixture.swift"
+    )
+    #expect(findings.count == 1)
+    #expect(findings.first?.message.contains(".Snapshots") == true)
   }
 
   @Test

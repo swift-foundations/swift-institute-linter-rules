@@ -35,10 +35,12 @@ internal import SwiftSyntax
 ///    concatenated compound by the shared predicate (brand tokens such
 ///    as `GitHub` exempt there). `Institute Architecture CLI` passes;
 ///    `InstituteArchitectureCLI` fires. Segments whose name ends in
-///    `.docc` (documentation catalogues, tool-named) and the snapshot
-///    directory `__Snapshots__` (swift-snapshot-testing's own spelling)
-///    are exempt by predicate — their orthography is fixed by the
-///    owning tool, not by the Institute grammar.
+///    `.docc` (documentation catalogues, tool-named) and the canonical
+///    snapshot-reference directory `.snapshots` are exempt by
+///    predicate — their orthography is fixed by the owning tool or
+///    Institute policy, not by the Nest.Name grammar. Other spellings
+///    in the snapshot-directory family, including legacy
+///    `__Snapshots__`, fire with `.snapshots` as the canonical fix.
 /// 2. **File basename dot segments**: when the file declares at least
 ///    one primary nominal type (directly at top level or nested in a
 ///    top-level extension — the same notion `file name nested path`
@@ -89,8 +91,19 @@ extension Lint.Rule {
 /// Directory segments exempt by predicate: tool-owned orthography.
 internal func namingPathGrammarDirectoryIsExempt(_ segment: Swift.String) -> Swift.Bool {
   if segment.hasSuffix(".docc") { return true }
-  if segment == "__Snapshots__" { return true }
+  if segment == ".snapshots" { return true }
   return false
+}
+
+/// Whether a directory uses a noncanonical spelling from the
+/// snapshot-reference directory family. Punctuation and case are
+/// normalized only to recognize that bounded family; unrelated target
+/// names such as `Example Snapshot Tests` remain on the Nest.Name path.
+internal func namingPathGrammarSnapshotDirectoryIsInvalid(
+  _ segment: Swift.String
+) -> Swift.Bool {
+  guard segment != ".snapshots" else { return false }
+  return segment.filter { $0.isLetter }.lowercased() == "snapshots"
 }
 
 /// The compound words in one path or basename segment: the segment is
@@ -109,6 +122,14 @@ internal func namingPathGrammarDirectoryMessage(
     + words.map { "'\($0)'" }.joined(separator: ", ")
     + " — directory names use the spaced Nest.Name form "
     + "(e.g. `Institute Architecture CLI`); rename the directory"
+}
+
+@usableFromInline
+internal func namingPathGrammarSnapshotDirectoryMessage(
+  segment: Swift.String
+) -> Swift.String {
+  "[path name grammar]: snapshot-reference directory '\(segment)' uses a "
+    + "noncanonical spelling — rename the directory to `.snapshots`"
 }
 
 @usableFromInline
@@ -155,6 +176,10 @@ internal func namingPathGrammarFindings(
 
   // Predicate 1 — directory segments after the Sources/Tests root.
   for segment in parts[(rootIndex + 1)..<(parts.count - 1)] {
+    if namingPathGrammarSnapshotDirectoryIsInvalid(segment) {
+      emit(namingPathGrammarSnapshotDirectoryMessage(segment: segment))
+      continue
+    }
     guard !namingPathGrammarDirectoryIsExempt(segment) else { continue }
     let words = namingPathGrammarCompoundWords(in: segment)
     if !words.isEmpty {
