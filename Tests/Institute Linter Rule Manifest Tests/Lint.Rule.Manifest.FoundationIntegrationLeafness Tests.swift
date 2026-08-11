@@ -75,6 +75,31 @@ extension Lint.Rule.`foundation integration leaf target Tests`.Negative {
   }
 
   @Test
+  func `a singleton executable Foundation Integration product is NOT flagged`() {
+    let source = """
+      let package = Package(
+        name: "x",
+        products: [
+          .library(name: "X", targets: ["X"]),
+          .executable(
+            name: "x-foundation-integration",
+            targets: ["X Foundation Integration"]
+          ),
+        ],
+        targets: [
+          .target(name: "X", dependencies: []),
+          .executableTarget(
+            name: "X Foundation Integration",
+            dependencies: ["X"]
+          ),
+        ]
+      )
+      """
+    let findings = Lint.Rule.`foundation integration leaf target Tests`.findings(source: source)
+    #expect(findings.isEmpty)
+  }
+
+  @Test
   func `non-manifest file is NOT scanned`() {
     let source = """
       .target(
@@ -140,6 +165,45 @@ extension Lint.Rule.`foundation integration leaf target Tests`.Unit {
   }
 
   @Test
+  func `Foundation Integration target folded into a shared executable product is flagged`() {
+    let source = """
+      let package = Package(
+        name: "x",
+        products: [
+          .executable(
+            name: "x",
+            targets: ["X", "X Foundation Integration"]
+          ),
+        ],
+        targets: [
+          .executableTarget(name: "X", dependencies: []),
+          .executableTarget(name: "X Foundation Integration", dependencies: ["X"]),
+        ]
+      )
+      """
+    let findings = Lint.Rule.`foundation integration leaf target Tests`.findings(source: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `a non Foundation Integration executable product does not satisfy the leaf product`() {
+    let source = """
+      let package = Package(
+        name: "x",
+        products: [
+          .executable(name: "x", targets: ["X"]),
+        ],
+        targets: [
+          .executableTarget(name: "X", dependencies: []),
+          .executableTarget(name: "X Foundation Integration", dependencies: ["X"]),
+        ]
+      )
+      """
+    let findings = Lint.Rule.`foundation integration leaf target Tests`.findings(source: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
   func `Foundation Integration target with no product at all is flagged`() {
     let source = """
       let package = Package(
@@ -171,6 +235,28 @@ extension Lint.Rule.`foundation integration leaf target Tests`.Unit {
         targets: [
           .target(name: "X", dependencies: ["X Foundation Integration"]),
           .target(name: "X Foundation Integration", dependencies: []),
+        ]
+      )
+      """
+    let findings = Lint.Rule.`foundation integration leaf target Tests`.findings(source: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `Foundation Integration executable depended on by a core target is flagged`() {
+    let source = """
+      let package = Package(
+        name: "x",
+        products: [
+          .library(name: "X", targets: ["X"]),
+          .executable(
+            name: "x-foundation-integration",
+            targets: ["X Foundation Integration"]
+          ),
+        ],
+        targets: [
+          .target(name: "X", dependencies: ["X Foundation Integration"]),
+          .executableTarget(name: "X Foundation Integration", dependencies: []),
         ]
       )
       """
