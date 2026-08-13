@@ -207,6 +207,9 @@ extension Lint.Rule.Bundle {
       .enable(.`typealiased namespace bridge`),
       // Structure pack (Wave 3 2026-05-15)
       .enable(.`hoisted protocol alias`),
+      // Native successor to the γ-1b Stage 1 package-CI audit. Textual by
+      // definition and advisory at introduction; no separate workflow job.
+      .enable(.`license header`),
       .enable(.`minimal type body`),
       .enable(.`raw value access`),
       .enable(.`single type per file`),
