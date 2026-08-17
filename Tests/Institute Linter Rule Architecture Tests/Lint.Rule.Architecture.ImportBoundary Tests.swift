@@ -18,110 +18,112 @@ import Testing
 @testable import Institute_Linter_Rule_Architecture
 
 extension Lint.Rule {
-  @Suite
-  struct `architecture import boundary Tests` {
-    @Suite struct Unit {}
-    @Suite struct `Edge Case` {}
-    @Suite struct Integration {}
-  }
+    @Suite
+    struct `architecture import boundary Tests` {
+        @Suite struct Unit {}
+        @Suite struct `Edge Case` {}
+        @Suite struct Integration {}
+    }
 }
 
 extension Lint.Rule.`architecture import boundary Tests` {
-  static func findings(
-    in source: String, file: String = "Sources/Model Core/Model.swift"
-  ) -> [Diagnostic.Record] {
-    let parsed = Lint.Source.parsed(from: source, file: file)
-    return Lint.Rule.`architecture import boundary`.findings(parsed, .warning)
-  }
-
-  @Test
-  func `@_exported import in an ordinary source file is flagged`() {
-    let findings = Self.findings(in: "@_exported import Binary_Primitives")
-    #expect(findings.count == 1)
-  }
-
-  @Test
-  func `@_exported public import combined form is flagged`() {
-    // Attribute AND access modifier on one line — the shape a regex loses.
-    let findings = Self.findings(in: "@_exported public import Binary_Primitives")
-    #expect(findings.count == 1)
-  }
-
-  @Test
-  func `a plain import is not flagged`() {
-    let findings = Self.findings(in: "public import Binary_Primitives")
-    #expect(findings.isEmpty)
-  }
-
-  @Test
-  func `the umbrella exports file is exempt`() {
-    // Both-direction fixture for the [RULE-EXEMPT-12] umbrella carve-out.
-    let findings = Self.findings(
-      in: "@_exported public import Binary_Primitives",
-      file: "Sources/Model Core/exports.swift"
-    )
-    #expect(findings.isEmpty)
-  }
-
-  @Test
-  func `a file merely ENDING in exports_swift is not the umbrella`() {
-    // Near-miss: exact whole-filename match only.
-    for path in [
-      "Sources/Model Core/ReExports.swift",
-      "Sources/Model Core/Model.exports.swift",
-    ] {
-      let findings = Self.findings(
-        in: "@_exported import Binary_Primitives", file: path
-      )
-      #expect(findings.count == 1, "expected a finding for \(path)")
+    static func findings(
+        in source: String,
+        file: String = "Sources/Model Core/Model.swift"
+    ) -> [Diagnostic.Record] {
+        let parsed = Lint.Source.parsed(from: source, file: file)
+        return Lint.Rule.`architecture import boundary`.findings(parsed, .warning)
     }
-  }
 
-  @Test
-  func `a directory named exports_swift does not exempt its contents`() {
-    // The umbrella is a FILE; a directory segment of the same spelling is
-    // not it.
-    let findings = Self.findings(
-      in: "@_exported import Binary_Primitives",
-      file: "Sources/Model Core/exports.swift/Model.swift"
-    )
-    #expect(findings.count == 1)
-  }
+    @Test
+    func `@_exported import in an ordinary source file is flagged`() {
+        let findings = Self.findings(in: "@_exported import Binary_Primitives")
+        #expect(findings.count == 1)
+    }
 
-  @Test
-  func `test sources are exempt`() {
-    // Both-direction fixture for the non-main-target carve-out.
-    let findings = Self.findings(
-      in: "@_exported import Binary_Primitives",
-      file: "Tests/Model Core Tests/Support.swift"
-    )
-    #expect(findings.isEmpty)
-  }
+    @Test
+    func `@_exported public import combined form is flagged`() {
+        // Attribute AND access modifier on one line — the shape a regex loses.
+        let findings = Self.findings(in: "@_exported public import Binary_Primitives")
+        #expect(findings.count == 1)
+    }
 
-  @Test
-  func `a space-separated MAIN target directory is not accidentally exempted`() {
-    let findings = Self.findings(
-      in: "@_exported import Binary_Primitives",
-      file: "Sources/Products Live/Client.swift"
-    )
-    #expect(findings.count == 1)
-  }
+    @Test
+    func `a plain import is not flagged`() {
+        let findings = Self.findings(in: "public import Binary_Primitives")
+        #expect(findings.isEmpty)
+    }
 
-  @Test
-  func `an attribute that merely resembles _exported does not fire`() {
-    // Near-miss on the attribute name itself.
-    let findings = Self.findings(in: "@_implementationOnly import Binary_Primitives")
-    #expect(findings.isEmpty)
-  }
+    @Test
+    func `the umbrella exports file is exempt`() {
+        // Both-direction fixture for the [RULE-EXEMPT-12] umbrella carve-out.
+        let findings = Self.findings(
+            in: "@_exported public import Binary_Primitives",
+            file: "Sources/Model Core/exports.swift"
+        )
+        #expect(findings.isEmpty)
+    }
 
-  @Test
-  func `every scattered re-export in one file is reported`() {
-    let source = """
-      @_exported public import Binary_Primitives
-      import Time_Primitives
-      @_exported public import Time_Primitives
-      """
-    let findings = Self.findings(in: source)
-    #expect(findings.count == 2)
-  }
+    @Test
+    func `a file merely ENDING in exports_swift is not the umbrella`() {
+        // Near-miss: exact whole-filename match only.
+        for path in [
+            "Sources/Model Core/ReExports.swift",
+            "Sources/Model Core/Model.exports.swift",
+        ] {
+            let findings = Self.findings(
+                in: "@_exported import Binary_Primitives",
+                file: path
+            )
+            #expect(findings.count == 1, "expected a finding for \(path)")
+        }
+    }
+
+    @Test
+    func `a directory named exports_swift does not exempt its contents`() {
+        // The umbrella is a FILE; a directory segment of the same spelling is
+        // not it.
+        let findings = Self.findings(
+            in: "@_exported import Binary_Primitives",
+            file: "Sources/Model Core/exports.swift/Model.swift"
+        )
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `test sources are exempt`() {
+        // Both-direction fixture for the non-main-target carve-out.
+        let findings = Self.findings(
+            in: "@_exported import Binary_Primitives",
+            file: "Tests/Model Core Tests/Support.swift"
+        )
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `a space-separated MAIN target directory is not accidentally exempted`() {
+        let findings = Self.findings(
+            in: "@_exported import Binary_Primitives",
+            file: "Sources/Products Live/Client.swift"
+        )
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `an attribute that merely resembles _exported does not fire`() {
+        // Near-miss on the attribute name itself.
+        let findings = Self.findings(in: "@_implementationOnly import Binary_Primitives")
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `every scattered re-export in one file is reported`() {
+        let source = """
+            @_exported public import Binary_Primitives
+            import Time_Primitives
+            @_exported public import Time_Primitives
+            """
+        let findings = Self.findings(in: source)
+        #expect(findings.count == 2)
+    }
 }

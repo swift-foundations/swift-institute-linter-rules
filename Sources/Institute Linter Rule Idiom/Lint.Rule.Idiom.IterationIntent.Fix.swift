@@ -71,12 +71,12 @@ internal import SwiftSyntax
 /// line. A fixed-but-broken loop is a silent behaviour change in a commit
 /// nobody looked at. The asymmetry is the whole argument.
 internal func idiomIterationIntentFixed(
-  _ source: borrowing Lint.Source.Parsed
+    _ source: borrowing Lint.Source.Parsed
 ) -> Swift.String? {
-  let rewriter = IdiomIterationIntentRewriter()
-  let rewritten = rewriter.visit(source.tree)
-  guard rewriter.changed else { return nil }
-  return rewritten.description
+    let rewriter = IdiomIterationIntentRewriter()
+    let rewritten = rewriter.visit(source.tree)
+    guard rewriter.changed else { return nil }
+    return rewritten.description
 }
 
 /// Whether `loop` may be translated to `forEach` without changing meaning.
@@ -85,20 +85,20 @@ internal func idiomIterationIntentFixed(
 /// the finding does not — and then applies the closure-boundary
 /// restrictions the detector has no reason to know about.
 internal func idiomIterationIntentIsFixable(_ loop: ForStmtSyntax) -> Swift.Bool {
-  guard loop.pattern.is(IdentifierPatternSyntax.self) else { return false }
-  guard idiomIsRangeExpression(loop.sequence) else { return false }
-  guard !idiomLoopPreservesTypedThrows(loop) else { return false }
-  // A `where` clause is a filter, and a type annotation is an explicit
-  // parameter type. Both are expressible in a closure, and neither is
-  // expressible without deciding how — so neither is translated here.
-  guard loop.whereClause == nil, loop.typeAnnotation == nil else { return false }
-  // A labelled loop's label can only be the target of a `break`/`continue`
-  // that names it, and neither survives the translation.
-  guard loop.parent?.as(LabeledStmtSyntax.self) == nil else { return false }
-  guard !idiomIterationIntentProducesContent(loop) else { return false }
-  guard !idiomIterationIntentDropsComments(loop) else { return false }
-  guard !idiomIterationIntentReferencesOwnershipAnnotatedBinding(loop) else { return false }
-  return !idiomIterationIntentBodyEscapes(Syntax(loop.body))
+    guard loop.pattern.is(IdentifierPatternSyntax.self) else { return false }
+    guard idiomIsRangeExpression(loop.sequence) else { return false }
+    guard !idiomLoopPreservesTypedThrows(loop) else { return false }
+    // A `where` clause is a filter, and a type annotation is an explicit
+    // parameter type. Both are expressible in a closure, and neither is
+    // expressible without deciding how — so neither is translated here.
+    guard loop.whereClause == nil, loop.typeAnnotation == nil else { return false }
+    // A labelled loop's label can only be the target of a `break`/`continue`
+    // that names it, and neither survives the translation.
+    guard loop.parent?.as(LabeledStmtSyntax.self) == nil else { return false }
+    guard !idiomIterationIntentProducesContent(loop) else { return false }
+    guard !idiomIterationIntentDropsComments(loop) else { return false }
+    guard !idiomIterationIntentReferencesOwnershipAnnotatedBinding(loop) else { return false }
+    return !idiomIterationIntentBodyEscapes(Syntax(loop.body))
 }
 
 /// Whether `loop`'s body references a `borrowing` or `consuming` parameter
@@ -123,11 +123,11 @@ internal func idiomIterationIntentIsFixable(_ loop: ForStmtSyntax) -> Swift.Bool
 /// never runs unresolvable full-program name lookup and never refuses a
 /// loop for a name it cannot explain.
 private func idiomIterationIntentReferencesOwnershipAnnotatedBinding(
-  _ loop: ForStmtSyntax
+    _ loop: ForStmtSyntax
 ) -> Swift.Bool {
-  let names = idiomEnclosingOwnershipAnnotatedParameterNames(Syntax(loop))
-  guard !names.isEmpty else { return false }
-  return idiomSubtreeReferencesAnyName(names, in: Syntax(loop.body))
+    let names = idiomEnclosingOwnershipAnnotatedParameterNames(Syntax(loop))
+    guard !names.isEmpty else { return false }
+    return idiomSubtreeReferencesAnyName(names, in: Syntax(loop.body))
 }
 
 /// The `borrowing`/`consuming` parameter names declared by the nearest
@@ -140,42 +140,45 @@ private func idiomIterationIntentReferencesOwnershipAnnotatedBinding(
 /// to cross one and never needs to decide what a closure parameter's
 /// ownership would mean.
 private func idiomEnclosingOwnershipAnnotatedParameterNames(
-  _ node: Syntax
+    _ node: Syntax
 ) -> Swift.Set<Swift.String> {
-  var current: Syntax? = node.parent
-  while let candidate = current {
-    if let function = candidate.as(FunctionDeclSyntax.self) {
-      return idiomOwnershipAnnotatedParameterNames(function.signature.parameterClause.parameters)
+    var current: Syntax? = node.parent
+    while let candidate = current {
+        if let function = candidate.as(FunctionDeclSyntax.self) {
+            return idiomOwnershipAnnotatedParameterNames(
+                function.signature.parameterClause.parameters
+            )
+        }
+        if let initializer = candidate.as(InitializerDeclSyntax.self) {
+            return idiomOwnershipAnnotatedParameterNames(
+                initializer.signature.parameterClause.parameters
+            )
+        }
+        if let subscriptDecl = candidate.as(SubscriptDeclSyntax.self) {
+            return idiomOwnershipAnnotatedParameterNames(subscriptDecl.parameterClause.parameters)
+        }
+        current = candidate.parent
     }
-    if let initializer = candidate.as(InitializerDeclSyntax.self) {
-      return idiomOwnershipAnnotatedParameterNames(
-        initializer.signature.parameterClause.parameters)
-    }
-    if let subscriptDecl = candidate.as(SubscriptDeclSyntax.self) {
-      return idiomOwnershipAnnotatedParameterNames(subscriptDecl.parameterClause.parameters)
-    }
-    current = candidate.parent
-  }
-  return []
+    return []
 }
 
 /// The local (body-visible) names of every parameter in `parameters` whose
 /// type carries an explicit `borrowing` or `consuming` specifier.
 private func idiomOwnershipAnnotatedParameterNames(
-  _ parameters: FunctionParameterListSyntax
+    _ parameters: FunctionParameterListSyntax
 ) -> Swift.Set<Swift.String> {
-  var names: Swift.Set<Swift.String> = []
-  for parameter in parameters {
-    guard let attributed = parameter.type.as(AttributedTypeSyntax.self) else { continue }
-    for specifier in attributed.specifiers {
-      guard let simple = specifier.as(SimpleTypeSpecifierSyntax.self) else { continue }
-      let kind = simple.specifier.tokenKind
-      guard kind == .keyword(.borrowing) || kind == .keyword(.consuming) else { continue }
-      names.insert((parameter.secondName ?? parameter.firstName).text)
-      break
+    var names: Swift.Set<Swift.String> = []
+    for parameter in parameters {
+        guard let attributed = parameter.type.as(AttributedTypeSyntax.self) else { continue }
+        for specifier in attributed.specifiers {
+            guard let simple = specifier.as(SimpleTypeSpecifierSyntax.self) else { continue }
+            let kind = simple.specifier.tokenKind
+            guard kind == .keyword(.borrowing) || kind == .keyword(.consuming) else { continue }
+            names.insert((parameter.secondName ?? parameter.firstName).text)
+            break
+        }
     }
-  }
-  return names
+    return names
 }
 
 /// Whether `node`'s subtree references any identifier in `names`.
@@ -186,17 +189,18 @@ private func idiomOwnershipAnnotatedParameterNames(
 /// parameter, so a reference confined to one is not this guard's concern
 /// and the walk does not descend into it.
 private func idiomSubtreeReferencesAnyName(
-  _ names: Swift.Set<Swift.String>, in node: Syntax
+    _ names: Swift.Set<Swift.String>,
+    in node: Syntax
 ) -> Swift.Bool {
-  if node.is(ClosureExprSyntax.self) { return false }
-  if node.is(FunctionDeclSyntax.self) { return false }
-  if let reference = node.as(DeclReferenceExprSyntax.self) {
-    return names.contains(reference.baseName.text)
-  }
-  for child in node.children(viewMode: .sourceAccurate) {
-    if idiomSubtreeReferencesAnyName(names, in: child) { return true }
-  }
-  return false
+    if node.is(ClosureExprSyntax.self) { return false }
+    if node.is(FunctionDeclSyntax.self) { return false }
+    if let reference = node.as(DeclReferenceExprSyntax.self) {
+        return names.contains(reference.baseName.text)
+    }
+    for child in node.children(viewMode: .sourceAccurate) {
+        if idiomSubtreeReferencesAnyName(names, in: child) { return true }
+    }
+    return false
 }
 
 /// Whether translating `loop` would discard a comment.
@@ -211,17 +215,17 @@ private func idiomSubtreeReferencesAnyName(
 /// is not a fix. There is no obviously right place to reattach either one,
 /// so the loop stays a finding.
 private func idiomIterationIntentDropsComments(_ loop: ForStmtSyntax) -> Swift.Bool {
-  let dropped: [Trivia] = [
-    loop.forKeyword.trailingTrivia,
-    loop.pattern.leadingTrivia,
-    loop.pattern.trailingTrivia,
-    loop.inKeyword.leadingTrivia,
-    loop.inKeyword.trailingTrivia,
-    loop.sequence.leadingTrivia,
-    loop.sequence.trailingTrivia,
-    loop.body.leftBrace.leadingTrivia,
-  ]
-  return dropped.contains(where: idiomTriviaHasComment)
+    let dropped: [Trivia] = [
+        loop.forKeyword.trailingTrivia,
+        loop.pattern.leadingTrivia,
+        loop.pattern.trailingTrivia,
+        loop.inKeyword.leadingTrivia,
+        loop.inKeyword.trailingTrivia,
+        loop.sequence.leadingTrivia,
+        loop.sequence.trailingTrivia,
+        loop.body.leftBrace.leadingTrivia,
+    ]
+    return dropped.contains(where: idiomTriviaHasComment)
 }
 
 /// Whether `trivia` holds anything a person wrote — that is, anything but
@@ -232,17 +236,17 @@ private func idiomIterationIntentDropsComments(_ loop: ForStmtSyntax) -> Swift.B
 /// answers `true` so that a trivia kind this rule has never seen refuses
 /// rather than gets deleted.
 private func idiomTriviaHasComment(_ trivia: Trivia) -> Swift.Bool {
-  for piece in trivia {
-    switch piece {
-    case .spaces, .tabs, .newlines, .carriageReturns, .carriageReturnLineFeeds,
-      .formfeeds, .verticalTabs:
-      continue
+    for piece in trivia {
+        switch piece {
+        case .spaces, .tabs, .newlines, .carriageReturns, .carriageReturnLineFeeds,
+            .formfeeds, .verticalTabs:
+            continue
 
-    default:
-      return true
+        default:
+            return true
+        }
     }
-  }
-  return false
+    return false
 }
 
 /// Whether `loop` sits in a body whose statements PRODUCE a value rather
@@ -263,44 +267,44 @@ private func idiomTriviaHasComment(_ trivia: Trivia) -> Swift.Bool {
 /// boundary, because a builder attribute on an outer declaration says
 /// nothing about a plain closure nested inside it.
 private func idiomIterationIntentProducesContent(_ loop: ForStmtSyntax) -> Swift.Bool {
-  var node: Syntax? = Syntax(loop).parent
-  while let current = node {
-    // A closure is a boundary, and ANY closure may be a builder body: the
-    // attribute lives on the parameter the closure is passed to, in another
-    // file, and no amount of local syntax can rule that out —
-    // `PDF.Stack(…) { … }` and `VStack { … }` are exactly this shape.
-    //
-    // A parameter signature does NOT prove otherwise. A result-builder
-    // parameter is an ordinary function type and may take arguments:
-    // `init(@ListBuilder content: (Int) -> [String])` is called
-    // `Reader { proxy in … }`, and a builder that accepts `Void` — every
-    // builder with a `buildExpression(_: Void)` overload, and the
-    // geometry-proxy shape generally — swallows the rewritten `forEach`
-    // and renders nothing where the loop produced content. That compiles.
-    // Nothing catches it.
-    if current.is(ClosureExprSyntax.self) { return true }
-    // A declaration is a boundary. It is a builder body when it carries a
-    // builder attribute, or when its result is opaque — `var body: some
-    // View` infers `@ViewBuilder` from the protocol without spelling it,
-    // and the syntax of the declaration is all this rule ever sees.
-    if let attributes = idiomDeclarationAttributes(current) {
-      return idiomAttributesNameABuilder(attributes)
-        || idiomDeclarationResultIsOpaque(current)
+    var node: Syntax? = Syntax(loop).parent
+    while let current = node {
+        // A closure is a boundary, and ANY closure may be a builder body: the
+        // attribute lives on the parameter the closure is passed to, in another
+        // file, and no amount of local syntax can rule that out —
+        // `PDF.Stack(…) { … }` and `VStack { … }` are exactly this shape.
+        //
+        // A parameter signature does NOT prove otherwise. A result-builder
+        // parameter is an ordinary function type and may take arguments:
+        // `init(@ListBuilder content: (Int) -> [String])` is called
+        // `Reader { proxy in … }`, and a builder that accepts `Void` — every
+        // builder with a `buildExpression(_: Void)` overload, and the
+        // geometry-proxy shape generally — swallows the rewritten `forEach`
+        // and renders nothing where the loop produced content. That compiles.
+        // Nothing catches it.
+        if current.is(ClosureExprSyntax.self) { return true }
+        // A declaration is a boundary. It is a builder body when it carries a
+        // builder attribute, or when its result is opaque — `var body: some
+        // View` infers `@ViewBuilder` from the protocol without spelling it,
+        // and the syntax of the declaration is all this rule ever sees.
+        if let attributes = idiomDeclarationAttributes(current) {
+            return idiomAttributesNameABuilder(attributes)
+                || idiomDeclarationResultIsOpaque(current)
+        }
+        node = current.parent
     }
-    node = current.parent
-  }
-  return false
+    return false
 }
 
 /// The attribute list of `node` when `node` is a declaration that can own a
 /// body, and `nil` for every other node.
 private func idiomDeclarationAttributes(_ node: Syntax) -> AttributeListSyntax? {
-  if let decl = node.as(FunctionDeclSyntax.self) { return decl.attributes }
-  if let decl = node.as(InitializerDeclSyntax.self) { return decl.attributes }
-  if let decl = node.as(SubscriptDeclSyntax.self) { return decl.attributes }
-  if let decl = node.as(VariableDeclSyntax.self) { return decl.attributes }
-  if let decl = node.as(AccessorDeclSyntax.self) { return decl.attributes }
-  return nil
+    if let decl = node.as(FunctionDeclSyntax.self) { return decl.attributes }
+    if let decl = node.as(InitializerDeclSyntax.self) { return decl.attributes }
+    if let decl = node.as(SubscriptDeclSyntax.self) { return decl.attributes }
+    if let decl = node.as(VariableDeclSyntax.self) { return decl.attributes }
+    if let decl = node.as(AccessorDeclSyntax.self) { return decl.attributes }
+    return nil
 }
 
 /// Whether any attribute in `attributes` names a result builder.
@@ -312,36 +316,36 @@ private func idiomDeclarationAttributes(_ node: Syntax) -> AttributeListSyntax? 
 /// `@RegexComponentBuilder` — and a plain attribute that happens to end the
 /// same way costs a refused fix, not a broken program.
 private func idiomAttributesNameABuilder(_ attributes: AttributeListSyntax) -> Swift.Bool {
-  for element in attributes {
-    guard case .attribute(let attribute) = element else { continue }
-    let name = attribute.attributeName.trimmedDescription
-    let simple = name.split(separator: ".").last.map(Swift.String.init) ?? name
-    if simple.hasSuffix("Builder") { return true }
-  }
-  return false
+    for element in attributes {
+        guard case .attribute(let attribute) = element else { continue }
+        let name = attribute.attributeName.trimmedDescription
+        let simple = name.split(separator: ".").last.map(Swift.String.init) ?? name
+        if simple.hasSuffix("Builder") { return true }
+    }
+    return false
 }
 
 /// Whether the declaration's stated result type is opaque.
 private func idiomDeclarationResultIsOpaque(_ node: Syntax) -> Swift.Bool {
-  if let decl = node.as(FunctionDeclSyntax.self) {
-    return idiomTypeIsOpaque(decl.signature.returnClause?.type)
-  }
-  if let decl = node.as(SubscriptDeclSyntax.self) {
-    return idiomTypeIsOpaque(decl.returnClause.type)
-  }
-  if let decl = node.as(VariableDeclSyntax.self) {
-    for binding in decl.bindings where idiomTypeIsOpaque(binding.typeAnnotation?.type) {
-      return true
+    if let decl = node.as(FunctionDeclSyntax.self) {
+        return idiomTypeIsOpaque(decl.signature.returnClause?.type)
+    }
+    if let decl = node.as(SubscriptDeclSyntax.self) {
+        return idiomTypeIsOpaque(decl.returnClause.type)
+    }
+    if let decl = node.as(VariableDeclSyntax.self) {
+        for binding in decl.bindings where idiomTypeIsOpaque(binding.typeAnnotation?.type) {
+            return true
+        }
+        return false
+    }
+    if let decl = node.as(AccessorDeclSyntax.self) {
+        // An accessor's result is its property's, which is three levels up:
+        // accessor, accessor list, accessor block, binding.
+        let property = decl.parent?.parent?.parent?.as(PatternBindingSyntax.self)
+        return idiomTypeIsOpaque(property?.typeAnnotation?.type)
     }
     return false
-  }
-  if let decl = node.as(AccessorDeclSyntax.self) {
-    // An accessor's result is its property's, which is three levels up:
-    // accessor, accessor list, accessor block, binding.
-    let property = decl.parent?.parent?.parent?.as(PatternBindingSyntax.self)
-    return idiomTypeIsOpaque(property?.typeAnnotation?.type)
-  }
-  return false
 }
 
 /// Whether `type` is spelled `some …`.
@@ -350,89 +354,92 @@ private func idiomDeclarationResultIsOpaque(_ node: Syntax) -> Swift.Bool {
 /// return type that no protocol turns into a builder body, and refusing it
 /// would cost fixes for nothing.
 private func idiomTypeIsOpaque(_ type: TypeSyntax?) -> Swift.Bool {
-  guard let type = type?.as(SomeOrAnyTypeSyntax.self) else { return false }
-  return type.someOrAnySpecifier.tokenKind == .keyword(.some)
+    guard let type = type?.as(SomeOrAnyTypeSyntax.self) else { return false }
+    return type.someOrAnySpecifier.tokenKind == .keyword(.some)
 }
 
 /// Whether `node`'s subtree holds any construct whose meaning differs
 /// inside a closure.
 private func idiomIterationIntentBodyEscapes(_ node: Syntax) -> Swift.Bool {
-  if node.is(BreakStmtSyntax.self) { return true }
-  if node.is(ContinueStmtSyntax.self) { return true }
-  if node.is(ReturnStmtSyntax.self) { return true }
-  if node.is(ThrowStmtSyntax.self) { return true }
-  if node.is(TryExprSyntax.self) { return true }
-  if node.is(AwaitExprSyntax.self) { return true }
-  // A `yield` in an accessor, likewise: it belongs to the accessor, not to
-  // whatever closure it is nested in.
-  if node.is(YieldStmtSyntax.self) { return true }
-  for child in node.children(viewMode: .sourceAccurate) {
-    if idiomIterationIntentBodyEscapes(child) { return true }
-  }
-  return false
+    if node.is(BreakStmtSyntax.self) { return true }
+    if node.is(ContinueStmtSyntax.self) { return true }
+    if node.is(ReturnStmtSyntax.self) { return true }
+    if node.is(ThrowStmtSyntax.self) { return true }
+    if node.is(TryExprSyntax.self) { return true }
+    if node.is(AwaitExprSyntax.self) { return true }
+    // A `yield` in an accessor, likewise: it belongs to the accessor, not to
+    // whatever closure it is nested in.
+    if node.is(YieldStmtSyntax.self) { return true }
+    for child in node.children(viewMode: .sourceAccurate) {
+        if idiomIterationIntentBodyEscapes(child) { return true }
+    }
+    return false
 }
 
 /// Builds `(<sequence>).forEach { <name> in <body> }` for a fixable loop.
 internal func idiomIterationIntentCall(for loop: ForStmtSyntax) -> ExprSyntax? {
-  guard let pattern = loop.pattern.as(IdentifierPatternSyntax.self) else { return nil }
+    guard let pattern = loop.pattern.as(IdentifierPatternSyntax.self) else { return nil }
 
-  // A bare range is parenthesized so `.forEach` binds to the range rather
-  // than to its upper bound. A sequence that is already a call —
-  // `(a..<b).reversed()` — needs no second pair, and adding one would make
-  // every fixed line noisier than the rule that asked for it.
-  let receiver: ExprSyntax
-  let bare = loop.sequence.with(\.leadingTrivia, []).with(\.trailingTrivia, [])
-  if bare.is(SequenceExprSyntax.self) || bare.is(InfixOperatorExprSyntax.self) {
-    receiver = ExprSyntax(
-      TupleExprSyntax(
-        elements: LabeledExprListSyntax([LabeledExprSyntax(expression: bare)])
-      )
+    // A bare range is parenthesized so `.forEach` binds to the range rather
+    // than to its upper bound. A sequence that is already a call —
+    // `(a..<b).reversed()` — needs no second pair, and adding one would make
+    // every fixed line noisier than the rule that asked for it.
+    let receiver: ExprSyntax
+    let bare = loop.sequence.with(\.leadingTrivia, []).with(\.trailingTrivia, [])
+    if bare.is(SequenceExprSyntax.self) || bare.is(InfixOperatorExprSyntax.self) {
+        receiver = ExprSyntax(
+            TupleExprSyntax(
+                elements: LabeledExprListSyntax([LabeledExprSyntax(expression: bare)])
+            )
+        )
+    } else {
+        receiver = bare
+    }
+
+    // The whitespace between the loop's `{` and its first statement is
+    // attached to whichever token owns it: everything up to the end of the
+    // line is the brace's TRAILING trivia, and the rest is the statement's
+    // leading trivia. So a single-line body `{ sum += i }` keeps its only
+    // space on the brace, and moving the statements alone would emit
+    // `{ i insum += i }`. The `in` keyword inherits that trivia, and
+    // supplies a space itself only when neither side has any — the
+    // multi-line case must NOT gain one, or every fixed loop would carry a
+    // trailing space before its newline.
+    let braceTrailing = loop.body.leftBrace.trailingTrivia
+    let firstLeading = loop.body.statements.first?.leadingTrivia ?? []
+    let inTrailing: Trivia =
+        braceTrailing.isEmpty && firstLeading.isEmpty ? .space : braceTrailing
+    let closure = ClosureExprSyntax(
+        leftBrace: .leftBraceToken(leadingTrivia: .space),
+        signature: ClosureSignatureSyntax(
+            parameterClause: .simpleInput(
+                ClosureShorthandParameterListSyntax([
+                    ClosureShorthandParameterSyntax(
+                        name: pattern.identifier.with(\.leadingTrivia, .space).with(
+                            \.trailingTrivia,
+                            []
+                        )
+                    )
+                ])
+            ),
+            inKeyword: .keyword(.in, leadingTrivia: .space, trailingTrivia: inTrailing)
+        ),
+        statements: loop.body.statements,
+        rightBrace: loop.body.rightBrace.with(\.leadingTrivia, loop.body.rightBrace.leadingTrivia)
     )
-  } else {
-    receiver = bare
-  }
 
-  // The whitespace between the loop's `{` and its first statement is
-  // attached to whichever token owns it: everything up to the end of the
-  // line is the brace's TRAILING trivia, and the rest is the statement's
-  // leading trivia. So a single-line body `{ sum += i }` keeps its only
-  // space on the brace, and moving the statements alone would emit
-  // `{ i insum += i }`. The `in` keyword inherits that trivia, and
-  // supplies a space itself only when neither side has any — the
-  // multi-line case must NOT gain one, or every fixed loop would carry a
-  // trailing space before its newline.
-  let braceTrailing = loop.body.leftBrace.trailingTrivia
-  let firstLeading = loop.body.statements.first?.leadingTrivia ?? []
-  let inTrailing: Trivia =
-    braceTrailing.isEmpty && firstLeading.isEmpty ? .space : braceTrailing
-  let closure = ClosureExprSyntax(
-    leftBrace: .leftBraceToken(leadingTrivia: .space),
-    signature: ClosureSignatureSyntax(
-      parameterClause: .simpleInput(
-        ClosureShorthandParameterListSyntax([
-          ClosureShorthandParameterSyntax(
-            name: pattern.identifier.with(\.leadingTrivia, .space).with(\.trailingTrivia, [])
-          )
-        ])
-      ),
-      inKeyword: .keyword(.in, leadingTrivia: .space, trailingTrivia: inTrailing)
-    ),
-    statements: loop.body.statements,
-    rightBrace: loop.body.rightBrace.with(\.leadingTrivia, loop.body.rightBrace.leadingTrivia)
-  )
-
-  let call = FunctionCallExprSyntax(
-    calledExpression: ExprSyntax(
-      MemberAccessExprSyntax(base: receiver, name: .identifier("forEach"))
-    ),
-    leftParen: nil,
-    arguments: LabeledExprListSyntax([]),
-    rightParen: nil,
-    trailingClosure: closure
-  )
-  return ExprSyntax(call)
-    .with(\.leadingTrivia, loop.leadingTrivia)
-    .with(\.trailingTrivia, loop.trailingTrivia)
+    let call = FunctionCallExprSyntax(
+        calledExpression: ExprSyntax(
+            MemberAccessExprSyntax(base: receiver, name: .identifier("forEach"))
+        ),
+        leftParen: nil,
+        arguments: LabeledExprListSyntax([]),
+        rightParen: nil,
+        trailingClosure: closure
+    )
+    return ExprSyntax(call)
+        .with(\.leadingTrivia, loop.leadingTrivia)
+        .with(\.trailingTrivia, loop.trailingTrivia)
 }
 
 /// Replaces each fixable range loop with its `forEach` spelling.
@@ -441,19 +448,19 @@ internal func idiomIterationIntentCall(for loop: ForStmtSyntax) -> ExprSyntax? {
 /// ``ForStmtSyntax`` because the replacement is an expression where the
 /// original was a statement, and only the item knows how to hold either.
 internal final class IdiomIterationIntentRewriter: SyntaxRewriter {
-  var changed: Swift.Bool = false
+    var changed: Swift.Bool = false
 
-  override func visit(_ node: CodeBlockItemSyntax) -> CodeBlockItemSyntax {
-    guard case .stmt(let statement) = node.item,
-      let loop = statement.as(ForStmtSyntax.self),
-      idiomIterationIntentIsFixable(loop),
-      let call = idiomIterationIntentCall(for: loop)
-    else {
-      return super.visit(node)
+    override func visit(_ node: CodeBlockItemSyntax) -> CodeBlockItemSyntax {
+        guard case .stmt(let statement) = node.item,
+            let loop = statement.as(ForStmtSyntax.self),
+            idiomIterationIntentIsFixable(loop),
+            let call = idiomIterationIntentCall(for: loop)
+        else {
+            return super.visit(node)
+        }
+        changed = true
+        // The rewritten item is re-visited so a nested fixable loop inside the
+        // body climbs too, in the same pass.
+        return super.visit(node.with(\.item, .expr(call)))
     }
-    changed = true
-    // The rewritten item is re-visited so a nested fixable loop inside the
-    // body climbs too, in the same pass.
-    return super.visit(node.with(\.item, .expr(call)))
-  }
 }

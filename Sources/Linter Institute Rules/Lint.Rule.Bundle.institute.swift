@@ -78,212 +78,212 @@ public import Linter_Rules
 ///    repository. A consumer's configured override is out of scope,
 ///    and nothing here promotes anything.
 extension Lint.Rule.Bundle {
-  public static let institute: [Lint.Rule.Configuration] =
-    Lint.Rule.Bundle.universal + [
-      // Architecture pack (TX-A2, swift-foundations/swift-linter#44) —
-      // AST-local architecture predicates supplied for the derived-model
-      // programme; advisory at introduction per this bundle's severity-tier
-      // policy, and fleet enforcement binds at TX-A4 (.github#85 amendment
-      // 5), never here.
-      .enable(.`architecture import boundary`),
-      .enable(.`architecture foundation type`),
-      .enable(.`architecture namespace shape`),
-      // Naming pack
-      .enable(.`bool public parameter`),
-      .enable(.`ad hoc box class`),
-      .enable(.`compound identifier`),
-      .enable(.`compound suite name`),
-      .enable(.`compound type name`),
-      .enable(.`variable named impl`),
-      .enable(.`int public parameter`),
-      .enable(.`namespace adoption typealias`),
-      .enable(.`property named flags`),
-      .enable(.`redundant prefix`),
-      .enable(.`single type namespace`),
-      .enable(.`tag suffix`),
-      .enable(.`nested tag`),
-      // [API-NAME-010b] — validated 2026-07-07 against the ADT tower
-      // (tree-keyed 1, slab 5, buffer-slab 2 = 8 true-positive findings on
-      // phantom `<E: ~Copyable>` Index discriminators; the dominant fleet
-      // convention binds such phantoms `~Copyable & ~Escapable`, 99 sites).
-      // Receipt: Research/promote-phantom-suppression-tower-validation-2026-07-07.md.
-      .enable(.`phantom suppression`),
-      .enable(.`unification typealias`),
-      // [API-NAME-009] — mirrors validate-diagnostic-format.py
-      // (swift-institute/.github#358 F9, predicate parity). Advisory at
-      // introduction; error only after the standing graduation gate.
-      .enable(.`diagnostic message format`),
-      // Foundation pack
-      .enable(.`foundation import`),
-      // Framework pack
-      .enable(.`xctest import`),
-      .enable(.`suite categories`),
-      // Byte pack (Wave 1 of Post-W2 swift-linter arc, 2026-05-19)
-      // — encodes the W2 UInt8/Byte discrimination rubric per
-      // the L2/L3 byte-typing gap plan note § Wave 2.
-      .enable(.`uint8 conforms to byte protocol`),
-      .enable(.`byte conforms to arithmetic protocol`),
-      .enable(.`binary serializable uint8 witness`),
-      .enable(.`binary serializable rawvalue uint8`),
-      .enable(.`uint8 ascii extension`),
-      .enable(.`uint8 forwarder missing disfavored`),
-      .enable(.`stdlib forwarder outside sli`),
-      // Conformance pack
-      .enable(.`leaf body typealias missing`),
-      // Closure pack (Wave 3 2026-05-15)
-      .enable(.`configuration before content`),
-      .enable(.`lifecycle order`),
-      .enable(.`unlabeled lifecycle closure`),
-      .enable(.`parameter position`),
-      // Idiom pack (Wave 3 2026-05-15)
-      .enable(.`bounded index static capacity`),
-      .enable(.`enumerated with subscript`),
-      .enable(.`intermediate binding then return`),
-      .enable(.`counter loop iteration`),
-      .enable(.`string utf8 scanning`),
-      .enable(.`sli literal`),  // [IDX-019] (/promote-rule 2026-07-06)
-      // Implemented per swift-institute-linter-rules#4; advisory at
-      // introduction, error only after the graduation gate.
-      .enable(.`unknown default`),
-      // Manifest pack (swift-institute-linter-rules#4) — advisory at
-      // introduction. `.byName(name:)`, bare string literals,
-      // file-scope string constants, and file-scope/hoisted or
-      // concatenated dependency arrays are all resolved (#24 section
-      // A). A dependency whose value is computed by a call or a
-      // transform is not, and is silently unreported — that residue
-      // is the one honest limitation left, and a zero from this rule
-      // is not evidence of compliance for a manifest that hoists
-      // every dependency array behind a computed value.
-      .enable(.`bare string dependency`),
-      // [#65, principal directive 2026-08-09] — manifest naming
-      // grammar: package kebab slug, spaced product/target names,
-      // declared-path correspondence. Advisory at introduction; error
-      // only after the standing graduation gate. Known-open findings
-      // (institute-application's pre-split InstituteArchitecture*
-      // names) are enumerated on #65 as the respacing transaction's
-      // work list, not forced to zero.
-      .enable(.`manifest naming grammar`),
-      // [#65, principal directive 2026-08-09; Nest.Name directory
-      // ruling 2026-08-06] — path naming grammar: directory segments
-      // and declared-type file basename segments. The ruled Workspace
-      // validator was audited and found unimplemented; the owner
-      // decision (linter Naming family) is recorded in the rule doc.
-      // Advisory at introduction; error only after the standing
-      // graduation gate.
-      .enable(.`path name grammar`),
-      // [swift-structured-queries-primitives#2 ruling, 2026-07-30] —
-      // implemented per swift-institute-linter-rules#31. Advisory at
-      // introduction; error only after the standing graduation gate.
-      .enable(.`foundation integration leaf target`),
-      // Memory pack (Wave 3 2026-05-15)
-      .enable(.`borrowing self short circuit`),
-      .enable(.`noncopyable error`),
-      .enable(.`extension noncopyable constraint`),
-      .enable(.`nonisolated unsafe without invariant`),
-      .enable(.`safe attribute undocumented`),
-      .enable(.`pointer advanced by`),
-      .enable(.`sendable struct with class member`),
-      .enable(.`unchecked sendable revalidation anchor`),
-      .enable(.`unsafe assignment granularity`),
-      // [swift-property-primitives#7 adjudication] — implemented per
-      // swift-institute-linter-rules#29. Advisory at introduction;
-      // error only after the standing graduation gate.
-      .enable(.`sending return conditional sendable state`),
-      // Platform pack (Wave 3 2026-05-15)
-      .enable(.`c type in public api`),
-      .enable(.`convention c representability`),
-      .enable(.`dead case per platform`),
-      .enable(.`compound platform namespace root`),
-      .enable(.`optimize suppression attribute`),  // [ISSUE-008] (/promote-rule 2026-07-06)
-      .enable(.`optionset shell pattern`),
-      // [PLAT-ARCH-008] — mirrors validate-layer-deps.py
-      // check_plat_arch_008 (swift-institute/.github#358 F9, predicate
-      // parity). Advisory at introduction; error only after the standing
-      // graduation gate.
-      .enable(.`platform layer import`),
-      .enable(.`canimport conditional`),
-      .enable(.`swift protocol qualification`),
-      .enable(.`system subdomain`),
-      .enable(.`typealiased namespace bridge`),
-      // Structure pack (Wave 3 2026-05-15)
-      .enable(.`hoisted protocol alias`),
-      // Native successor to the γ-1b Stage 1 package-CI audit. Textual by
-      // definition and advisory at introduction; no separate workflow job.
-      .enable(.`license header`),
-      .enable(.`minimal type body`),
-      .enable(.`raw value access`),
-      .enable(.`single type per file`),
-      // [API-IMPL-006] — adjudicated swift-institute-linter-rules#6
-      // (ruling D1, 2026-07-30); implemented per
-      // swift-institute-linter-rules#8. Advisory at introduction; error
-      // only after the standing graduation gate.
-      .enable(.`file name nested path`),
-      // [API-IMPL-007] — adjudicated swift-institute-linter-rules#6
-      // (ruling D2, 2026-07-30); implemented per
-      // swift-institute-linter-rules#9. Advisory at introduction; error
-      // only after the standing graduation gate.
-      .enable(.`extension file naming`),
-      .enable(.`throwing wrapper init`),
-      .enable(.`type transform placement`),
-      .enable(.`wrapper backing exposed`),
-      // [swift-institute/.github#122 ruling, disposition c, W7] —
-      // implemented per swift-institute-linter-rules#30. Advisory at
-      // introduction; error only after the standing graduation gate.
-      .enable(.`protocol sentinel under generic front door`),
-      // Testing pack (Wave 3 2026-05-15)
-      // `benchmark timed required` ([BENCH-003]) deferred 2026-05-18:
-      // depends on swift-testing's `.timed()` trait which isn't
-      // production-ready; benchmarks are moving to separate
-      // /Benchmarks/ packages per the `benchmark` skill, so the rule's
-      // target audience (in-tree Performance @Suites) is going away.
-      // Re-enable when (a) swift-testing's `.timed()` ships stable OR
-      // (b) we readopt in-tree Performance @Suites with a different
-      // measurement primitive. The rule definition stays in the
-      // Institute_Linter_Rule_Testing module for re-enable convenience.
-      // .enable(.`benchmark timed required`),
-      // [TEST-009] — implemented per swift-institute-linter-rules#10;
-      // advisory at introduction, error only after the graduation gate.
-      .enable(.`test file suffix`),
-      .enable(.`test function naming`),
-      .enable(.`performance suite serialized`),
-      // [SWIFT-TEST-006] — implemented per swift-institute-linter-rules#37;
-      // advisory at introduction, error only after the graduation gate.
-      .enable(.`test display name string`),
-      // Throws pack (Wave 3 2026-05-15)
-      .enable(.`closure typed throws annotation`),
-      .enable(.`do throws for typed catch`),
-      .enable(.`do throws for typed catch with throw`),
-      .enable(.`existential throws`),
-      .enable(.`generic throws missing never`),
-      .enable(.`hoisted error in public throws`),
-      .enable(.`phantom generic error in typed throws`),
-      .enable(.`lifecycle typealias review`),
-      .enable(.`callback result over throws thunk`),
-      .enable(.`result wrapper for rethrows shim`),
-      .enable(.`typed throws cannot use self error`),
-      .enable(.`untyped throws`),
-      // Try pack (Wave 3 2026-05-15)
-      .enable(.`try optional`),
-      // Unchecked pack (Wave 3 2026-05-15)
-      .enable(.`unchecked call site`),
-      // A5 move (2026-07-07, principal ruling) — brand-consumer rule packs
-      // relocated from swift-primitives-linter-rules so they enforce at L2/L3
-      // too (brands are defined at L1 but consumed everywhere). Precedent:
-      // [PRIM-FOUND-001] made the same primitives→institute move mid-pilot.
-      // Cardinal pack (Wave 3 2026-05-15)
-      .enable(.`zero or one literal`),
-      .enable(.`count minus one`),
-      // RawValue pack
-      .enable(.`bitpattern rawvalue chain`),
-      .enable(.`chained rawvalue access`),
-      .enable(.`tagged extension public init`),
-      // [CONV-015] — promoted 2026-07-07 (principal ruling, option a)
-      // from swift-tagged-primitives' nested Lint/ PoC
-      // (Lint.Rule.TaggedDomainAudit); map/retag/@Test exemptions
-      // preserved. NOTE: the validation receipt this promotion cites is
-      // not committed to Research/ in this repository (see issue #16) —
-      // treat the citation as unresolved until the receipt is either
-      // committed here or the citation is corrected upstream.
-      .enable(.`tagged unchecked with typed alternative`),
-    ]
+    public static let institute: [Lint.Rule.Configuration] =
+        Lint.Rule.Bundle.universal + [
+            // Architecture pack (TX-A2, swift-foundations/swift-linter#44) —
+            // AST-local architecture predicates supplied for the derived-model
+            // programme; advisory at introduction per this bundle's severity-tier
+            // policy, and fleet enforcement binds at TX-A4 (.github#85 amendment
+            // 5), never here.
+            .enable(.`architecture import boundary`),
+            .enable(.`architecture foundation type`),
+            .enable(.`architecture namespace shape`),
+            // Naming pack
+            .enable(.`bool public parameter`),
+            .enable(.`ad hoc box class`),
+            .enable(.`compound identifier`),
+            .enable(.`compound suite name`),
+            .enable(.`compound type name`),
+            .enable(.`variable named impl`),
+            .enable(.`int public parameter`),
+            .enable(.`namespace adoption typealias`),
+            .enable(.`property named flags`),
+            .enable(.`redundant prefix`),
+            .enable(.`single type namespace`),
+            .enable(.`tag suffix`),
+            .enable(.`nested tag`),
+            // [API-NAME-010b] — validated 2026-07-07 against the ADT tower
+            // (tree-keyed 1, slab 5, buffer-slab 2 = 8 true-positive findings on
+            // phantom `<E: ~Copyable>` Index discriminators; the dominant fleet
+            // convention binds such phantoms `~Copyable & ~Escapable`, 99 sites).
+            // Receipt: Research/promote-phantom-suppression-tower-validation-2026-07-07.md.
+            .enable(.`phantom suppression`),
+            .enable(.`unification typealias`),
+            // [API-NAME-009] — mirrors validate-diagnostic-format.py
+            // (swift-institute/.github#358 F9, predicate parity). Advisory at
+            // introduction; error only after the standing graduation gate.
+            .enable(.`diagnostic message format`),
+            // Foundation pack
+            .enable(.`foundation import`),
+            // Framework pack
+            .enable(.`xctest import`),
+            .enable(.`suite categories`),
+            // Byte pack (Wave 1 of Post-W2 swift-linter arc, 2026-05-19)
+            // — encodes the W2 UInt8/Byte discrimination rubric per
+            // the L2/L3 byte-typing gap plan note § Wave 2.
+            .enable(.`uint8 conforms to byte protocol`),
+            .enable(.`byte conforms to arithmetic protocol`),
+            .enable(.`binary serializable uint8 witness`),
+            .enable(.`binary serializable rawvalue uint8`),
+            .enable(.`uint8 ascii extension`),
+            .enable(.`uint8 forwarder missing disfavored`),
+            .enable(.`stdlib forwarder outside sli`),
+            // Conformance pack
+            .enable(.`leaf body typealias missing`),
+            // Closure pack (Wave 3 2026-05-15)
+            .enable(.`configuration before content`),
+            .enable(.`lifecycle order`),
+            .enable(.`unlabeled lifecycle closure`),
+            .enable(.`parameter position`),
+            // Idiom pack (Wave 3 2026-05-15)
+            .enable(.`bounded index static capacity`),
+            .enable(.`enumerated with subscript`),
+            .enable(.`intermediate binding then return`),
+            .enable(.`counter loop iteration`),
+            .enable(.`string utf8 scanning`),
+            .enable(.`sli literal`),  // [IDX-019] (/promote-rule 2026-07-06)
+            // Implemented per swift-institute-linter-rules#4; advisory at
+            // introduction, error only after the graduation gate.
+            .enable(.`unknown default`),
+            // Manifest pack (swift-institute-linter-rules#4) — advisory at
+            // introduction. `.byName(name:)`, bare string literals,
+            // file-scope string constants, and file-scope/hoisted or
+            // concatenated dependency arrays are all resolved (#24 section
+            // A). A dependency whose value is computed by a call or a
+            // transform is not, and is silently unreported — that residue
+            // is the one honest limitation left, and a zero from this rule
+            // is not evidence of compliance for a manifest that hoists
+            // every dependency array behind a computed value.
+            .enable(.`bare string dependency`),
+            // [#65, principal directive 2026-08-09] — manifest naming
+            // grammar: package kebab slug, spaced product/target names,
+            // declared-path correspondence. Advisory at introduction; error
+            // only after the standing graduation gate. Known-open findings
+            // (institute-application's pre-split InstituteArchitecture*
+            // names) are enumerated on #65 as the respacing transaction's
+            // work list, not forced to zero.
+            .enable(.`manifest naming grammar`),
+            // [#65, principal directive 2026-08-09; Nest.Name directory
+            // ruling 2026-08-06] — path naming grammar: directory segments
+            // and declared-type file basename segments. The ruled Workspace
+            // validator was audited and found unimplemented; the owner
+            // decision (linter Naming family) is recorded in the rule doc.
+            // Advisory at introduction; error only after the standing
+            // graduation gate.
+            .enable(.`path name grammar`),
+            // [swift-structured-queries-primitives#2 ruling, 2026-07-30] —
+            // implemented per swift-institute-linter-rules#31. Advisory at
+            // introduction; error only after the standing graduation gate.
+            .enable(.`foundation integration leaf target`),
+            // Memory pack (Wave 3 2026-05-15)
+            .enable(.`borrowing self short circuit`),
+            .enable(.`noncopyable error`),
+            .enable(.`extension noncopyable constraint`),
+            .enable(.`nonisolated unsafe without invariant`),
+            .enable(.`safe attribute undocumented`),
+            .enable(.`pointer advanced by`),
+            .enable(.`sendable struct with class member`),
+            .enable(.`unchecked sendable revalidation anchor`),
+            .enable(.`unsafe assignment granularity`),
+            // [swift-property-primitives#7 adjudication] — implemented per
+            // swift-institute-linter-rules#29. Advisory at introduction;
+            // error only after the standing graduation gate.
+            .enable(.`sending return conditional sendable state`),
+            // Platform pack (Wave 3 2026-05-15)
+            .enable(.`c type in public api`),
+            .enable(.`convention c representability`),
+            .enable(.`dead case per platform`),
+            .enable(.`compound platform namespace root`),
+            .enable(.`optimize suppression attribute`),  // [ISSUE-008] (/promote-rule 2026-07-06)
+            .enable(.`optionset shell pattern`),
+            // [PLAT-ARCH-008] — mirrors validate-layer-deps.py
+            // check_plat_arch_008 (swift-institute/.github#358 F9, predicate
+            // parity). Advisory at introduction; error only after the standing
+            // graduation gate.
+            .enable(.`platform layer import`),
+            .enable(.`canimport conditional`),
+            .enable(.`swift protocol qualification`),
+            .enable(.`system subdomain`),
+            .enable(.`typealiased namespace bridge`),
+            // Structure pack (Wave 3 2026-05-15)
+            .enable(.`hoisted protocol alias`),
+            // `license header` is the universal tier's own rule and arrives with
+            // `Lint.Rule.Bundle.universal` above; re-enabling it here duplicated
+            // the id, which suppression directives and configuration key on.
+            .enable(.`minimal type body`),
+            .enable(.`raw value access`),
+            .enable(.`single type per file`),
+            // [API-IMPL-006] — adjudicated swift-institute-linter-rules#6
+            // (ruling D1, 2026-07-30); implemented per
+            // swift-institute-linter-rules#8. Advisory at introduction; error
+            // only after the standing graduation gate.
+            .enable(.`file name nested path`),
+            // [API-IMPL-007] — adjudicated swift-institute-linter-rules#6
+            // (ruling D2, 2026-07-30); implemented per
+            // swift-institute-linter-rules#9. Advisory at introduction; error
+            // only after the standing graduation gate.
+            .enable(.`extension file naming`),
+            .enable(.`throwing wrapper init`),
+            .enable(.`type transform placement`),
+            .enable(.`wrapper backing exposed`),
+            // [swift-institute/.github#122 ruling, disposition c, W7] —
+            // implemented per swift-institute-linter-rules#30. Advisory at
+            // introduction; error only after the standing graduation gate.
+            .enable(.`protocol sentinel under generic front door`),
+            // Testing pack (Wave 3 2026-05-15)
+            // `benchmark timed required` ([BENCH-003]) deferred 2026-05-18:
+            // depends on swift-testing's `.timed()` trait which isn't
+            // production-ready; benchmarks are moving to separate
+            // /Benchmarks/ packages per the `benchmark` skill, so the rule's
+            // target audience (in-tree Performance @Suites) is going away.
+            // Re-enable when (a) swift-testing's `.timed()` ships stable OR
+            // (b) we readopt in-tree Performance @Suites with a different
+            // measurement primitive. The rule definition stays in the
+            // Institute_Linter_Rule_Testing module for re-enable convenience.
+            // .enable(.`benchmark timed required`),
+            // [TEST-009] — implemented per swift-institute-linter-rules#10;
+            // advisory at introduction, error only after the graduation gate.
+            .enable(.`test file suffix`),
+            .enable(.`test function naming`),
+            .enable(.`performance suite serialized`),
+            // [SWIFT-TEST-006] — implemented per swift-institute-linter-rules#37;
+            // advisory at introduction, error only after the graduation gate.
+            .enable(.`test display name string`),
+            // Throws pack (Wave 3 2026-05-15)
+            .enable(.`closure typed throws annotation`),
+            .enable(.`do throws for typed catch`),
+            .enable(.`do throws for typed catch with throw`),
+            .enable(.`existential throws`),
+            .enable(.`generic throws missing never`),
+            .enable(.`hoisted error in public throws`),
+            .enable(.`phantom generic error in typed throws`),
+            .enable(.`lifecycle typealias review`),
+            .enable(.`callback result over throws thunk`),
+            .enable(.`result wrapper for rethrows shim`),
+            .enable(.`typed throws cannot use self error`),
+            .enable(.`untyped throws`),
+            // Try pack (Wave 3 2026-05-15)
+            .enable(.`try optional`),
+            // Unchecked pack (Wave 3 2026-05-15)
+            .enable(.`unchecked call site`),
+            // A5 move (2026-07-07, principal ruling) — brand-consumer rule packs
+            // relocated from swift-primitives-linter-rules so they enforce at L2/L3
+            // too (brands are defined at L1 but consumed everywhere). Precedent:
+            // [PRIM-FOUND-001] made the same primitives→institute move mid-pilot.
+            // Cardinal pack (Wave 3 2026-05-15)
+            .enable(.`zero or one literal`),
+            .enable(.`count minus one`),
+            // RawValue pack
+            .enable(.`bitpattern rawvalue chain`),
+            .enable(.`chained rawvalue access`),
+            .enable(.`tagged extension public init`),
+            // [CONV-015] — promoted 2026-07-07 (principal ruling, option a)
+            // from swift-tagged-primitives' nested Lint/ PoC
+            // (Lint.Rule.TaggedDomainAudit); map/retag/@Test exemptions
+            // preserved. NOTE: the validation receipt this promotion cites is
+            // not committed to Research/ in this repository (see issue #16) —
+            // treat the citation as unresolved until the receipt is either
+            // committed here or the citation is corrected upstream.
+            .enable(.`tagged unchecked with typed alternative`),
+        ]
 }

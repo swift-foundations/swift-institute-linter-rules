@@ -39,48 +39,48 @@ internal import SwiftSyntax
 /// and `NS`-prefixed use only; whole-graph Foundation reachability is the
 /// derived model's to verify (TX-A1/TX-A4).
 extension Lint.Rule {
-  public static let `architecture foundation type` = Lint.Rule(
-    id: "architecture foundation type",
-    default: .warning,
-    findings: { source, severity in
-      // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
-      // opt-in `* Foundation Integration` subtarget is the sanctioned
-      // Foundation boundary. Same carve-out, same suffix predicate as
-      // `Lint.Rule.Foundation.Import`.
-      guard
-        !architectureFoundationTypeIsInsideFoundationIntegrationTarget(source.file.filePath)
-      else {
-        return []
-      }
-      // Exempt per [RULE-EXEMPT-12] (path-scoped target): main targets
-      // only — test, experiment and example sources impose Foundation on
-      // no consumer. Segment set matches `Lint.Rule.Foundation.Import`.
-      guard !architectureFoundationTypeIsOutsideMainTarget(source.file.filePath) else {
-        return []
-      }
-      // Exempt per [RULE-EXEMPT-12] (filename): a package manifest runs in
-      // SwiftPM's sandbox and ships to no consumer.
-      guard !architectureFoundationTypeIsPackageManifest(source.file.filePath) else {
-        return []
-      }
-      let visitor = ArchitectureFoundationTypeVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.matches
-    }
-  )
+    public static let `architecture foundation type` = Lint.Rule(
+        id: "architecture foundation type",
+        default: .warning,
+        findings: { source, severity in
+            // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
+            // opt-in `* Foundation Integration` subtarget is the sanctioned
+            // Foundation boundary. Same carve-out, same suffix predicate as
+            // `Lint.Rule.Foundation.Import`.
+            guard
+                !architectureFoundationTypeIsInsideFoundationIntegrationTarget(source.file.filePath)
+            else {
+                return []
+            }
+            // Exempt per [RULE-EXEMPT-12] (path-scoped target): main targets
+            // only — test, experiment and example sources impose Foundation on
+            // no consumer. Segment set matches `Lint.Rule.Foundation.Import`.
+            guard !architectureFoundationTypeIsOutsideMainTarget(source.file.filePath) else {
+                return []
+            }
+            // Exempt per [RULE-EXEMPT-12] (filename): a package manifest runs in
+            // SwiftPM's sandbox and ships to no consumer.
+            guard !architectureFoundationTypeIsPackageManifest(source.file.filePath) else {
+                return []
+            }
+            let visitor = ArchitectureFoundationTypeVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.matches
+        }
+    )
 }
 
 /// The Foundation module family whose explicit qualification in type
 /// position is flagged. Matches `Lint.Rule.Foundation.Import`'s family.
 private let architectureFoundationTypeModuleFamily: [Swift.String] = [
-  "Foundation",
-  "FoundationEssentials",
-  "FoundationNetworking",
-  "FoundationXML",
+    "Foundation",
+    "FoundationEssentials",
+    "FoundationNetworking",
+    "FoundationXML",
 ]
 
 /// Returns true when `name` is an `NS`-prefixed CamelCase class name —
@@ -89,112 +89,113 @@ private let architectureFoundationTypeModuleFamily: [Swift.String] = [
 /// gate: an all-caps identifier that merely starts with `NS` (`NSFW`) is
 /// not a Foundation class spelling and does not fire.
 private func architectureFoundationTypeIsFoundationClassName(
-  _ name: Swift.String
+    _ name: Swift.String
 ) -> Swift.Bool {
-  guard name.count > 2, name.hasPrefix("NS") else { return false }
-  let remainder = name.dropFirst(2)
-  guard let first = remainder.first, first.isUppercase else { return false }
-  return remainder.contains { $0.isLowercase }
+    guard name.count > 2, name.hasPrefix("NS") else { return false }
+    let remainder = name.dropFirst(2)
+    guard let first = remainder.first, first.isUppercase else { return false }
+    return remainder.contains { $0.isLowercase }
 }
 
 private let architectureFoundationTypeIntegrationTargetSuffix: Swift.String =
-  " Foundation Integration"
+    " Foundation Integration"
 
 private func architectureFoundationTypeIsInsideFoundationIntegrationTarget(
-  _ filePath: Swift.String
+    _ filePath: Swift.String
 ) -> Swift.Bool {
-  let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
-  guard components.count > 1 else { return false }
-  return components.dropLast().contains {
-    $0.hasSuffix(architectureFoundationTypeIntegrationTargetSuffix)
-  }
+    let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
+    guard components.count > 1 else { return false }
+    return components.dropLast().contains {
+        $0.hasSuffix(architectureFoundationTypeIntegrationTargetSuffix)
+    }
 }
 
 private let architectureFoundationTypeNonMainTargetRoots: [Swift.String] = [
-  "Tests",
-  "Experiments",
-  "Examples",
+    "Tests",
+    "Experiments",
+    "Examples",
 ]
 
 private func architectureFoundationTypeIsOutsideMainTarget(
-  _ filePath: Swift.String
+    _ filePath: Swift.String
 ) -> Swift.Bool {
-  let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
-  guard components.count > 1 else { return false }
-  return components.dropLast().contains { component in
-    architectureFoundationTypeNonMainTargetRoots.contains(Swift.String(component))
-  }
+    let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
+    guard components.count > 1 else { return false }
+    return components.dropLast().contains { component in
+        architectureFoundationTypeNonMainTargetRoots.contains(Swift.String(component))
+    }
 }
 
 private func architectureFoundationTypeIsPackageManifest(
-  _ filePath: Swift.String
+    _ filePath: Swift.String
 ) -> Swift.Bool {
-  guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
-  else { return false }
-  if filename == "Package.swift" { return true }
-  return filename.hasPrefix("Package@swift-") && filename.hasSuffix(".swift")
+    guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
+    else { return false }
+    if filename == "Package.swift" { return true }
+    return filename.hasPrefix("Package@swift-") && filename.hasSuffix(".swift")
 }
 
 private let architectureFoundationTypeMessage: Swift.String =
-  "[architecture foundation type] [ARCH-LAYER-007]: no package's main target "
-  + "may USE Foundation types — Foundation-freedom governs use, not just the "
-  + "import statement, and a transitively re-exported Foundation module makes "
-  + "its types nameable without any local import for the import rule to see. "
-  + "Use institute primitives instead; Foundation-adjacent interop belongs in "
-  + "a separately-declared `* Foundation Integration` subtarget."
+    "[architecture foundation type] [ARCH-LAYER-007]: no package's main target "
+    + "may USE Foundation types — Foundation-freedom governs use, not just the "
+    + "import statement, and a transitively re-exported Foundation module makes "
+    + "its types nameable without any local import for the import rule to see. "
+    + "Use institute primitives instead; Foundation-adjacent interop belongs in "
+    + "a separately-declared `* Foundation Integration` subtarget."
 
 internal final class ArchitectureFoundationTypeVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  var matches: [Diagnostic.Record] = []
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    var matches: [Diagnostic.Record] = []
 
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
-
-  private func record(at position: AbsolutePosition) {
-    let location = converter.location(for: position)
-    matches.append(
-      Diagnostic.Record(
-        location: Source.Location(
-          fileID: source.fileID,
-          filePath: source.filePath,
-          line: location.line,
-          column: location.column
-        ),
-        severity: severity,
-        identifier: "architecture foundation type",
-        message: architectureFoundationTypeMessage
-      ))
-  }
-
-  override func visit(_ node: IdentifierTypeSyntax) -> SyntaxVisitorContinueKind {
-    // Bare `NS`-prefixed class in type position: `let lock: NSLock`,
-    // `class Model: NSObject` (inheritance clauses are type positions),
-    // `func f() -> NSRange`.
-    if architectureFoundationTypeIsFoundationClassName(node.name.text) {
-      record(at: node.positionAfterSkippingLeadingTrivia)
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
     }
-    return .visitChildren
-  }
 
-  override func visit(_ node: MemberTypeSyntax) -> SyntaxVisitorContinueKind {
-    // Explicitly module-qualified type: `Foundation.Data`,
-    // `FoundationNetworking.URLSession`. The base must be exactly the
-    // module identifier — `My.Foundation.X` has a MemberType base, not an
-    // IdentifierType base, and does not fire.
-    if let base = node.baseType.as(IdentifierTypeSyntax.self),
-      architectureFoundationTypeModuleFamily.contains(base.name.text)
-    {
-      record(at: node.positionAfterSkippingLeadingTrivia)
-      // The base identifier will not be visited as a separate finding:
-      // report the qualified use once, at the member type.
-      return .skipChildren
+    private func record(at position: AbsolutePosition) {
+        let location = converter.location(for: position)
+        matches.append(
+            Diagnostic.Record(
+                location: Source.Location(
+                    fileID: source.fileID,
+                    filePath: source.filePath,
+                    line: location.line,
+                    column: location.column
+                ),
+                severity: severity,
+                identifier: "architecture foundation type",
+                message: architectureFoundationTypeMessage
+            )
+        )
     }
-    return .visitChildren
-  }
+
+    override func visit(_ node: IdentifierTypeSyntax) -> SyntaxVisitorContinueKind {
+        // Bare `NS`-prefixed class in type position: `let lock: NSLock`,
+        // `class Model: NSObject` (inheritance clauses are type positions),
+        // `func f() -> NSRange`.
+        if architectureFoundationTypeIsFoundationClassName(node.name.text) {
+            record(at: node.positionAfterSkippingLeadingTrivia)
+        }
+        return .visitChildren
+    }
+
+    override func visit(_ node: MemberTypeSyntax) -> SyntaxVisitorContinueKind {
+        // Explicitly module-qualified type: `Foundation.Data`,
+        // `FoundationNetworking.URLSession`. The base must be exactly the
+        // module identifier — `My.Foundation.X` has a MemberType base, not an
+        // IdentifierType base, and does not fire.
+        if let base = node.baseType.as(IdentifierTypeSyntax.self),
+            architectureFoundationTypeModuleFamily.contains(base.name.text)
+        {
+            record(at: node.positionAfterSkippingLeadingTrivia)
+            // The base identifier will not be visited as a separate finding:
+            // report the qualified use once, at the member type.
+            return .skipChildren
+        }
+        return .visitChildren
+    }
 }

@@ -14,35 +14,35 @@ internal import SwiftSyntax
 
 /// Hoisted error types in public-API throws clauses. Citation: `[API-ERR-007]`.
 extension Lint.Rule {
-  public static let `hoisted error in public throws` = Lint.Rule(
-    id: "hoisted error in public throws",
-    default: .warning,
-    findings: { source, severity in
-      let visitor = ThrowsHoistedErrorVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.matches
-    }
-  )
+    public static let `hoisted error in public throws` = Lint.Rule(
+        id: "hoisted error in public throws",
+        default: .warning,
+        findings: { source, severity in
+            let visitor = ThrowsHoistedErrorVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.matches
+        }
+    )
 }
 
 @usableFromInline
 internal let throwsHoistedErrorMessage: Swift.String =
-  "[hoisted error in public throws] [API-ERR-007]: public-API "
-  + "`throws(T)` clauses MUST reference the canonical public path, "
-  + "never the `__`-prefixed hoisted internal type."
+    "[hoisted error in public throws] [API-ERR-007]: public-API "
+    + "`throws(T)` clauses MUST reference the canonical public path, "
+    + "never the `__`-prefixed hoisted internal type."
 
 private func hoistedIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift.Bool {
-  for modifier in modifiers {
-    switch modifier.name.tokenKind {
-    case .keyword(.public), .keyword(.open): return true
-    default: continue
+    for modifier in modifiers {
+        switch modifier.name.tokenKind {
+        case .keyword(.public), .keyword(.open): return true
+        default: continue
+        }
     }
-  }
-  return false
+    return false
 }
 
 /// Returns true if `node`'s *effective* visibility is `public`/`open`
@@ -53,20 +53,20 @@ private func hoistedIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift
 /// by its own doc/message and was silently defeated by moving the
 /// `public` keyword to the enclosing extension.
 private func hoistedIsPublicOrOpenEffective(
-  _ node: Syntax,
-  modifiers: DeclModifierListSyntax
+    _ node: Syntax,
+    modifiers: DeclModifierListSyntax
 ) -> Swift.Bool {
-  if hoistedIsPublicOrOpen(modifiers) {
-    return true
-  }
-  var current: Syntax? = node.parent
-  while let candidate = current {
-    if let ext = candidate.as(ExtensionDeclSyntax.self) {
-      return hoistedIsPublicOrOpen(ext.modifiers)
+    if hoistedIsPublicOrOpen(modifiers) {
+        return true
     }
-    current = candidate.parent
-  }
-  return false
+    var current: Syntax? = node.parent
+    while let candidate = current {
+        if let ext = candidate.as(ExtensionDeclSyntax.self) {
+            return hoistedIsPublicOrOpen(ext.modifiers)
+        }
+        current = candidate.parent
+    }
+    return false
 }
 
 /// `hoistedLeafIdentifier(of:)` has exactly one caller, `checkThrowsClause`,
@@ -74,56 +74,57 @@ private func hoistedIsPublicOrOpenEffective(
 /// a bare or member-qualified identifier; no optional/attributed sugar is
 /// expressible there (#19 smaller item 4).
 private func hoistedLeafIdentifier(of type: TypeSyntax) -> Swift.String? {
-  if let identifier = type.as(IdentifierTypeSyntax.self) { return identifier.name.text }
-  if let member = type.as(MemberTypeSyntax.self) { return member.name.text }
-  return nil
+    if let identifier = type.as(IdentifierTypeSyntax.self) { return identifier.name.text }
+    if let member = type.as(MemberTypeSyntax.self) { return member.name.text }
+    return nil
 }
 
 internal final class ThrowsHoistedErrorVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  var matches: [Diagnostic.Record] = []
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    var matches: [Diagnostic.Record] = []
 
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
-
-  override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard hoistedIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
-      return .visitChildren
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
     }
-    checkThrowsClause(node.signature.effectSpecifiers?.throwsClause)
-    return .visitChildren
-  }
 
-  override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard hoistedIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
-      return .visitChildren
+    override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
+        guard hoistedIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
+            return .visitChildren
+        }
+        checkThrowsClause(node.signature.effectSpecifiers?.throwsClause)
+        return .visitChildren
     }
-    checkThrowsClause(node.signature.effectSpecifiers?.throwsClause)
-    return .visitChildren
-  }
 
-  private func checkThrowsClause(_ clause: ThrowsClauseSyntax?) {
-    guard let clause, let type = clause.type else { return }
-    guard let leaf = hoistedLeafIdentifier(of: type) else { return }
-    guard leaf.hasPrefix("__") else { return }
-    let location = converter.location(for: type.positionAfterSkippingLeadingTrivia)
-    matches.append(
-      Diagnostic.Record(
-        location: Source.Location(
-          fileID: source.fileID,
-          filePath: source.filePath,
-          line: location.line,
-          column: location.column
-        ),
-        severity: severity,
-        identifier: "hoisted error in public throws",
-        message: throwsHoistedErrorMessage
-      ))
-  }
+    override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
+        guard hoistedIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
+            return .visitChildren
+        }
+        checkThrowsClause(node.signature.effectSpecifiers?.throwsClause)
+        return .visitChildren
+    }
+
+    private func checkThrowsClause(_ clause: ThrowsClauseSyntax?) {
+        guard let clause, let type = clause.type else { return }
+        guard let leaf = hoistedLeafIdentifier(of: type) else { return }
+        guard leaf.hasPrefix("__") else { return }
+        let location = converter.location(for: type.positionAfterSkippingLeadingTrivia)
+        matches.append(
+            Diagnostic.Record(
+                location: Source.Location(
+                    fileID: source.fileID,
+                    filePath: source.filePath,
+                    line: location.line,
+                    column: location.column
+                ),
+                severity: severity,
+                identifier: "hoisted error in public throws",
+                message: throwsHoistedErrorMessage
+            )
+        )
+    }
 }

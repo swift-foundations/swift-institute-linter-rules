@@ -60,113 +60,114 @@ internal import SwiftSyntax
 /// ADVISORY at introduction, per the standing graduation discipline
 /// (issue #11) — promote to `.error` only after fleet validation.
 extension Lint.Rule {
-  /// Flags a `` `Protocol` `` sentinel nested under a carrier fronted by a public generic top-level typealias — member lookup through the alias never resolves it ([swift-institute/.github#122], disposition c).
-  public static let `protocol sentinel under generic front door` = Lint.Rule(
-    id: "protocol sentinel under generic front door",
-    default: .warning,
-    findings: { source, severity in
-      let visitor = StructureProtocolSentinelUnderGenericFrontDoorVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.resolvedMatches()
-    }
-  )
+    /// Flags a `` `Protocol` `` sentinel nested under a carrier fronted by a public generic top-level typealias — member lookup through the alias never resolves it ([swift-institute/.github#122], disposition c).
+    public static let `protocol sentinel under generic front door` = Lint.Rule(
+        id: "protocol sentinel under generic front door",
+        default: .warning,
+        findings: { source, severity in
+            let visitor = StructureProtocolSentinelUnderGenericFrontDoorVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.resolvedMatches()
+        }
+    )
 }
 
 private let structureProtocolSentinelUnderGenericFrontDoorMessage: Swift.String =
-  "[protocol sentinel under generic front door]: this `Protocol` "
-  + "sentinel is nested under a carrier that a public GENERIC "
-  + "top-level `typealias` fronts. Member-type lookup through an "
-  + "unbound-generic-alias base never resolves a nested member on any "
-  + "toolchain (swift-institute/Issues#81), so the front door's "
-  + "consumer-facing spelling (`FrontDoor<T>.Protocol`) has no way to "
-  + "reach this member — ruled unsupported in "
-  + "swift-institute/.github#122 (disposition c). Hoist the protocol "
-  + "to a non-generic top-level name instead (the `Store`/"
-  + "`Storage<Allocation>` precedent in swift-storage-primitives), "
-  + "retaining a non-generic compatibility alias if needed."
+    "[protocol sentinel under generic front door]: this `Protocol` "
+    + "sentinel is nested under a carrier that a public GENERIC "
+    + "top-level `typealias` fronts. Member-type lookup through an "
+    + "unbound-generic-alias base never resolves a nested member on any "
+    + "toolchain (swift-institute/Issues#81), so the front door's "
+    + "consumer-facing spelling (`FrontDoor<T>.Protocol`) has no way to "
+    + "reach this member — ruled unsupported in "
+    + "swift-institute/.github#122 (disposition c). Hoist the protocol "
+    + "to a non-generic top-level name instead (the `Store`/"
+    + "`Storage<Allocation>` precedent in swift-storage-primitives), "
+    + "retaining a non-generic compatibility alias if needed."
 
 internal final class StructureProtocolSentinelUnderGenericFrontDoorVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  private var matches: [Diagnostic.Record] = []
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    private var matches: [Diagnostic.Record] = []
 
-  /// Carrier leaf name (the RHS base identifier) -> true once a public
-  /// generic front-door typealias targeting it is found anywhere in
-  /// the file.
-  private var frontDoorCarrierNames: Swift.Set<Swift.String> = []
+    /// Carrier leaf name (the RHS base identifier) -> true once a public
+    /// generic front-door typealias targeting it is found anywhere in
+    /// the file.
+    private var frontDoorCarrierNames: Swift.Set<Swift.String> = []
 
-  private struct Candidate {
-    let carrierName: Swift.String
-    let position: AbsolutePosition
-  }
-  private var candidates: [Candidate] = []
-
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
-
-  override func visit(_ node: TypeAliasDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard node.genericParameterClause != nil else { return .visitChildren }
-    guard psgfdHasPublicOrOpen(node.modifiers) else { return .visitChildren }
-    if let carrierName = psgfdLeafIdentifierName(node.initializer.value) {
-      frontDoorCarrierNames.insert(carrierName)
+    private struct Candidate {
+        let carrierName: Swift.String
+        let position: AbsolutePosition
     }
-    return .visitChildren
-  }
+    private var candidates: [Candidate] = []
 
-  override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard let carrierName = psgfdLeafIdentifierName(node.extendedType) else {
-      return .visitChildren
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
     }
-    for member in node.memberBlock.members {
-      guard let position = psgfdProtocolSentinelPosition(member.decl) else { continue }
-      candidates.append(Candidate(carrierName: carrierName, position: position))
-    }
-    return .visitChildren
-  }
 
-  /// Cross-references collected `` `Protocol` ``-sentinel candidates
-  /// against the (possibly later-in-file) set of generic front-door
-  /// carrier names.
-  internal func resolvedMatches() -> [Diagnostic.Record] {
-    for candidate in candidates {
-      guard frontDoorCarrierNames.contains(candidate.carrierName) else { continue }
-      let location = converter.location(for: candidate.position)
-      matches.append(
-        Diagnostic.Record(
-          location: Source.Location(
-            fileID: source.fileID,
-            filePath: source.filePath,
-            line: location.line,
-            column: location.column
-          ),
-          severity: severity,
-          identifier: "protocol sentinel under generic front door",
-          message: structureProtocolSentinelUnderGenericFrontDoorMessage
-        ))
+    override func visit(_ node: TypeAliasDeclSyntax) -> SyntaxVisitorContinueKind {
+        guard node.genericParameterClause != nil else { return .visitChildren }
+        guard psgfdHasPublicOrOpen(node.modifiers) else { return .visitChildren }
+        if let carrierName = psgfdLeafIdentifierName(node.initializer.value) {
+            frontDoorCarrierNames.insert(carrierName)
+        }
+        return .visitChildren
     }
-    return matches
-  }
+
+    override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
+        guard let carrierName = psgfdLeafIdentifierName(node.extendedType) else {
+            return .visitChildren
+        }
+        for member in node.memberBlock.members {
+            guard let position = psgfdProtocolSentinelPosition(member.decl) else { continue }
+            candidates.append(Candidate(carrierName: carrierName, position: position))
+        }
+        return .visitChildren
+    }
+
+    /// Cross-references collected `` `Protocol` ``-sentinel candidates
+    /// against the (possibly later-in-file) set of generic front-door
+    /// carrier names.
+    internal func resolvedMatches() -> [Diagnostic.Record] {
+        for candidate in candidates {
+            guard frontDoorCarrierNames.contains(candidate.carrierName) else { continue }
+            let location = converter.location(for: candidate.position)
+            matches.append(
+                Diagnostic.Record(
+                    location: Source.Location(
+                        fileID: source.fileID,
+                        filePath: source.filePath,
+                        line: location.line,
+                        column: location.column
+                    ),
+                    severity: severity,
+                    identifier: "protocol sentinel under generic front door",
+                    message: structureProtocolSentinelUnderGenericFrontDoorMessage
+                )
+            )
+        }
+        return matches
+    }
 }
 
 // MARK: - Free helpers
 
 private func psgfdHasPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift.Bool {
-  for modifier in modifiers {
-    switch modifier.name.tokenKind {
-    case .keyword(.public), .keyword(.open): return true
-    default: continue
+    for modifier in modifiers {
+        switch modifier.name.tokenKind {
+        case .keyword(.public), .keyword(.open): return true
+        default: continue
+        }
     }
-  }
-  return false
+    return false
 }
 
 /// The leaf identifier name of `type`'s base — unwraps a
@@ -174,43 +175,43 @@ private func psgfdHasPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift.
 /// ignoring any generic-argument clause. `nil` for shapes with no
 /// single resolvable identifier (tuples, function types, etc.).
 private func psgfdLeafIdentifierName(_ type: TypeSyntax) -> Swift.String? {
-  if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return Lint.Syntax.Identifier.unescaped(identifier.name.text)
-  }
-  if let member = type.as(MemberTypeSyntax.self) {
-    return Lint.Syntax.Identifier.unescaped(member.name.text)
-  }
-  return nil
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+        return Lint.Syntax.Identifier.unescaped(identifier.name.text)
+    }
+    if let member = type.as(MemberTypeSyntax.self) {
+        return Lint.Syntax.Identifier.unescaped(member.name.text)
+    }
+    return nil
 }
 
 /// If `decl` is a nested type-like member (`typealias`/`struct`/
 /// `enum`/`class`/`protocol`) named the `Protocol` sentinel, returns
 /// its name token's position; otherwise `nil`.
 private func psgfdProtocolSentinelPosition(_ decl: DeclSyntax) -> AbsolutePosition? {
-  if let typealiasDecl = decl.as(TypeAliasDeclSyntax.self),
-    structureIsProtocolSentinelName(typealiasDecl.name.text)
-  {
-    return typealiasDecl.name.positionAfterSkippingLeadingTrivia
-  }
-  if let structDecl = decl.as(StructDeclSyntax.self),
-    structureIsProtocolSentinelName(structDecl.name.text)
-  {
-    return structDecl.name.positionAfterSkippingLeadingTrivia
-  }
-  if let enumDecl = decl.as(EnumDeclSyntax.self),
-    structureIsProtocolSentinelName(enumDecl.name.text)
-  {
-    return enumDecl.name.positionAfterSkippingLeadingTrivia
-  }
-  if let classDecl = decl.as(ClassDeclSyntax.self),
-    structureIsProtocolSentinelName(classDecl.name.text)
-  {
-    return classDecl.name.positionAfterSkippingLeadingTrivia
-  }
-  if let protocolDecl = decl.as(ProtocolDeclSyntax.self),
-    structureIsProtocolSentinelName(protocolDecl.name.text)
-  {
-    return protocolDecl.name.positionAfterSkippingLeadingTrivia
-  }
-  return nil
+    if let typealiasDecl = decl.as(TypeAliasDeclSyntax.self),
+        structureIsProtocolSentinelName(typealiasDecl.name.text)
+    {
+        return typealiasDecl.name.positionAfterSkippingLeadingTrivia
+    }
+    if let structDecl = decl.as(StructDeclSyntax.self),
+        structureIsProtocolSentinelName(structDecl.name.text)
+    {
+        return structDecl.name.positionAfterSkippingLeadingTrivia
+    }
+    if let enumDecl = decl.as(EnumDeclSyntax.self),
+        structureIsProtocolSentinelName(enumDecl.name.text)
+    {
+        return enumDecl.name.positionAfterSkippingLeadingTrivia
+    }
+    if let classDecl = decl.as(ClassDeclSyntax.self),
+        structureIsProtocolSentinelName(classDecl.name.text)
+    {
+        return classDecl.name.positionAfterSkippingLeadingTrivia
+    }
+    if let protocolDecl = decl.as(ProtocolDeclSyntax.self),
+        structureIsProtocolSentinelName(protocolDecl.name.text)
+    {
+        return protocolDecl.name.positionAfterSkippingLeadingTrivia
+    }
+    return nil
 }

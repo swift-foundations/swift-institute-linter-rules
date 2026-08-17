@@ -37,37 +37,37 @@ internal import SwiftSyntax
 ///     `/// doc` comment sitting between a `// SAFETY:` line and the
 ///     declaration does not separate them.
 internal func memoryTriviaHasAdjacentComment(
-  _ trivia: Trivia,
-  matching isWanted: (Swift.String) -> Swift.Bool
+    _ trivia: Trivia,
+    matching isWanted: (Swift.String) -> Swift.Bool
 ) -> Swift.Bool {
-  var newlineRun = 0
-  for piece in Swift.Array(trivia).reversed() {
-    switch piece {
-    case .newlines(let count), .carriageReturns(let count), .carriageReturnLineFeeds(let count):
-      newlineRun += count
-      if newlineRun >= 2 { return false }
+    var newlineRun = 0
+    for piece in Swift.Array(trivia).reversed() {
+        switch piece {
+        case .newlines(let count), .carriageReturns(let count), .carriageReturnLineFeeds(let count):
+            newlineRun += count
+            if newlineRun >= 2 { return false }
 
-    case .lineComment(let text):
-      newlineRun = 0
-      let trimmed = text.trimmingPrefix("//")
-      let body = trimmed.drop(while: { $0 == " " || $0 == "\t" })
-      if isWanted(Swift.String(body)) {
-        return true
-      }
-      continue
+        case .lineComment(let text):
+            newlineRun = 0
+            let trimmed = text.trimmingPrefix("//")
+            let body = trimmed.drop(while: { $0 == " " || $0 == "\t" })
+            if isWanted(Swift.String(body)) {
+                return true
+            }
+            continue
 
-    case .docLineComment, .docBlockComment, .blockComment:
-      newlineRun = 0
-      continue
+        case .docLineComment, .docBlockComment, .blockComment:
+            newlineRun = 0
+            continue
 
-    case .spaces, .tabs:
-      continue
+        case .spaces, .tabs:
+            continue
 
-    default:
-      continue
+        default:
+            continue
+        }
     }
-  }
-  return false
+    return false
 }
 
 /// Returns true if `clause` carries an explicit positive `Copyable`
@@ -86,19 +86,21 @@ internal func memoryTriviaHasAdjacentComment(
 /// Tilde-prefixed `~Copyable` is excluded — only the *positive* form
 /// trips this predicate. The `Swift.Copyable` qualified form is
 /// recognized when the base identifier is the bare token `Swift`.
-internal func memoryWhereClauseHasPositiveCopyable(_ clause: GenericWhereClauseSyntax?)
-  -> Swift.Bool
+internal func memoryWhereClauseHasPositiveCopyable(
+    _ clause: GenericWhereClauseSyntax?
+)
+    -> Swift.Bool
 {
-  guard let clause else { return false }
-  for requirement in clause.requirements {
-    guard let conformance = requirement.requirement.as(ConformanceRequirementSyntax.self) else {
-      continue
+    guard let clause else { return false }
+    for requirement in clause.requirements {
+        guard let conformance = requirement.requirement.as(ConformanceRequirementSyntax.self) else {
+            continue
+        }
+        if memoryTypeMentionsPositiveCopyable(conformance.rightType) {
+            return true
+        }
     }
-    if memoryTypeMentionsPositiveCopyable(conformance.rightType) {
-      return true
-    }
-  }
-  return false
+    return false
 }
 
 /// Structural analogue of ``memoryWhereClauseHasPositiveCopyable(_:)``
@@ -108,36 +110,38 @@ internal func memoryWhereClauseHasPositiveCopyable(_ clause: GenericWhereClauseS
 /// or inside a `CompositionTypeSyntax` — rather than a textual
 /// `.contains("~Copyable")` check on the requirement's description,
 /// which matches inside an unrelated comment or string.
-internal func memoryWhereClauseHasNoncopyable(_ clause: GenericWhereClauseSyntax?)
-  -> Swift.Bool
+internal func memoryWhereClauseHasNoncopyable(
+    _ clause: GenericWhereClauseSyntax?
+)
+    -> Swift.Bool
 {
-  guard let clause else { return false }
-  for requirement in clause.requirements {
-    guard let conformance = requirement.requirement.as(ConformanceRequirementSyntax.self) else {
-      continue
+    guard let clause else { return false }
+    for requirement in clause.requirements {
+        guard let conformance = requirement.requirement.as(ConformanceRequirementSyntax.self) else {
+            continue
+        }
+        if memoryTypeMentionsSuppressedCopyable(conformance.rightType) {
+            return true
+        }
     }
-    if memoryTypeMentionsSuppressedCopyable(conformance.rightType) {
-      return true
-    }
-  }
-  return false
+    return false
 }
 
 private func memoryTypeMentionsSuppressedCopyable(_ type: TypeSyntax) -> Swift.Bool {
-  if let suppressed = type.as(SuppressedTypeSyntax.self) {
-    // `memoryTypeMentionsPositiveCopyable` already recognizes both the
-    // bare `Copyable` and qualified `Swift.Copyable` spellings of the
-    // *name* — reuse it on the suppressed type's inner type.
-    return memoryTypeMentionsPositiveCopyable(suppressed.type)
-  }
-  if let composition = type.as(CompositionTypeSyntax.self) {
-    for element in composition.elements {
-      if memoryTypeMentionsSuppressedCopyable(element.type) {
-        return true
-      }
+    if let suppressed = type.as(SuppressedTypeSyntax.self) {
+        // `memoryTypeMentionsPositiveCopyable` already recognizes both the
+        // bare `Copyable` and qualified `Swift.Copyable` spellings of the
+        // *name* — reuse it on the suppressed type's inner type.
+        return memoryTypeMentionsPositiveCopyable(suppressed.type)
     }
-  }
-  return false
+    if let composition = type.as(CompositionTypeSyntax.self) {
+        for element in composition.elements {
+            if memoryTypeMentionsSuppressedCopyable(element.type) {
+                return true
+            }
+        }
+    }
+    return false
 }
 
 /// Walks a type syntax for any positive `Copyable` mention. Composition
@@ -147,24 +151,24 @@ private func memoryTypeMentionsSuppressedCopyable(_ type: TypeSyntax) -> Swift.B
 /// Internal helper — call `memoryWhereClauseHasPositiveCopyable(_:)`
 /// from rule visitors.
 internal func memoryTypeMentionsPositiveCopyable(_ type: TypeSyntax) -> Swift.Bool {
-  if let identifier = type.as(IdentifierTypeSyntax.self),
-    identifier.name.text == "Copyable"
-  {
-    return true
-  }
-  if let member = type.as(MemberTypeSyntax.self),
-    member.name.text == "Copyable",
-    let base = member.baseType.as(IdentifierTypeSyntax.self),
-    base.name.text == "Swift"
-  {
-    return true
-  }
-  if let composition = type.as(CompositionTypeSyntax.self) {
-    for element in composition.elements {
-      if memoryTypeMentionsPositiveCopyable(element.type) {
+    if let identifier = type.as(IdentifierTypeSyntax.self),
+        identifier.name.text == "Copyable"
+    {
         return true
-      }
     }
-  }
-  return false
+    if let member = type.as(MemberTypeSyntax.self),
+        member.name.text == "Copyable",
+        let base = member.baseType.as(IdentifierTypeSyntax.self),
+        base.name.text == "Swift"
+    {
+        return true
+    }
+    if let composition = type.as(CompositionTypeSyntax.self) {
+        for element in composition.elements {
+            if memoryTypeMentionsPositiveCopyable(element.type) {
+                return true
+            }
+        }
+    }
+    return false
 }

@@ -16,29 +16,29 @@ internal import SwiftSyntax
 /// `Bar` is declared in that same file. Cross-file resolution is out of reach
 /// for a per-file rule; that gap is why the use-site detector exists.
 internal final class ThrowsPhantomGenericDeclCollector: SyntaxVisitor {
-  var generics: [Swift.String: [Swift.String]] = [:]
+    var generics: [Swift.String: [Swift.String]] = [:]
 
-  init() { super.init(viewMode: .sourceAccurate) }
+    init() { super.init(viewMode: .sourceAccurate) }
 
-  override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-    record(node.name.text, node.genericParameterClause)
-    return .visitChildren
-  }
-  override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-    record(node.name.text, node.genericParameterClause)
-    return .visitChildren
-  }
-  override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-    record(node.name.text, node.genericParameterClause)
-    return .visitChildren
-  }
-  override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-    record(node.name.text, node.genericParameterClause)
-    return .visitChildren
-  }
+    override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
+        record(node.name.text, node.genericParameterClause)
+        return .visitChildren
+    }
+    override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
+        record(node.name.text, node.genericParameterClause)
+        return .visitChildren
+    }
+    override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+        record(node.name.text, node.genericParameterClause)
+        return .visitChildren
+    }
+    override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
+        record(node.name.text, node.genericParameterClause)
+        return .visitChildren
+    }
 
-  private func record(_ name: Swift.String, _ clause: GenericParameterClauseSyntax?) {
-    let parameters = throwsPhantomGenericParameterNames(clause)
-    if !parameters.isEmpty { generics[name] = parameters }
-  }
+    private func record(_ name: Swift.String, _ clause: GenericParameterClauseSyntax?) {
+        let parameters = throwsPhantomGenericParameterNames(clause)
+        if !parameters.isEmpty { generics[name] = parameters }
+    }
 }

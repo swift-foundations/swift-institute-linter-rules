@@ -26,31 +26,31 @@ internal import SwiftSyntax
 /// the bare `try` this rule keys on) and only annotate remaining,
 /// non-rethrows `try`s.
 extension Lint.Rule {
-  public static let `closure typed throws annotation` = Lint.Rule(
-    id: "closure typed throws annotation",
-    default: .warning,
-    findings: { source, severity in
-      let visitor = ThrowsClosureAnnotationVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.matches
-    }
-  )
+    public static let `closure typed throws annotation` = Lint.Rule(
+        id: "closure typed throws annotation",
+        default: .warning,
+        findings: { source, severity in
+            let visitor = ThrowsClosureAnnotationVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.matches
+        }
+    )
 }
 
 @usableFromInline
 internal let throwsClosureAnnotationMessage: Swift.String =
-  "[closure typed throws annotation] [API-ERR-004]: closure inside a "
-  + "`throws(E)` context contains `try` but lacks an explicit "
-  + "`throws(E)` annotation — Swift 6.2 infers `any Error` and erases "
-  + "the typed throw."
+    "[closure typed throws annotation] [API-ERR-004]: closure inside a "
+    + "`throws(E)` context contains `try` but lacks an explicit "
+    + "`throws(E)` annotation — Swift 6.2 infers `any Error` and erases "
+    + "the typed throw."
 
 internal func throwsIsTypedThrows(_ clause: ThrowsClauseSyntax?) -> Swift.Bool {
-  guard let clause else { return false }
-  return clause.type != nil
+    guard let clause else { return false }
+    return clause.type != nil
 }
 
 /// Returns true if `node` is the trailing closure of a `#expect(throws:)`
@@ -74,15 +74,15 @@ internal func throwsIsTypedThrows(_ clause: ThrowsClauseSyntax?) -> Swift.Bool {
 /// checks the macro name is `expect`, and verifies the argument list
 /// contains a `throws:` labeled argument.
 internal func throwsClosureIsInsideExpectThrows(_ node: ClosureExprSyntax) -> Swift.Bool {
-  guard let parent = node.parent else { return false }
-  guard let macro = parent.as(MacroExpansionExprSyntax.self) else { return false }
-  guard macro.macroName.text == "expect" else { return false }
-  for argument in macro.arguments {
-    if argument.label?.text == "throws" {
-      return true
+    guard let parent = node.parent else { return false }
+    guard let macro = parent.as(MacroExpansionExprSyntax.self) else { return false }
+    guard macro.macroName.text == "expect" else { return false }
+    for argument in macro.arguments {
+        if argument.label?.text == "throws" {
+            return true
+        }
     }
-  }
-  return false
+    return false
 }
 
 /// Returns true if the node is inside an enclosing `DoStmtSyntax` whose
@@ -94,20 +94,20 @@ internal func throwsClosureIsInsideExpectThrows(_ node: ClosureExprSyntax) -> Sw
 /// clause, (ii) at least one clause is catch-all, and (iii) every clause
 /// neither throws nor propagates (#19 defect 3).
 internal func throwsClosureTryIsInsideMaterializingDoCatch(_ node: Syntax) -> Swift.Bool {
-  var current: Syntax? = node.parent
-  while let candidate = current {
-    if let doStmt = candidate.as(DoStmtSyntax.self) {
-      if !doStmt.catchClauses.isEmpty,
-        doStmt.catchClauses.contains(where: throwsClosureCatchIsCatchAll),
-        doStmt.catchClauses.allSatisfy(throwsClosureCatchIsNonPropagating)
-      {
-        return true
-      }
+    var current: Syntax? = node.parent
+    while let candidate = current {
+        if let doStmt = candidate.as(DoStmtSyntax.self) {
+            if !doStmt.catchClauses.isEmpty,
+                doStmt.catchClauses.contains(where: throwsClosureCatchIsCatchAll),
+                doStmt.catchClauses.allSatisfy(throwsClosureCatchIsNonPropagating)
+            {
+                return true
+            }
+        }
+        if candidate.is(ClosureExprSyntax.self) { return false }
+        current = candidate.parent
     }
-    if candidate.is(ClosureExprSyntax.self) { return false }
-    current = candidate.parent
-  }
-  return false
+    return false
 }
 
 /// True when the catch clause has no typed/`where`-guarded pattern — it
@@ -115,8 +115,8 @@ internal func throwsClosureTryIsInsideMaterializingDoCatch(_ node: Syntax) -> Sw
 /// not exhaustive: some errors fall through uncaught, so the `do` does not
 /// fully materialize the `try`.
 internal func throwsClosureCatchIsCatchAll(_ clause: CatchClauseSyntax) -> Swift.Bool {
-  clause.catchItems.isEmpty
-    || clause.catchItems.allSatisfy { $0.pattern == nil && $0.whereClause == nil }
+    clause.catchItems.isEmpty
+        || clause.catchItems.allSatisfy { $0.pattern == nil && $0.whereClause == nil }
 }
 
 /// Returns true if the catch clause's body materializes the error
@@ -137,118 +137,119 @@ internal func throwsClosureCatchIsCatchAll(_ clause: CatchClauseSyntax) -> Swift
 /// non-optional `try` at any depth (excluding nested closures, which have
 /// their own boundary).
 internal func throwsClosureCatchIsNonPropagating(_ clause: CatchClauseSyntax) -> Swift.Bool {
-  let finder = ThrowsClosureCatchPropagationFinder(viewMode: .sourceAccurate)
-  finder.walk(clause.body)
-  return !finder.foundPropagation
+    let finder = ThrowsClosureCatchPropagationFinder(viewMode: .sourceAccurate)
+    finder.walk(clause.body)
+    return !finder.foundPropagation
 }
 
 internal final class ThrowsClosureAnnotationVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  var matches: [Diagnostic.Record] = []
-  var typedThrowsDepth: Swift.Int = 0
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    var matches: [Diagnostic.Record] = []
+    var typedThrowsDepth: Swift.Int = 0
 
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
+    }
 
-  private func emit(at position: AbsolutePosition) {
-    let location = converter.location(for: position)
-    matches.append(
-      Diagnostic.Record(
-        location: Source.Location(
-          fileID: source.fileID,
-          filePath: source.filePath,
-          line: location.line,
-          column: location.column
-        ),
-        severity: severity,
-        identifier: "closure typed throws annotation",
-        message: throwsClosureAnnotationMessage
-      ))
-  }
+    private func emit(at position: AbsolutePosition) {
+        let location = converter.location(for: position)
+        matches.append(
+            Diagnostic.Record(
+                location: Source.Location(
+                    fileID: source.fileID,
+                    filePath: source.filePath,
+                    line: location.line,
+                    column: location.column
+                ),
+                severity: severity,
+                identifier: "closure typed throws annotation",
+                message: throwsClosureAnnotationMessage
+            )
+        )
+    }
 
-  override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-    if throwsIsTypedThrows(node.signature.effectSpecifiers?.throwsClause) {
-      typedThrowsDepth += 1
+    override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
+        if throwsIsTypedThrows(node.signature.effectSpecifiers?.throwsClause) {
+            typedThrowsDepth += 1
+        }
+        return .visitChildren
     }
-    return .visitChildren
-  }
-  override func visitPost(_ node: FunctionDeclSyntax) {
-    if throwsIsTypedThrows(node.signature.effectSpecifiers?.throwsClause) {
-      typedThrowsDepth -= 1
+    override func visitPost(_ node: FunctionDeclSyntax) {
+        if throwsIsTypedThrows(node.signature.effectSpecifiers?.throwsClause) {
+            typedThrowsDepth -= 1
+        }
     }
-  }
 
-  override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-    if throwsIsTypedThrows(node.signature.effectSpecifiers?.throwsClause) {
-      typedThrowsDepth += 1
+    override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
+        if throwsIsTypedThrows(node.signature.effectSpecifiers?.throwsClause) {
+            typedThrowsDepth += 1
+        }
+        return .visitChildren
     }
-    return .visitChildren
-  }
-  override func visitPost(_ node: InitializerDeclSyntax) {
-    if throwsIsTypedThrows(node.signature.effectSpecifiers?.throwsClause) {
-      typedThrowsDepth -= 1
+    override func visitPost(_ node: InitializerDeclSyntax) {
+        if throwsIsTypedThrows(node.signature.effectSpecifiers?.throwsClause) {
+            typedThrowsDepth -= 1
+        }
     }
-  }
 
-  // #19 defect 4, item 1: accessors (and, by extension, subscripts — a
-  // subscript's throws clause lives on its accessors, so no
-  // `SubscriptDeclSyntax` override is needed or correct).
-  override func visit(_ node: AccessorDeclSyntax) -> SyntaxVisitorContinueKind {
-    if throwsIsTypedThrows(node.effectSpecifiers?.throwsClause) {
-      typedThrowsDepth += 1
+    // #19 defect 4, item 1: accessors (and, by extension, subscripts — a
+    // subscript's throws clause lives on its accessors, so no
+    // `SubscriptDeclSyntax` override is needed or correct).
+    override func visit(_ node: AccessorDeclSyntax) -> SyntaxVisitorContinueKind {
+        if throwsIsTypedThrows(node.effectSpecifiers?.throwsClause) {
+            typedThrowsDepth += 1
+        }
+        return .visitChildren
     }
-    return .visitChildren
-  }
-  override func visitPost(_ node: AccessorDeclSyntax) {
-    if throwsIsTypedThrows(node.effectSpecifiers?.throwsClause) {
-      typedThrowsDepth -= 1
+    override func visitPost(_ node: AccessorDeclSyntax) {
+        if throwsIsTypedThrows(node.effectSpecifiers?.throwsClause) {
+            typedThrowsDepth -= 1
+        }
     }
-  }
 
-  override func visit(_ node: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
-    // #19 defect 4, item 2: a typed-throws closure both COUNTS as a
-    // typed-throws context for its own children and STAYS EXEMPT itself
-    // (it already carries the annotation it would otherwise be flagged
-    // for lacking). `wasInTypedContext` is read BEFORE the increment, or
-    // a typed closure at file scope would flag itself.
-    let isTyped = throwsIsTypedThrows(node.signature?.effectSpecifiers?.throwsClause)
-    let wasInTypedContext = typedThrowsDepth > 0
-    if isTyped { typedThrowsDepth += 1 }
-    guard wasInTypedContext, !isTyped else { return .visitChildren }
-    // Carve-out: `#expect(throws:)` macro expansion. The macro's
-    // `throws:` argument carries the expected error; the closure
-    // annotation is semantically meaningless. Additionally, the
-    // annotation triggers a Swift 6.3.2 SIL crash when the body
-    // holds ~Copyable lifetime-dependent types. See
-    // `throwsClosureIsInsideExpectThrows` for full rationale and
-    // citation.
-    if throwsClosureIsInsideExpectThrows(node) {
-      return .visitChildren
+    override func visit(_ node: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
+        // #19 defect 4, item 2: a typed-throws closure both COUNTS as a
+        // typed-throws context for its own children and STAYS EXEMPT itself
+        // (it already carries the annotation it would otherwise be flagged
+        // for lacking). `wasInTypedContext` is read BEFORE the increment, or
+        // a typed closure at file scope would flag itself.
+        let isTyped = throwsIsTypedThrows(node.signature?.effectSpecifiers?.throwsClause)
+        let wasInTypedContext = typedThrowsDepth > 0
+        if isTyped { typedThrowsDepth += 1 }
+        guard wasInTypedContext, !isTyped else { return .visitChildren }
+        // Carve-out: `#expect(throws:)` macro expansion. The macro's
+        // `throws:` argument carries the expected error; the closure
+        // annotation is semantically meaningless. Additionally, the
+        // annotation triggers a Swift 6.3.2 SIL crash when the body
+        // holds ~Copyable lifetime-dependent types. See
+        // `throwsClosureIsInsideExpectThrows` for full rationale and
+        // citation.
+        if throwsClosureIsInsideExpectThrows(node) {
+            return .visitChildren
+        }
+        let finder = ThrowsClosureTryFinder(viewMode: .sourceAccurate)
+        for statement in node.statements {
+            finder.walk(statement)
+            if finder.found { break }
+        }
+        guard finder.found else { return .visitChildren }
+        let position: AbsolutePosition
+        if let signature = node.signature {
+            position = signature.positionAfterSkippingLeadingTrivia
+        } else {
+            position = node.leftBrace.positionAfterSkippingLeadingTrivia
+        }
+        emit(at: position)
+        return .visitChildren
     }
-    let finder = ThrowsClosureTryFinder(viewMode: .sourceAccurate)
-    for statement in node.statements {
-      finder.walk(statement)
-      if finder.found { break }
+    override func visitPost(_ node: ClosureExprSyntax) {
+        if throwsIsTypedThrows(node.signature?.effectSpecifiers?.throwsClause) {
+            typedThrowsDepth -= 1
+        }
     }
-    guard finder.found else { return .visitChildren }
-    let position: AbsolutePosition
-    if let signature = node.signature {
-      position = signature.positionAfterSkippingLeadingTrivia
-    } else {
-      position = node.leftBrace.positionAfterSkippingLeadingTrivia
-    }
-    emit(at: position)
-    return .visitChildren
-  }
-  override func visitPost(_ node: ClosureExprSyntax) {
-    if throwsIsTypedThrows(node.signature?.effectSpecifiers?.throwsClause) {
-      typedThrowsDepth -= 1
-    }
-  }
 }
