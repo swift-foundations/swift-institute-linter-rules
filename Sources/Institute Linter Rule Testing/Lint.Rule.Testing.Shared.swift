@@ -19,15 +19,15 @@ internal import SwiftSyntax
 /// other rules in this pack compared `trimmedDescription` against the bare
 /// name only, so a qualified `@Testing.Test` was invisible to them.
 internal func testingHasAttribute(
-  _ attributes: AttributeListSyntax,
-  named name: Swift.String
+    _ attributes: AttributeListSyntax,
+    named name: Swift.String
 ) -> Swift.Bool {
-  for attribute in attributes {
-    guard case .attribute(let attr) = attribute else { continue }
-    let attributeName = attr.attributeName.trimmedDescription
-    if attributeName == name || attributeName.hasSuffix(".\(name)") {
-      return true
+    for attribute in attributes {
+        guard case .attribute(let attr) = attribute else { continue }
+        let attributeName = attr.attributeName.trimmedDescription
+        if attributeName == name || attributeName.hasSuffix(".\(name)") {
+            return true
+        }
     }
-  }
-  return false
+    return false
 }

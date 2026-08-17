@@ -26,7 +26,7 @@ internal import SwiftSyntax
 /// Rule packs are independently consumable library products; the
 /// contract is copied, never re-derived. See #17.
 internal func structureIsProtocolSentinelName(_ name: Swift.String) -> Swift.Bool {
-  return name == "Protocol" || name == "`Protocol`"
+    return name == "Protocol" || name == "`Protocol`"
 }
 
 /// The SwiftSyntax visitor-family base classes whose subclasses are
@@ -42,9 +42,9 @@ internal func structureIsProtocolSentinelName(_ name: Swift.String) -> Swift.Boo
 /// (`SwiftSyntax.SyntaxVisitor`) inheritance forms resolve to the
 /// same leaf string in the inheritance clause walk.
 internal let structureSyntaxVisitorFamilyNames: Swift.Set<Swift.String> = [
-  "SyntaxVisitor",
-  "SyntaxAnyVisitor",
-  "SyntaxRewriter",
+    "SyntaxVisitor",
+    "SyntaxAnyVisitor",
+    "SyntaxRewriter",
 ]
 
 /// Returns true if `clause` lists any member of the SwiftSyntax
@@ -77,9 +77,9 @@ internal let structureSyntaxVisitorFamilyNames: Swift.Set<Swift.String> = [
 /// re-derived — there is no universal/institute tier boundary between
 /// two targets of this package. See #17. Semantics match.
 internal func structureIsShorthandGetterAccessorBlock(_ node: Syntax) -> Swift.Bool {
-  guard let block = node.as(AccessorBlockSyntax.self) else { return false }
-  if case .getter = block.accessors { return true }
-  return false
+    guard let block = node.as(AccessorBlockSyntax.self) else { return false }
+    if case .getter = block.accessors { return true }
+    return false
 }
 
 /// Whether `node` is file-significant for `single type per file`'s
@@ -111,33 +111,33 @@ internal func structureIsShorthandGetterAccessorBlock(_ node: Syntax) -> Swift.B
 /// those container kinds and so treated a function-local type as a
 /// second top-level type.
 internal func structureIsFileSignificant(_ node: some SyntaxProtocol) -> Swift.Bool {
-  var current: Syntax? = Syntax(node).parent
-  while let ancestor = current {
-    if ancestor.is(SourceFileSyntax.self) {
-      return true
+    var current: Syntax? = Syntax(node).parent
+    while let ancestor = current {
+        if ancestor.is(SourceFileSyntax.self) {
+            return true
+        }
+        if ancestor.is(ExtensionDeclSyntax.self) || ancestor.is(IfConfigDeclSyntax.self) {
+            current = ancestor.parent
+            continue
+        }
+        if ancestor.is(StructDeclSyntax.self)
+            || ancestor.is(ClassDeclSyntax.self)
+            || ancestor.is(EnumDeclSyntax.self)
+            || ancestor.is(ActorDeclSyntax.self)
+            || ancestor.is(ProtocolDeclSyntax.self)
+            || ancestor.is(FunctionDeclSyntax.self)
+            || ancestor.is(InitializerDeclSyntax.self)
+            || ancestor.is(DeinitializerDeclSyntax.self)
+            || ancestor.is(SubscriptDeclSyntax.self)
+            || ancestor.is(AccessorDeclSyntax.self)
+            || ancestor.is(AccessorBlockSyntax.self)
+            || ancestor.is(ClosureExprSyntax.self)
+        {
+            return false
+        }
+        current = ancestor.parent
     }
-    if ancestor.is(ExtensionDeclSyntax.self) || ancestor.is(IfConfigDeclSyntax.self) {
-      current = ancestor.parent
-      continue
-    }
-    if ancestor.is(StructDeclSyntax.self)
-      || ancestor.is(ClassDeclSyntax.self)
-      || ancestor.is(EnumDeclSyntax.self)
-      || ancestor.is(ActorDeclSyntax.self)
-      || ancestor.is(ProtocolDeclSyntax.self)
-      || ancestor.is(FunctionDeclSyntax.self)
-      || ancestor.is(InitializerDeclSyntax.self)
-      || ancestor.is(DeinitializerDeclSyntax.self)
-      || ancestor.is(SubscriptDeclSyntax.self)
-      || ancestor.is(AccessorDeclSyntax.self)
-      || ancestor.is(AccessorBlockSyntax.self)
-      || ancestor.is(ClosureExprSyntax.self)
-    {
-      return false
-    }
-    current = ancestor.parent
-  }
-  return false
+    return false
 }
 
 /// Builds the dotted-path spelling of `type`, stripping backticks from
@@ -156,39 +156,39 @@ internal func structureIsFileSignificant(_ node: some SyntaxProtocol) -> Swift.B
 /// `FileNameNestedPath`) share one definition instead of a de-facto
 /// shared helper living inside one rule's file.
 internal func structureDottedName(of type: TypeSyntax) -> Swift.String? {
-  if let identifier = type.as(IdentifierTypeSyntax.self) {
-    return Lint.Syntax.Identifier.unescaped(identifier.name.text)
-  }
-  if let member = type.as(MemberTypeSyntax.self) {
-    guard let baseName = structureDottedName(of: member.baseType) else {
-      return nil
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+        return Lint.Syntax.Identifier.unescaped(identifier.name.text)
     }
-    return "\(baseName).\(Lint.Syntax.Identifier.unescaped(member.name.text))"
-  }
-  if let metatype = type.as(MetatypeTypeSyntax.self) {
-    guard let baseName = structureDottedName(of: metatype.baseType) else {
-      return nil
+    if let member = type.as(MemberTypeSyntax.self) {
+        guard let baseName = structureDottedName(of: member.baseType) else {
+            return nil
+        }
+        return "\(baseName).\(Lint.Syntax.Identifier.unescaped(member.name.text))"
     }
-    return "\(baseName).\(Lint.Syntax.Identifier.unescaped(metatype.metatypeSpecifier.text))"
-  }
-  return nil
+    if let metatype = type.as(MetatypeTypeSyntax.self) {
+        guard let baseName = structureDottedName(of: metatype.baseType) else {
+            return nil
+        }
+        return "\(baseName).\(Lint.Syntax.Identifier.unescaped(metatype.metatypeSpecifier.text))"
+    }
+    return nil
 }
 
 internal func structureExtendsSyntaxVisitor(_ clause: InheritanceClauseSyntax?) -> Swift.Bool {
-  guard let clause else { return false }
-  for inherited in clause.inheritedTypes {
-    let type = inherited.type
-    let leaf: Swift.String?
-    if let identifier = type.as(IdentifierTypeSyntax.self) {
-      leaf = identifier.name.text
-    } else if let member = type.as(MemberTypeSyntax.self) {
-      leaf = member.name.text
-    } else {
-      leaf = nil
+    guard let clause else { return false }
+    for inherited in clause.inheritedTypes {
+        let type = inherited.type
+        let leaf: Swift.String?
+        if let identifier = type.as(IdentifierTypeSyntax.self) {
+            leaf = identifier.name.text
+        } else if let member = type.as(MemberTypeSyntax.self) {
+            leaf = member.name.text
+        } else {
+            leaf = nil
+        }
+        if let leaf, structureSyntaxVisitorFamilyNames.contains(leaf) {
+            return true
+        }
     }
-    if let leaf, structureSyntaxVisitorFamilyNames.contains(leaf) {
-      return true
-    }
-  }
-  return false
+    return false
 }

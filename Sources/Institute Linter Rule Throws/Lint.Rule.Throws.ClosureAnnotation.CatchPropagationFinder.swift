@@ -16,19 +16,19 @@ internal import SwiftSyntax
 /// `try fallback()` (a call that can itself throw) propagates just as much as
 /// an explicit `throw` — the closure it sits in still needs the annotation.
 internal final class ThrowsClosureCatchPropagationFinder: SyntaxVisitor {
-  var foundPropagation = false
-  override func visit(_: ThrowStmtSyntax) -> SyntaxVisitorContinueKind {
-    foundPropagation = true
-    return .skipChildren
-  }
-  override func visit(_ node: TryExprSyntax) -> SyntaxVisitorContinueKind {
-    if node.questionOrExclamationMark == nil {
-      foundPropagation = true
+    var foundPropagation = false
+    override func visit(_: ThrowStmtSyntax) -> SyntaxVisitorContinueKind {
+        foundPropagation = true
+        return .skipChildren
     }
-    return .skipChildren
-  }
-  override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
-    // Nested closures have their own boundary.
-    return .skipChildren
-  }
+    override func visit(_ node: TryExprSyntax) -> SyntaxVisitorContinueKind {
+        if node.questionOrExclamationMark == nil {
+            foundPropagation = true
+        }
+        return .skipChildren
+    }
+    override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
+        // Nested closures have their own boundary.
+        return .skipChildren
+    }
 }

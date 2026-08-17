@@ -16,21 +16,21 @@ internal import SwiftSyntax
 /// ordering checks entirely — the rule can't disambiguate intent
 /// without an anchor.
 internal enum LifecycleTier: CaseIterable {
-  case setup
-  case body
-  case completion
-  case other
+    case setup
+    case body
+    case completion
+    case other
 
-  /// Position in the documented order. Lower sorts earlier.
-  /// `other` has no position in the order and must not be compared.
-  var rank: Swift.Int {
-    switch self {
-    case .setup: return 0
-    case .body: return 1
-    case .completion: return 2
-    case .other: return 0
+    /// Position in the documented order. Lower sorts earlier.
+    /// `other` has no position in the order and must not be compared.
+    var rank: Swift.Int {
+        switch self {
+        case .setup: return 0
+        case .body: return 1
+        case .completion: return 2
+        case .other: return 0
+        }
     }
-  }
 }
 
 /// Classifies a closure parameter's lifecycle tier from its label.
@@ -44,20 +44,20 @@ internal enum LifecycleTier: CaseIterable {
 /// with a canonical internal name (`to completion: ...`) still reads as
 /// what its internal name says.
 internal func lifecycleTier(of parameter: FunctionParameterSyntax) -> LifecycleTier {
-  let external: Swift.String? =
-    parameter.firstName.tokenKind == .wildcard ? nil : parameter.firstName.text
-  let internalName: Swift.String? = parameter.secondName?.text
+    let external: Swift.String? =
+        parameter.firstName.tokenKind == .wildcard ? nil : parameter.firstName.text
+    let internalName: Swift.String? = parameter.secondName?.text
 
-  for candidate in [external, internalName].compactMap({ $0 }) {
-    if setupTierLabels.contains(candidate) {
-      return .setup
+    for candidate in [external, internalName].compactMap({ $0 }) {
+        if setupTierLabels.contains(candidate) {
+            return .setup
+        }
+        if completionTierLabels.contains(candidate) {
+            return .completion
+        }
+        if bodyTierLabels.contains(candidate) {
+            return .body
+        }
     }
-    if completionTierLabels.contains(candidate) {
-      return .completion
-    }
-    if bodyTierLabels.contains(candidate) {
-      return .body
-    }
-  }
-  return .other
+    return .other
 }

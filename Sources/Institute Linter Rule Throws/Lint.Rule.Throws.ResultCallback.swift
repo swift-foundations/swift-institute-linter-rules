@@ -15,98 +15,99 @@ internal import SwiftSyntax
 /// Callback APIs MUST express outcomes as `() throws(E) -> T` thunk
 /// parameters, not as `Result<T, E>` values. Citation: `[IMPL-092]`.
 extension Lint.Rule {
-  public static let `callback result over throws thunk` = Lint.Rule(
-    id: "callback result over throws thunk",
-    default: .warning,
-    findings: { source, severity in
-      let visitor = ThrowsResultCallbackVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.matches
-    }
-  )
+    public static let `callback result over throws thunk` = Lint.Rule(
+        id: "callback result over throws thunk",
+        default: .warning,
+        findings: { source, severity in
+            let visitor = ThrowsResultCallbackVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.matches
+        }
+    )
 }
 
 @usableFromInline
 internal let throwsResultCallbackMessage: Swift.String =
-  "[callback result over throws thunk] [IMPL-092]: callback closure "
-  + "parameters MUST deliver outcomes via a `() throws(E) -> T` thunk, "
-  + "not a `Result<T, E>` value."
+    "[callback result over throws thunk] [IMPL-092]: callback closure "
+    + "parameters MUST deliver outcomes via a `() throws(E) -> T` thunk, "
+    + "not a `Result<T, E>` value."
 
 private func resultCallbackTokenPosition(in type: TypeSyntax) -> AbsolutePosition? {
-  var current = type
-  while let optional = current.as(OptionalTypeSyntax.self) { current = optional.wrappedType }
-  while let iuo = current.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    current = iuo.wrappedType
-  }
-  while let attributed = current.as(AttributedTypeSyntax.self) { current = attributed.baseType }
-  // Require exactly two generic arguments (`Value`, `Failure`) so a
-  // project-local non-generic `Result` type cannot fire (#19 smaller item 6).
-  if let identifier = current.as(IdentifierTypeSyntax.self),
-    identifier.name.text == "Result",
-    identifier.genericArgumentClause?.arguments.count == 2
-  {
-    return identifier.name.positionAfterSkippingLeadingTrivia
-  }
-  if let member = current.as(MemberTypeSyntax.self),
-    member.name.text == "Result",
-    member.genericArgumentClause?.arguments.count == 2,
-    let base = member.baseType.as(IdentifierTypeSyntax.self),
-    base.name.text == "Swift"
-  {
-    return member.name.positionAfterSkippingLeadingTrivia
-  }
-  // Recurse into container shapes that can hide a `Result` leak:
-  // `[Result<T, E>]`, `(Result<T, E>, Int)`, `[String: Result<T, E>]`.
-  if let array = current.as(ArrayTypeSyntax.self) {
-    return resultCallbackTokenPosition(in: array.element)
-  }
-  if let tuple = current.as(TupleTypeSyntax.self) {
-    for element in tuple.elements {
-      if let position = resultCallbackTokenPosition(in: element.type) { return position }
+    var current = type
+    while let optional = current.as(OptionalTypeSyntax.self) { current = optional.wrappedType }
+    while let iuo = current.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
+        current = iuo.wrappedType
+    }
+    while let attributed = current.as(AttributedTypeSyntax.self) { current = attributed.baseType }
+    // Require exactly two generic arguments (`Value`, `Failure`) so a
+    // project-local non-generic `Result` type cannot fire (#19 smaller item 6).
+    if let identifier = current.as(IdentifierTypeSyntax.self),
+        identifier.name.text == "Result",
+        identifier.genericArgumentClause?.arguments.count == 2
+    {
+        return identifier.name.positionAfterSkippingLeadingTrivia
+    }
+    if let member = current.as(MemberTypeSyntax.self),
+        member.name.text == "Result",
+        member.genericArgumentClause?.arguments.count == 2,
+        let base = member.baseType.as(IdentifierTypeSyntax.self),
+        base.name.text == "Swift"
+    {
+        return member.name.positionAfterSkippingLeadingTrivia
+    }
+    // Recurse into container shapes that can hide a `Result` leak:
+    // `[Result<T, E>]`, `(Result<T, E>, Int)`, `[String: Result<T, E>]`.
+    if let array = current.as(ArrayTypeSyntax.self) {
+        return resultCallbackTokenPosition(in: array.element)
+    }
+    if let tuple = current.as(TupleTypeSyntax.self) {
+        for element in tuple.elements {
+            if let position = resultCallbackTokenPosition(in: element.type) { return position }
+        }
+        return nil
+    }
+    if let dictionary = current.as(DictionaryTypeSyntax.self) {
+        return resultCallbackTokenPosition(in: dictionary.value)
     }
     return nil
-  }
-  if let dictionary = current.as(DictionaryTypeSyntax.self) {
-    return resultCallbackTokenPosition(in: dictionary.value)
-  }
-  return nil
 }
 
 internal final class ThrowsResultCallbackVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  var matches: [Diagnostic.Record] = []
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    var matches: [Diagnostic.Record] = []
 
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
-
-  override func visit(_ node: FunctionTypeSyntax) -> SyntaxVisitorContinueKind {
-    for parameter in node.parameters {
-      if let position = resultCallbackTokenPosition(in: parameter.type) {
-        let location = converter.location(for: position)
-        matches.append(
-          Diagnostic.Record(
-            location: Source.Location(
-              fileID: source.fileID,
-              filePath: source.filePath,
-              line: location.line,
-              column: location.column
-            ),
-            severity: severity,
-            identifier: "callback result over throws thunk",
-            message: throwsResultCallbackMessage
-          ))
-      }
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
     }
-    return .visitChildren
-  }
+
+    override func visit(_ node: FunctionTypeSyntax) -> SyntaxVisitorContinueKind {
+        for parameter in node.parameters {
+            if let position = resultCallbackTokenPosition(in: parameter.type) {
+                let location = converter.location(for: position)
+                matches.append(
+                    Diagnostic.Record(
+                        location: Source.Location(
+                            fileID: source.fileID,
+                            filePath: source.filePath,
+                            line: location.line,
+                            column: location.column
+                        ),
+                        severity: severity,
+                        identifier: "callback result over throws thunk",
+                        message: throwsResultCallbackMessage
+                    )
+                )
+            }
+        }
+        return .visitChildren
+    }
 }

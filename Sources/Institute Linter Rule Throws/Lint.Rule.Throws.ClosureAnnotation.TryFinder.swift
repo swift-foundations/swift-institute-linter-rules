@@ -23,17 +23,17 @@ internal import SwiftSyntax
 /// The walker stops at nested closure boundaries (a try inside a
 /// nested closure is the nested closure's concern, not this one's).
 internal final class ThrowsClosureTryFinder: SyntaxVisitor {
-  var found = false
-  override func visit(_ node: TryExprSyntax) -> SyntaxVisitorContinueKind {
-    guard node.questionOrExclamationMark == nil else {
-      return .visitChildren
+    var found = false
+    override func visit(_ node: TryExprSyntax) -> SyntaxVisitorContinueKind {
+        guard node.questionOrExclamationMark == nil else {
+            return .visitChildren
+        }
+        if !throwsClosureTryIsInsideMaterializingDoCatch(Syntax(node)) {
+            found = true
+        }
+        return .skipChildren
     }
-    if !throwsClosureTryIsInsideMaterializingDoCatch(Syntax(node)) {
-      found = true
+    override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
+        return .skipChildren
     }
-    return .skipChildren
-  }
-  override func visit(_: ClosureExprSyntax) -> SyntaxVisitorContinueKind {
-    return .skipChildren
-  }
 }

@@ -56,73 +56,75 @@ internal import SwiftSyntax
 ///
 /// Citation: `swift-institute-linter-rules#65`; Goal #94.
 extension Lint.Rule {
-  public static let `manifest naming grammar` = Lint.Rule(
-    id: "manifest naming grammar",
-    default: .warning,
-    findings: { source, severity in
-      guard namingIsPackageManifest(source.file.filePath) else { return [] }
-      let visitor = NamingManifestGrammarVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.matches
-    }
-  )
+    public static let `manifest naming grammar` = Lint.Rule(
+        id: "manifest naming grammar",
+        default: .warning,
+        findings: { source, severity in
+            guard namingIsPackageManifest(source.file.filePath) else { return [] }
+            let visitor = NamingManifestGrammarVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.matches
+        }
+    )
 }
 
 /// Returns true when `name` is a kebab-case package slug:
 /// `[a-z0-9]+(-[a-z0-9]+)*`.
 internal func namingManifestIsKebabSlug(_ name: Swift.String) -> Swift.Bool {
-  guard !name.isEmpty else { return false }
-  var previousWasHyphen = true  // leading hyphen is invalid
-  for character in name {
-    if character == "-" {
-      if previousWasHyphen { return false }
-      previousWasHyphen = true
-      continue
+    guard !name.isEmpty else { return false }
+    var previousWasHyphen = true  // leading hyphen is invalid
+    for character in name {
+        if character == "-" {
+            if previousWasHyphen { return false }
+            previousWasHyphen = true
+            continue
+        }
+        guard character.isLowercase || character.isNumber else { return false }
+        guard character.isASCII else { return false }
+        previousWasHyphen = false
     }
-    guard character.isLowercase || character.isNumber else { return false }
-    guard character.isASCII else { return false }
-    previousWasHyphen = false
-  }
-  return !previousWasHyphen  // trailing hyphen is invalid
+    return !previousWasHyphen  // trailing hyphen is invalid
 }
 
 /// Returns the space-separated words of `name` that are concatenated
 /// compounds by the shared predicate. Empty when `name` is a
 /// well-formed spaced Nest.Name form (or a single non-compound word).
 internal func namingManifestCompoundWords(in name: Swift.String) -> [Swift.String] {
-  name.split(separator: " ").map(Swift.String.init).filter(namingWordIsCompound)
+    name.split(separator: " ").map(Swift.String.init).filter(namingWordIsCompound)
 }
 
 @usableFromInline
 internal func namingManifestGrammarSlugMessage(_ name: Swift.String) -> Swift.String {
-  "[manifest naming grammar]: package name '\(name)' is not a kebab-case "
-    + "slug — the package name must match `[a-z0-9]+(-[a-z0-9]+)*` "
-    + "(e.g. `institute-application`)"
+    "[manifest naming grammar]: package name '\(name)' is not a kebab-case "
+        + "slug — the package name must match `[a-z0-9]+(-[a-z0-9]+)*` "
+        + "(e.g. `institute-application`)"
 }
 
 @usableFromInline
 internal func namingManifestGrammarNameMessage(
-  _ name: Swift.String, words: [Swift.String]
+    _ name: Swift.String,
+    words: [Swift.String]
 ) -> Swift.String {
-  "[manifest naming grammar]: declared name '\(name)' contains "
-    + "concatenated word\(words.count == 1 ? "" : "s") "
-    + words.map { "'\($0)'" }.joined(separator: ", ")
-    + " — product and target names use the spaced Nest.Name form "
-    + "(e.g. `Institute Architecture CLI`, not `InstituteArchitectureCLI`)"
+    "[manifest naming grammar]: declared name '\(name)' contains "
+        + "concatenated word\(words.count == 1 ? "" : "s") "
+        + words.map { "'\($0)'" }.joined(separator: ", ")
+        + " — product and target names use the spaced Nest.Name form "
+        + "(e.g. `Institute Architecture CLI`, not `InstituteArchitectureCLI`)"
 }
 
 @usableFromInline
 internal func namingManifestGrammarPathMessage(
-  name: Swift.String, segment: Swift.String
+    name: Swift.String,
+    segment: Swift.String
 ) -> Swift.String {
-  "[manifest naming grammar]: target '\(name)' declares path segment "
-    + "'\(segment)', which differs from the target name only by "
-    + "spacing — the directory name must correspond exactly to the "
-    + "declared spaced target name"
+    "[manifest naming grammar]: target '\(name)' declares path segment "
+        + "'\(segment)', which differs from the target name only by "
+        + "spacing — the directory name must correspond exactly to the "
+        + "declared spaced target name"
 }
 
 /// The product- and target-declaring manifest factory members whose
@@ -135,97 +137,103 @@ internal func namingManifestGrammarPathMessage(
 /// single-word rule — the `* Shims` shape half of that ruling is the
 /// validator family's predicate, not this rule's.
 private let namingManifestDeclaringFactories: Swift.Set<Swift.String> = [
-  "library", "executable", "target", "testTarget", "executableTarget", "macro", "plugin",
-  "systemLibrary",
+    "library", "executable", "target", "testTarget", "executableTarget", "macro", "plugin",
+    "systemLibrary",
 ]
 
 /// The subset of factories that declare targets (and may carry `path:`).
 private let namingManifestTargetFactories: Swift.Set<Swift.String> = [
-  "target", "testTarget", "executableTarget", "macro", "plugin", "systemLibrary",
+    "target", "testTarget", "executableTarget", "macro", "plugin", "systemLibrary",
 ]
 
 internal final class NamingManifestGrammarVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  var matches: [Diagnostic.Record] = []
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    var matches: [Diagnostic.Record] = []
 
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
+    }
 
-  /// Resolves an argument expression to a single-segment string
-  /// literal's text, or nil for anything computed.
-  private func literalText(_ expression: ExprSyntax) -> (Swift.String, AbsolutePosition)? {
-    guard let literal = expression.as(StringLiteralExprSyntax.self),
-      literal.segments.count == 1,
-      let segment = literal.segments.first?.as(StringSegmentSyntax.self)
-    else { return nil }
-    return (segment.content.text, literal.positionAfterSkippingLeadingTrivia)
-  }
+    /// Resolves an argument expression to a single-segment string
+    /// literal's text, or nil for anything computed.
+    private func literalText(_ expression: ExprSyntax) -> (Swift.String, AbsolutePosition)? {
+        guard let literal = expression.as(StringLiteralExprSyntax.self),
+            literal.segments.count == 1,
+            let segment = literal.segments.first?.as(StringSegmentSyntax.self)
+        else { return nil }
+        return (segment.content.text, literal.positionAfterSkippingLeadingTrivia)
+    }
 
-  override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
-    // Top-level `Package(name:)` — the kebab-slug predicate.
-    if let reference = node.calledExpression.as(DeclReferenceExprSyntax.self),
-      reference.baseName.text == "Package"
-    {
-      for argument in node.arguments where argument.label?.text == "name" {
-        guard let (name, position) = literalText(argument.expression) else { continue }
-        if !namingManifestIsKebabSlug(name) {
-          emit(at: position, message: namingManifestGrammarSlugMessage(name))
+    override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
+        // Top-level `Package(name:)` — the kebab-slug predicate.
+        if let reference = node.calledExpression.as(DeclReferenceExprSyntax.self),
+            reference.baseName.text == "Package"
+        {
+            for argument in node.arguments where argument.label?.text == "name" {
+                guard let (name, position) = literalText(argument.expression) else { continue }
+                if !namingManifestIsKebabSlug(name) {
+                    emit(at: position, message: namingManifestGrammarSlugMessage(name))
+                }
+            }
+            return .visitChildren
         }
-      }
-      return .visitChildren
-    }
-    // Product/target factories — the spaced-name and path predicates.
-    guard let member = node.calledExpression.as(MemberAccessExprSyntax.self),
-      namingManifestDeclaringFactories.contains(member.declName.baseName.text)
-    else { return .visitChildren }
-    var declaredName: Swift.String?
-    for argument in node.arguments where argument.label?.text == "name" {
-      guard let (name, position) = literalText(argument.expression) else { continue }
-      declaredName = name
-      let compounds = namingManifestCompoundWords(in: name)
-      if !compounds.isEmpty {
-        emit(at: position, message: namingManifestGrammarNameMessage(name, words: compounds))
-      }
-    }
-    if namingManifestTargetFactories.contains(member.declName.baseName.text),
-      let name = declaredName
-    {
-      for argument in node.arguments where argument.label?.text == "path" {
-        guard let (path, position) = literalText(argument.expression) else { continue }
-        guard
-          let segment = path.split(separator: "/", omittingEmptySubsequences: true).last
-            .map(Swift.String.init)
-        else { continue }
-        let despacedSegment = Swift.String(segment.filter { $0 != " " })
-        let despacedName = Swift.String(name.filter { $0 != " " })
-        if segment != name, despacedSegment == despacedName {
-          emit(
-            at: position, message: namingManifestGrammarPathMessage(name: name, segment: segment))
+        // Product/target factories — the spaced-name and path predicates.
+        guard let member = node.calledExpression.as(MemberAccessExprSyntax.self),
+            namingManifestDeclaringFactories.contains(member.declName.baseName.text)
+        else { return .visitChildren }
+        var declaredName: Swift.String?
+        for argument in node.arguments where argument.label?.text == "name" {
+            guard let (name, position) = literalText(argument.expression) else { continue }
+            declaredName = name
+            let compounds = namingManifestCompoundWords(in: name)
+            if !compounds.isEmpty {
+                emit(
+                    at: position,
+                    message: namingManifestGrammarNameMessage(name, words: compounds)
+                )
+            }
         }
-      }
+        if namingManifestTargetFactories.contains(member.declName.baseName.text),
+            let name = declaredName
+        {
+            for argument in node.arguments where argument.label?.text == "path" {
+                guard let (path, position) = literalText(argument.expression) else { continue }
+                guard
+                    let segment = path.split(separator: "/", omittingEmptySubsequences: true).last
+                        .map(Swift.String.init)
+                else { continue }
+                let despacedSegment = Swift.String(segment.filter { $0 != " " })
+                let despacedName = Swift.String(name.filter { $0 != " " })
+                if segment != name, despacedSegment == despacedName {
+                    emit(
+                        at: position,
+                        message: namingManifestGrammarPathMessage(name: name, segment: segment)
+                    )
+                }
+            }
+        }
+        return .visitChildren
     }
-    return .visitChildren
-  }
 
-  private func emit(at position: AbsolutePosition, message: Swift.String) {
-    let location = converter.location(for: position)
-    matches.append(
-      Diagnostic.Record(
-        location: Source.Location(
-          fileID: source.fileID,
-          filePath: source.filePath,
-          line: location.line,
-          column: location.column
-        ),
-        severity: severity,
-        identifier: "manifest naming grammar",
-        message: message
-      ))
-  }
+    private func emit(at position: AbsolutePosition, message: Swift.String) {
+        let location = converter.location(for: position)
+        matches.append(
+            Diagnostic.Record(
+                location: Source.Location(
+                    fileID: source.fileID,
+                    filePath: source.filePath,
+                    line: location.line,
+                    column: location.column
+                ),
+                severity: severity,
+                identifier: "manifest naming grammar",
+                message: message
+            )
+        )
+    }
 }

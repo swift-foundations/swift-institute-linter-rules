@@ -18,20 +18,20 @@ internal import SwiftSyntax
 /// is itself a phantom error), which is how swift-iso-8601's
 /// `Interval`/`RecurringInterval` escaped an earlier hand-rolled scan.
 internal final class ThrowsPhantomParameterUseFinder: SyntaxVisitor {
-  let parameter: Swift.String
-  var found = false
+    let parameter: Swift.String
+    var found = false
 
-  init(parameter: Swift.String) {
-    self.parameter = parameter
-    super.init(viewMode: .sourceAccurate)
-  }
+    init(parameter: Swift.String) {
+        self.parameter = parameter
+        super.init(viewMode: .sourceAccurate)
+    }
 
-  override func visit(_: GenericArgumentClauseSyntax) -> SyntaxVisitorContinueKind {
-    return .skipChildren
-  }
+    override func visit(_: GenericArgumentClauseSyntax) -> SyntaxVisitorContinueKind {
+        return .skipChildren
+    }
 
-  override func visit(_ node: IdentifierTypeSyntax) -> SyntaxVisitorContinueKind {
-    if node.name.text == parameter { found = true }
-    return .visitChildren
-  }
+    override func visit(_ node: IdentifierTypeSyntax) -> SyntaxVisitorContinueKind {
+        if node.name.text == parameter { found = true }
+        return .visitChildren
+    }
 }

@@ -21,52 +21,52 @@ internal import SwiftSyntax
 /// is where `URLSession` lives on Linux, so omitting it leaves the rule blind
 /// on precisely the axis it exists to guard.
 extension Lint.Rule {
-  public static let `foundation import` = Lint.Rule(
-    id: "foundation import",
-    default: .warning,
-    findings: { source, severity in
-      // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
-      // opt-in `* Foundation Integration` subtarget is the sanctioned
-      // Foundation boundary consumers opt into per `[PRIM-FOUND-001]`,
-      // named by this rule's own message. A file whose path carries a
-      // `… Foundation Integration/` directory segment IS that boundary, so
-      // its Foundation import is legitimate by construction. Every core
-      // target, at every layer, is still walked and still fires.
-      guard !foundationImportIsInsideFoundationIntegrationTarget(source.file.filePath) else {
-        return []
-      }
-      // Exempt per [RULE-EXEMPT-12] (path-scoped target): `[ARCH-LAYER-007]`
-      // governs a package's MAIN targets. Test, experiment and example
-      // sources ship to no consumer and impose Foundation on nothing, so
-      // firing there was over-reporting — and noise that authors are told
-      // to ignore is how a real finding gets ignored too. Mirrors the
-      // scope exclusion in `Lint.Rule.Structure.SingleTypePerFile` and
-      // `Lint.Rule.Memory.PointerArithmetic`, which use this same segment
-      // set; kept as a separate guard from the FI carve-out above because
-      // it is a different sanctioned category with a different rationale.
-      guard !foundationImportIsOutsideMainTarget(source.file.filePath) else {
-        return []
-      }
-      // Exempt per [RULE-EXEMPT-12] (path-scoped target): a package manifest
-      // is not a target at all. SwiftPM compiles `Package.swift` in its own
-      // manifest sandbox and ships it to no consumer, so a manifest's
-      // `import Foundation` cannot impose Foundation on anyone — which is
-      // the harm `[ARCH-LAYER-007]` exists to prevent. Keyed on the FILENAME,
-      // unlike the two directory-segment gates above; that difference is
-      // deliberate, because the manifest is identified by its name and can
-      // sit at any package root, including a nested package's.
-      guard !foundationImportIsPackageManifest(source.file.filePath) else {
-        return []
-      }
-      let visitor = FoundationImportVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.matches
-    }
-  )
+    public static let `foundation import` = Lint.Rule(
+        id: "foundation import",
+        default: .warning,
+        findings: { source, severity in
+            // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
+            // opt-in `* Foundation Integration` subtarget is the sanctioned
+            // Foundation boundary consumers opt into per `[PRIM-FOUND-001]`,
+            // named by this rule's own message. A file whose path carries a
+            // `… Foundation Integration/` directory segment IS that boundary, so
+            // its Foundation import is legitimate by construction. Every core
+            // target, at every layer, is still walked and still fires.
+            guard !foundationImportIsInsideFoundationIntegrationTarget(source.file.filePath) else {
+                return []
+            }
+            // Exempt per [RULE-EXEMPT-12] (path-scoped target): `[ARCH-LAYER-007]`
+            // governs a package's MAIN targets. Test, experiment and example
+            // sources ship to no consumer and impose Foundation on nothing, so
+            // firing there was over-reporting — and noise that authors are told
+            // to ignore is how a real finding gets ignored too. Mirrors the
+            // scope exclusion in `Lint.Rule.Structure.SingleTypePerFile` and
+            // `Lint.Rule.Memory.PointerArithmetic`, which use this same segment
+            // set; kept as a separate guard from the FI carve-out above because
+            // it is a different sanctioned category with a different rationale.
+            guard !foundationImportIsOutsideMainTarget(source.file.filePath) else {
+                return []
+            }
+            // Exempt per [RULE-EXEMPT-12] (path-scoped target): a package manifest
+            // is not a target at all. SwiftPM compiles `Package.swift` in its own
+            // manifest sandbox and ships it to no consumer, so a manifest's
+            // `import Foundation` cannot impose Foundation on anyone — which is
+            // the harm `[ARCH-LAYER-007]` exists to prevent. Keyed on the FILENAME,
+            // unlike the two directory-segment gates above; that difference is
+            // deliberate, because the manifest is identified by its name and can
+            // sit at any package root, including a nested package's.
+            guard !foundationImportIsPackageManifest(source.file.filePath) else {
+                return []
+            }
+            let visitor = FoundationImportVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.matches
+        }
+    )
 }
 
 /// The directory-name suffix identifying a dedicated, opt-in Foundation
@@ -83,11 +83,11 @@ private let foundationIntegrationTargetSuffix: Swift.String = " Foundation Integ
 /// filename is dropped, so a source file that merely happens to end in
 /// `… Foundation Integration.swift` inside a core target is NOT exempted.
 private func foundationImportIsInsideFoundationIntegrationTarget(
-  _ filePath: Swift.String
+    _ filePath: Swift.String
 ) -> Swift.Bool {
-  let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
-  guard components.count > 1 else { return false }
-  return components.dropLast().contains { $0.hasSuffix(foundationIntegrationTargetSuffix) }
+    let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
+    guard components.count > 1 else { return false }
+    return components.dropLast().contains { $0.hasSuffix(foundationIntegrationTargetSuffix) }
 }
 
 /// Root directory names whose contents are, by SwiftPM and institute
@@ -98,9 +98,9 @@ private func foundationImportIsInsideFoundationIntegrationTarget(
 /// `Lint.Rule.Memory.PointerArithmetic` exactly; the three rules should
 /// agree on what "not a main target" means.
 private let foundationImportNonMainTargetRoots: [Swift.String] = [
-  "Tests",
-  "Experiments",
-  "Examples",
+    "Tests",
+    "Experiments",
+    "Examples",
 ]
 
 /// Returns true when `filePath` sits under a non-main-target root — i.e.
@@ -112,11 +112,11 @@ private let foundationImportNonMainTargetRoots: [Swift.String] = [
 /// established behaviour of the two sibling rules above rather than a
 /// decision taken here.
 private func foundationImportIsOutsideMainTarget(_ filePath: Swift.String) -> Swift.Bool {
-  let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
-  guard components.count > 1 else { return false }
-  return components.dropLast().contains { component in
-    foundationImportNonMainTargetRoots.contains(Swift.String(component))
-  }
+    let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
+    guard components.count > 1 else { return false }
+    return components.dropLast().contains { component in
+        foundationImportNonMainTargetRoots.contains(Swift.String(component))
+    }
 }
 
 /// Returns true when `filePath` names a SwiftPM package manifest — `Package.swift`
@@ -129,10 +129,10 @@ private func foundationImportIsOutsideMainTarget(_ filePath: Swift.String) -> Sw
 /// merely mentioning the word (`PackageInfo.swift`, `MyPackage.swift`, or any
 /// file inside a directory named `Package`) still fires.
 private func foundationImportIsPackageManifest(_ filePath: Swift.String) -> Swift.Bool {
-  guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
-  else { return false }
-  if filename == "Package.swift" { return true }
-  return filename.hasPrefix("Package@swift-") && filename.hasSuffix(".swift")
+    guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
+    else { return false }
+    if filename == "Package.swift" { return true }
+    return filename.hasPrefix("Package@swift-") && filename.hasSuffix(".swift")
 }
 
 // MARK: - Recorded scope decisions
@@ -171,48 +171,49 @@ private func foundationImportIsPackageManifest(_ filePath: Swift.String) -> Swif
 
 @usableFromInline
 internal let foundationImportMessage: Swift.String =
-  "[foundation import] [ARCH-LAYER-007]: no package's main target may import "
-  + "the Foundation module family (`Foundation`, `FoundationEssentials`, "
-  + "`FoundationNetworking`, `FoundationXML`) — at ANY of the five layers, not "
-  + "just primitives. Use institute primitives (`Time_Primitives`, "
-  + "`Binary_Primitives`, etc.) instead. Foundation-adjacent interop belongs in "
-  + "a separately-declared `* Foundation Integration` subtarget that consumers "
-  + "opt into, never the main target. (`[PRIM-FOUND-001]` is the Layer-1 "
-  + "specialization of this rule; it is not a primitives-only rule.)"
+    "[foundation import] [ARCH-LAYER-007]: no package's main target may import "
+    + "the Foundation module family (`Foundation`, `FoundationEssentials`, "
+    + "`FoundationNetworking`, `FoundationXML`) — at ANY of the five layers, not "
+    + "just primitives. Use institute primitives (`Time_Primitives`, "
+    + "`Binary_Primitives`, etc.) instead. Foundation-adjacent interop belongs in "
+    + "a separately-declared `* Foundation Integration` subtarget that consumers "
+    + "opt into, never the main target. (`[PRIM-FOUND-001]` is the Layer-1 "
+    + "specialization of this rule; it is not a primitives-only rule.)"
 
 internal final class FoundationImportVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  var matches: [Diagnostic.Record] = []
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    var matches: [Diagnostic.Record] = []
 
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
-
-  override func visit(_ node: ImportDeclSyntax) -> SyntaxVisitorContinueKind {
-    let pathText = node.path.trimmedDescription
-    guard foundationImportIsFoundationModule(pathText) else {
-      return .visitChildren
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
     }
-    let location = converter.location(for: node.path.positionAfterSkippingLeadingTrivia)
-    matches.append(
-      Diagnostic.Record(
-        location: Source.Location(
-          fileID: source.fileID,
-          filePath: source.filePath,
-          line: location.line,
-          column: location.column
-        ),
-        severity: severity,
-        identifier: "foundation import",
-        message: foundationImportMessage
-      ))
-    return .visitChildren
-  }
+
+    override func visit(_ node: ImportDeclSyntax) -> SyntaxVisitorContinueKind {
+        let pathText = node.path.trimmedDescription
+        guard foundationImportIsFoundationModule(pathText) else {
+            return .visitChildren
+        }
+        let location = converter.location(for: node.path.positionAfterSkippingLeadingTrivia)
+        matches.append(
+            Diagnostic.Record(
+                location: Source.Location(
+                    fileID: source.fileID,
+                    filePath: source.filePath,
+                    line: location.line,
+                    column: location.column
+                ),
+                severity: severity,
+                identifier: "foundation import",
+                message: foundationImportMessage
+            )
+        )
+        return .visitChildren
+    }
 }
 
 /// The Foundation module family this rule flags.
@@ -221,10 +222,10 @@ internal final class FoundationImportVisitor: SyntaxVisitor {
 /// modules on Linux; importing either pulls in Foundation just as surely as
 /// importing `Foundation` itself does.
 private let foundationModuleFamily: Swift.Set<Swift.String> = [
-  "Foundation",
-  "FoundationEssentials",
-  "FoundationNetworking",
-  "FoundationXML",
+    "Foundation",
+    "FoundationEssentials",
+    "FoundationNetworking",
+    "FoundationXML",
 ]
 
 /// Returns true if `pathText` names a module in the Foundation family.
@@ -233,6 +234,6 @@ private let foundationModuleFamily: Swift.Set<Swift.String> = [
 /// violation. Modules with a family name in a NON-leading position
 /// (`HTML_Foundation`, `Server_Foundation`) are deliberately not flagged.
 private func foundationImportIsFoundationModule(_ pathText: Swift.String) -> Swift.Bool {
-  let firstComponent = pathText.split(separator: ".").first.map(Swift.String.init) ?? pathText
-  return foundationModuleFamily.contains(firstComponent)
+    let firstComponent = pathText.split(separator: ".").first.map(Swift.String.init) ?? pathText
+    return foundationModuleFamily.contains(firstComponent)
 }

@@ -32,34 +32,34 @@ internal import SwiftSyntax
 /// binds enforcement). It only pins re-exports to the place where they can
 /// be seen.
 extension Lint.Rule {
-  public static let `architecture import boundary` = Lint.Rule(
-    id: "architecture import boundary",
-    default: .warning,
-    findings: { source, severity in
-      // Exempt per [RULE-EXEMPT-12] (path-scoped file): the umbrella
-      // `exports.swift` IS the sanctioned re-export surface — the same
-      // house convention `Lint.Rule.Foundation.Import`'s soundness suite
-      // names. Filename-keyed, not directory-keyed: an umbrella sits at
-      // a target root at any depth.
-      guard !architectureImportBoundaryIsUmbrellaExportsFile(source.file.filePath) else {
-        return []
-      }
-      // Exempt per [RULE-EXEMPT-12] (path-scoped target): test, experiment
-      // and example sources ship to no consumer, so a re-export there
-      // distorts no measured consumer edge. Segment set matches
-      // `Lint.Rule.Foundation.Import` exactly.
-      guard !architectureImportBoundaryIsOutsideMainTarget(source.file.filePath) else {
-        return []
-      }
-      let visitor = ArchitectureImportBoundaryVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.matches
-    }
-  )
+    public static let `architecture import boundary` = Lint.Rule(
+        id: "architecture import boundary",
+        default: .warning,
+        findings: { source, severity in
+            // Exempt per [RULE-EXEMPT-12] (path-scoped file): the umbrella
+            // `exports.swift` IS the sanctioned re-export surface — the same
+            // house convention `Lint.Rule.Foundation.Import`'s soundness suite
+            // names. Filename-keyed, not directory-keyed: an umbrella sits at
+            // a target root at any depth.
+            guard !architectureImportBoundaryIsUmbrellaExportsFile(source.file.filePath) else {
+                return []
+            }
+            // Exempt per [RULE-EXEMPT-12] (path-scoped target): test, experiment
+            // and example sources ship to no consumer, so a re-export there
+            // distorts no measured consumer edge. Segment set matches
+            // `Lint.Rule.Foundation.Import` exactly.
+            guard !architectureImportBoundaryIsOutsideMainTarget(source.file.filePath) else {
+                return []
+            }
+            let visitor = ArchitectureImportBoundaryVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.matches
+        }
+    )
 }
 
 /// The single sanctioned umbrella filename. Exact whole-filename match: a
@@ -70,11 +70,11 @@ private let architectureImportBoundaryUmbrellaFilename: Swift.String = "exports.
 /// Returns true when `filePath`'s trailing filename is exactly the umbrella
 /// `exports.swift`.
 private func architectureImportBoundaryIsUmbrellaExportsFile(
-  _ filePath: Swift.String
+    _ filePath: Swift.String
 ) -> Swift.Bool {
-  guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
-  else { return false }
-  return filename == architectureImportBoundaryUmbrellaFilename
+    guard let filename = filePath.split(separator: "/", omittingEmptySubsequences: true).last
+    else { return false }
+    return filename == architectureImportBoundaryUmbrellaFilename
 }
 
 /// Root directory names outside a package's main targets. Matches the
@@ -83,67 +83,68 @@ private func architectureImportBoundaryIsUmbrellaExportsFile(
 /// `Lint.Rule.Memory.PointerArithmetic`; the rules should agree on what
 /// "not a main target" means.
 private let architectureImportBoundaryNonMainTargetRoots: [Swift.String] = [
-  "Tests",
-  "Experiments",
-  "Examples",
+    "Tests",
+    "Experiments",
+    "Examples",
 ]
 
 /// Returns true when `filePath` sits under a non-main-target root — i.e.
 /// some whole directory segment is `Tests`, `Experiments` or `Examples`.
 /// Whole segments only: `Sources/TestKit/…` still fires.
 private func architectureImportBoundaryIsOutsideMainTarget(
-  _ filePath: Swift.String
+    _ filePath: Swift.String
 ) -> Swift.Bool {
-  let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
-  guard components.count > 1 else { return false }
-  return components.dropLast().contains { component in
-    architectureImportBoundaryNonMainTargetRoots.contains(Swift.String(component))
-  }
+    let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
+    guard components.count > 1 else { return false }
+    return components.dropLast().contains { component in
+        architectureImportBoundaryNonMainTargetRoots.contains(Swift.String(component))
+    }
 }
 
 private let architectureImportBoundaryMessage: Swift.String =
-  "[architecture import boundary] [ARCH-FOUND-001]: `@_exported import` "
-  + "re-exports a dependency edge that import-based architecture measurement "
-  + "cannot see from consumers. Re-exports belong in the target's single "
-  + "umbrella `exports.swift`, never in ordinary source files. If the module "
-  + "is needed here, import it plainly; if the target's public surface should "
-  + "re-export it, move the `@_exported import` to `exports.swift`."
+    "[architecture import boundary] [ARCH-FOUND-001]: `@_exported import` "
+    + "re-exports a dependency edge that import-based architecture measurement "
+    + "cannot see from consumers. Re-exports belong in the target's single "
+    + "umbrella `exports.swift`, never in ordinary source files. If the module "
+    + "is needed here, import it plainly; if the target's public surface should "
+    + "re-export it, move the `@_exported import` to `exports.swift`."
 
 internal final class ArchitectureImportBoundaryVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  var matches: [Diagnostic.Record] = []
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    var matches: [Diagnostic.Record] = []
 
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
-
-  override func visit(_ node: ImportDeclSyntax) -> SyntaxVisitorContinueKind {
-    // Structural, not textual: the `@_exported` attribute node itself, so
-    // `@_exported public import X`, comment-interleaved trivia, and any
-    // spacing all match — the shapes a regex loses.
-    let isExported = node.attributes.contains { element in
-      guard case .attribute(let attribute) = element else { return false }
-      return attribute.attributeName.trimmedDescription == "_exported"
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
     }
-    guard isExported else { return .visitChildren }
-    let location = converter.location(for: node.path.positionAfterSkippingLeadingTrivia)
-    matches.append(
-      Diagnostic.Record(
-        location: Source.Location(
-          fileID: source.fileID,
-          filePath: source.filePath,
-          line: location.line,
-          column: location.column
-        ),
-        severity: severity,
-        identifier: "architecture import boundary",
-        message: architectureImportBoundaryMessage
-      ))
-    return .visitChildren
-  }
+
+    override func visit(_ node: ImportDeclSyntax) -> SyntaxVisitorContinueKind {
+        // Structural, not textual: the `@_exported` attribute node itself, so
+        // `@_exported public import X`, comment-interleaved trivia, and any
+        // spacing all match — the shapes a regex loses.
+        let isExported = node.attributes.contains { element in
+            guard case .attribute(let attribute) = element else { return false }
+            return attribute.attributeName.trimmedDescription == "_exported"
+        }
+        guard isExported else { return .visitChildren }
+        let location = converter.location(for: node.path.positionAfterSkippingLeadingTrivia)
+        matches.append(
+            Diagnostic.Record(
+                location: Source.Location(
+                    fileID: source.fileID,
+                    filePath: source.filePath,
+                    line: location.line,
+                    column: location.column
+                ),
+                severity: severity,
+                identifier: "architecture import boundary",
+                message: architectureImportBoundaryMessage
+            )
+        )
+        return .visitChildren
+    }
 }

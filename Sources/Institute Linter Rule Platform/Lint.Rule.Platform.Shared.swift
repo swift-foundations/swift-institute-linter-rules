@@ -18,21 +18,21 @@ internal import SwiftSyntax
 /// their own copy of this list and drifted (#21 finding 2's Android/WASI/
 /// FreeBSD/BSD gap is the recorded example).
 internal let platformPlatformTokens: Swift.Set<Swift.String> = [
-  "Darwin", "Linux", "Windows", "Android", "WASI", "FreeBSD", "OpenBSD",
-  "NetBSD", "BSD",
+    "Darwin", "Linux", "Windows", "Android", "WASI", "FreeBSD", "OpenBSD",
+    "NetBSD", "BSD",
 ]
 
 internal func platformIsPublicAPI(_ modifiers: DeclModifierListSyntax) -> Swift.Bool {
-  for modifier in modifiers {
-    switch modifier.name.tokenKind {
-    case .keyword(.public), .keyword(.open):
-      return true
+    for modifier in modifiers {
+        switch modifier.name.tokenKind {
+        case .keyword(.public), .keyword(.open):
+            return true
 
-    default:
-      continue
+        default:
+            continue
+        }
     }
-  }
-  return false
+    return false
 }
 
 /// Returns true if `node`'s *effective* visibility is `public`/`open`
@@ -44,18 +44,18 @@ internal func platformIsPublicAPI(_ modifiers: DeclModifierListSyntax) -> Swift.
 /// the `public` keyword to the enclosing extension. Shared between
 /// `c type in public api` and `dead case per platform`.
 internal func platformIsPublicAPIEffective(
-  _ node: Syntax,
-  modifiers: DeclModifierListSyntax
+    _ node: Syntax,
+    modifiers: DeclModifierListSyntax
 ) -> Swift.Bool {
-  if platformIsPublicAPI(modifiers) {
-    return true
-  }
-  var current: Syntax? = node.parent
-  while let candidate = current {
-    if let ext = candidate.as(ExtensionDeclSyntax.self) {
-      return platformIsPublicAPI(ext.modifiers)
+    if platformIsPublicAPI(modifiers) {
+        return true
     }
-    current = candidate.parent
-  }
-  return false
+    var current: Syntax? = node.parent
+    while let candidate = current {
+        if let ext = candidate.as(ExtensionDeclSyntax.self) {
+            return platformIsPublicAPI(ext.modifiers)
+        }
+        current = candidate.parent
+    }
+    return false
 }

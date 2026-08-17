@@ -19,89 +19,90 @@ internal import SwiftSyntax
 /// Citation: `[API-IMPL-009]` (code-surface skill — hoisted protocol
 /// with nested typealias).
 extension Lint.Rule {
-  public static let `hoisted protocol alias` = Lint.Rule(
-    id: "hoisted protocol alias",
-    default: .warning,
-    findings: { source, severity in
-      let visitor = StructureHoistedProtocolAliasVisitor(
-        source: source.file,
-        severity: severity,
-        converter: source.converter
-      )
-      visitor.walk(source.tree)
-      return visitor.matches
-    }
-  )
+    public static let `hoisted protocol alias` = Lint.Rule(
+        id: "hoisted protocol alias",
+        default: .warning,
+        findings: { source, severity in
+            let visitor = StructureHoistedProtocolAliasVisitor(
+                source: source.file,
+                severity: severity,
+                converter: source.converter
+            )
+            visitor.walk(source.tree)
+            return visitor.matches
+        }
+    )
 }
 
 @usableFromInline
 internal let structureHoistedProtocolAliasMessage: Swift.String =
-  "[hoisted protocol alias] [API-IMPL-009]: declaring-"
-  + "module conformance via the `.Protocol` typealias path is a "
-  + "self-referential cycle. Use the hoisted protocol name "
-  + "(`_FooProtocol`) directly in the declaring module. The "
-  + "typealias path (`Owner.Inner.Protocol`) is for CONSUMER "
-  + "modules — different type, no cycle."
+    "[hoisted protocol alias] [API-IMPL-009]: declaring-"
+    + "module conformance via the `.Protocol` typealias path is a "
+    + "self-referential cycle. Use the hoisted protocol name "
+    + "(`_FooProtocol`) directly in the declaring module. The "
+    + "typealias path (`Owner.Inner.Protocol`) is for CONSUMER "
+    + "modules — different type, no cycle."
 
 internal func structureHoistedProtocolAliasIsSelfProtocolConformance(
-  extendedName: Swift.String,
-  inheritedName: Swift.String
+    extendedName: Swift.String,
+    inheritedName: Swift.String
 ) -> Swift.Bool {
-  return inheritedName == "\(extendedName).Protocol"
+    return inheritedName == "\(extendedName).Protocol"
 }
 
 internal final class StructureHoistedProtocolAliasVisitor: SyntaxVisitor {
-  let source: Source.File
-  let severity: Diagnostic.Severity
-  let converter: SourceLocationConverter
-  var matches: [Diagnostic.Record] = []
+    let source: Source.File
+    let severity: Diagnostic.Severity
+    let converter: SourceLocationConverter
+    var matches: [Diagnostic.Record] = []
 
-  init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
-    self.source = source
-    self.severity = severity
-    self.converter = converter
-    super.init(viewMode: .sourceAccurate)
-  }
+    init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
+        self.source = source
+        self.severity = severity
+        self.converter = converter
+        super.init(viewMode: .sourceAccurate)
+    }
 
-  override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
-    guard
-      let extendedName = structureDottedName(
-        of: node.extendedType
-      )
-    else {
-      return .visitChildren
+    override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
+        guard
+            let extendedName = structureDottedName(
+                of: node.extendedType
+            )
+        else {
+            return .visitChildren
+        }
+        guard let inheritance = node.inheritanceClause else {
+            return .visitChildren
+        }
+        for inherited in inheritance.inheritedTypes {
+            guard
+                let inheritedName = structureDottedName(
+                    of: inherited.type
+                )
+            else { continue }
+            guard
+                structureHoistedProtocolAliasIsSelfProtocolConformance(
+                    extendedName: extendedName,
+                    inheritedName: inheritedName
+                )
+            else { continue }
+            let location = converter.location(
+                for: inherited.type.positionAfterSkippingLeadingTrivia
+            )
+            matches.append(
+                Diagnostic.Record(
+                    location: Source.Location(
+                        fileID: source.fileID,
+                        filePath: source.filePath,
+                        line: location.line,
+                        column: location.column
+                    ),
+                    severity: severity,
+                    identifier: "hoisted protocol alias",
+                    message: structureHoistedProtocolAliasMessage
+                )
+            )
+        }
+        return .visitChildren
     }
-    guard let inheritance = node.inheritanceClause else {
-      return .visitChildren
-    }
-    for inherited in inheritance.inheritedTypes {
-      guard
-        let inheritedName = structureDottedName(
-          of: inherited.type
-        )
-      else { continue }
-      guard
-        structureHoistedProtocolAliasIsSelfProtocolConformance(
-          extendedName: extendedName,
-          inheritedName: inheritedName
-        )
-      else { continue }
-      let location = converter.location(
-        for: inherited.type.positionAfterSkippingLeadingTrivia
-      )
-      matches.append(
-        Diagnostic.Record(
-          location: Source.Location(
-            fileID: source.fileID,
-            filePath: source.filePath,
-            line: location.line,
-            column: location.column
-          ),
-          severity: severity,
-          identifier: "hoisted protocol alias",
-          message: structureHoistedProtocolAliasMessage
-        ))
-    }
-    return .visitChildren
-  }
 }
