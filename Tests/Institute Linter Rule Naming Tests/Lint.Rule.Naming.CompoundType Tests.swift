@@ -22,6 +22,7 @@ extension Lint.Rule {
     struct `compound type name Tests` {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
+        @Suite struct Integration {}
     }
 }
 
@@ -43,6 +44,18 @@ extension Lint.Rule.`compound type name Tests`.Unit {
             #expect(findings[0].identifier == "compound type name")
             #expect(findings[0].severity == .warning)
         }
+    }
+
+    @Test
+    func `malformed rule declaration is flagged by its own bundle`() {
+        let source = """
+            extension Lint.Rule {
+                enum MalformedRule {}
+            }
+            """
+        let findings = Lint.Rule.`compound type name Tests`.findings(in: source)
+        #expect(findings.count == 1)
+        #expect(findings.first?.identifier == "compound type name")
     }
 
     @Test
