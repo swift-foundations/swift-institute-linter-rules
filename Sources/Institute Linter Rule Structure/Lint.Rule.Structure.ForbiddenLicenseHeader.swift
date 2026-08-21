@@ -1,5 +1,6 @@
 public import Linter_Primitives
 public import Linter_Rule_Structure
+internal import SwiftSyntax
 
 extension Lint.Rule {
 
