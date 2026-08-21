@@ -35,23 +35,20 @@ internal import SwiftSyntax
 /// `.product(name:package:)` for a product of a declared package
 /// dependency.
 ///
-/// **Residue (the honest limitation, and the only one):** an element
-/// or array whose value is computed — a function call, `.map`, a
-/// `for`-built array — is not resolved and is silently unreported.
-/// `.byName(name:)`, bare string literals, file-scope string
-/// constants, and file-scope/hoisted or concatenated dependency
-/// arrays are all resolved; a zero from this rule is not evidence of
-/// compliance for a manifest that hoists every dependency array
-/// behind a computed value (Goal #90: a disposition does not count
-/// as compliance merely because it is recorded).
-///
-/// Citation: `swift-institute-linter-rules#4`.
+/// Computed or otherwise unhandled dependency shapes produce an
+/// unmeasured observation; they can never silently establish a clean result.
 extension Lint.Rule {
     public static let `bare string dependency` = Lint.Rule(
         id: "bare string dependency",
         default: .warning,
-        findings: { source, severity in
-            guard manifestIsPackageManifest(source.file.filePath) else { return [] }
+        observe: { source, severity in
+            guard manifestIsPackageManifest(source.file.filePath) else {
+                return Lint.Rule.Observation(
+                    findings: [],
+                    coverage: .measured,
+                    applicable: false
+                )
+            }
             let visitor = ManifestBareStringDependencyVisitor(
                 source: source.file,
                 severity: severity,
@@ -62,7 +59,10 @@ extension Lint.Rule {
             // file (or earlier) still resolves (#24 section A).
             visitor.collectFileScopeBindings(source.tree)
             visitor.walk(source.tree)
-            return visitor.matches
+            let coverage: Lint.Rule.Coverage = visitor.unhandledSourceShape.map {
+                .unmeasured(.unsupportedSourceShape($0))
+            } ?? .measured
+            return Lint.Rule.Observation(findings: visitor.matches, coverage: coverage)
         }
     )
 }
@@ -96,6 +96,7 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
     let severity: Diagnostic.Severity
     let converter: SourceLocationConverter
     var matches: [Diagnostic.Record] = []
+    var unhandledSourceShape: Swift.String?
 
     /// File-scope `let`/`var` bindings, keyed by the pattern's
     /// identifier text, mapped to their initializer expression. Built by
@@ -134,7 +135,7 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
     /// `SequenceExprSyntax` of such arrays, whose non-operator operands
     /// are each resolved and concatenated. Anything else — a computed
     /// value such as a function call or `.map` — resolves to no
-    /// elements; this is the rule's documented residue.
+    /// elements. Anything else marks the observation unmeasured.
     private func resolvedElements(
         of expression: ExprSyntax,
         visited: Swift.Set<Swift.String> = []
@@ -144,7 +145,10 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
         }
         if let reference = expression.as(DeclReferenceExprSyntax.self) {
             let name = reference.baseName.text
-            guard !visited.contains(name), let bound = fileScopeBindings[name] else { return [] }
+            guard !visited.contains(name), let bound = fileScopeBindings[name] else {
+                unhandledSourceShape = "unresolved dependency array reference '\(name)'"
+                return []
+            }
             return resolvedElements(of: bound, visited: visited.union([name]))
         }
         if let sequence = expression.as(SequenceExprSyntax.self) {
@@ -155,6 +159,8 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
             }
             return result
         }
+        unhandledSourceShape =
+            "computed dependency array '\(expression.trimmedDescription)'"
         return []
     }
 
@@ -184,10 +190,25 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
         }
         if let reference = element.as(DeclReferenceExprSyntax.self) {
             let name = reference.baseName.text
-            guard !visited.contains(name), let bound = fileScopeBindings[name] else { return nil }
-            guard bound.is(StringLiteralExprSyntax.self) else { return nil }
+            guard !visited.contains(name), let bound = fileScopeBindings[name] else {
+                unhandledSourceShape = "unresolved target dependency reference '\(name)'"
+                return nil
+            }
+            guard bound.is(StringLiteralExprSyntax.self) else {
+                unhandledSourceShape =
+                    "computed target dependency '\(bound.trimmedDescription)'"
+                return nil
+            }
             return reference.positionAfterSkippingLeadingTrivia
         }
+        if let call = element.as(FunctionCallExprSyntax.self),
+            let member = call.calledExpression.as(MemberAccessExprSyntax.self),
+            ["target", "product", "plugin"].contains(member.declName.baseName.text)
+        {
+            return nil
+        }
+        unhandledSourceShape =
+            "unhandled target dependency '\(element.trimmedDescription)'"
         return nil
     }
 

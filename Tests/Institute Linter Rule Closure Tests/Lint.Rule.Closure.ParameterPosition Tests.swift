@@ -33,7 +33,7 @@ extension Lint.Rule.`parameter position Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`parameter position`.findings(parsed, .warning)
+        return Lint.Rule.`parameter position`.observe(parsed, .warning).findings
     }
 }
 

@@ -24,7 +24,7 @@ extension Lint.Rule {
     public static let `stdlib forwarder outside sli` = Lint.Rule(
         id: "stdlib forwarder outside sli",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ByteStdlibForwarderOutsideSLIVisitor(
                 source: source.file,
                 severity: severity,

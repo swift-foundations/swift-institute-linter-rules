@@ -21,7 +21,7 @@ extension Lint.Rule {
     public static let `type transform placement` = Lint.Rule(
         id: "type transform placement",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = StructureTypeTransformPlacementVisitor(
                 source: source.file,
                 severity: severity,

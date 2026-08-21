@@ -32,7 +32,7 @@ extension Lint.Rule {
 extension Lint.Rule.`file name nested path Tests` {
     static func findings(in source: String, file: String) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`file name nested path`.findings(parsed, .warning)
+        return Lint.Rule.`file name nested path`.observe(parsed, .warning).findings
     }
 }
 

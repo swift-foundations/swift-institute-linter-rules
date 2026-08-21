@@ -28,7 +28,7 @@ extension Lint.Rule {
     public static let `optimize suppression attribute` = Lint.Rule(
         id: "optimize suppression attribute",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformOptimizeSuppressionVisitor(
                 source: source.file,
                 severity: severity,

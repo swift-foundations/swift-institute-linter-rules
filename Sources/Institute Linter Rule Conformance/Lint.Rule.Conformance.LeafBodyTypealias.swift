@@ -30,7 +30,7 @@ extension Lint.Rule {
     public static let `leaf body typealias missing` = Lint.Rule(
         id: "leaf body typealias missing",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ConformanceLeafBodyTypealiasVisitor(
                 source: source.file,
                 severity: severity,

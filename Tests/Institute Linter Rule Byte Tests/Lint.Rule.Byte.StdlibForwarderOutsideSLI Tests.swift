@@ -34,7 +34,7 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`stdlib forwarder outside sli`.findings(parsed, .warning)
+        return Lint.Rule.`stdlib forwarder outside sli`.observe(parsed, .warning).findings
     }
 }
 

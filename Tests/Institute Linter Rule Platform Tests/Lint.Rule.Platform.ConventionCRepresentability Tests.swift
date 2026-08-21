@@ -33,7 +33,7 @@ extension Lint.Rule.`convention c representability Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`convention c representability`.findings(parsed, .warning)
+        return Lint.Rule.`convention c representability`.observe(parsed, .warning).findings
     }
 }
 

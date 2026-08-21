@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`counter loop iteration Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`counter loop iteration`.findings(parsed, .warning)
+        return Lint.Rule.`counter loop iteration`.observe(parsed, .warning).findings
     }
 }
 

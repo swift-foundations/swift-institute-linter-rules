@@ -34,7 +34,7 @@ extension Lint.Rule.`uint8 forwarder missing disfavored Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`uint8 forwarder missing disfavored`.findings(parsed, .warning)
+        return Lint.Rule.`uint8 forwarder missing disfavored`.observe(parsed, .warning).findings
     }
 }
 

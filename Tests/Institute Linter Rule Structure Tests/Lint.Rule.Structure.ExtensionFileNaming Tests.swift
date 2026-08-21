@@ -32,7 +32,7 @@ extension Lint.Rule {
 extension Lint.Rule.`extension file naming Tests` {
     static func findings(in source: String, file: String) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`extension file naming`.findings(parsed, .warning)
+        return Lint.Rule.`extension file naming`.observe(parsed, .warning).findings
     }
 }
 

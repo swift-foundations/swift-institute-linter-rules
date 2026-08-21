@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `lifecycle order` = Lint.Rule(
         id: "lifecycle order",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ClosureLifecycleOrderVisitor(
                 source: source.file,
                 severity: severity,

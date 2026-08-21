@@ -64,7 +64,7 @@ extension Lint.Rule {
     public static let `protocol sentinel under generic front door` = Lint.Rule(
         id: "protocol sentinel under generic front door",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = StructureProtocolSentinelUnderGenericFrontDoorVisitor(
                 source: source.file,
                 severity: severity,

@@ -20,7 +20,7 @@ extension Lint.Rule {
     public static let `int public parameter` = Lint.Rule(
         id: "int public parameter",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: a brand owner's own `Int`-parameter
             // integration overloads bridge the brand to the stdlib boundary and
             // are legitimate-by-construction. Retires the per-package

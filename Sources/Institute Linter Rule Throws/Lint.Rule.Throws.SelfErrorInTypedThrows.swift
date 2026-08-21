@@ -22,7 +22,7 @@ extension Lint.Rule {
     public static let `typed throws cannot use self error` = Lint.Rule(
         id: "typed throws cannot use self error",
         default: .error,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsSelfErrorInTypedThrowsVisitor(
                 source: source.file,
                 severity: severity,

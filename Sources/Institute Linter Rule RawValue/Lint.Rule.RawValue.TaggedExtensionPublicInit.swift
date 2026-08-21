@@ -37,7 +37,7 @@ extension Lint.Rule {
     public static let `tagged extension public init` = Lint.Rule(
         id: "tagged extension public init",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: a brand owner's own
             // `extension Tagged where Tag == <its brand> { public init }`
             // domain extension is legitimate-by-construction. Retires the

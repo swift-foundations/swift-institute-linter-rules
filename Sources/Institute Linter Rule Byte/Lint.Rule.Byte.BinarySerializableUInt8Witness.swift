@@ -26,7 +26,7 @@ extension Lint.Rule {
     public static let `binary serializable uint8 witness` = Lint.Rule(
         id: "binary serializable uint8 witness",
         default: .error,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ByteBinarySerializableUInt8WitnessVisitor(
                 source: source.file,
                 severity: severity,

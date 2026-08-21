@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`intermediate binding then return Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`intermediate binding then return`.findings(parsed, .warning)
+        return Lint.Rule.`intermediate binding then return`.observe(parsed, .warning).findings
     }
 }
 

@@ -30,7 +30,7 @@ extension Lint.Rule {
     public static let `bounded index static capacity` = Lint.Rule(
         id: "bounded index static capacity",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomBoundedIndexVisitor(
                 source: source.file,
                 severity: severity,

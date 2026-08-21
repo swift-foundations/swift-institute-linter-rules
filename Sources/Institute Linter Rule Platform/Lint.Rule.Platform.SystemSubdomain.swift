@@ -22,7 +22,7 @@ extension Lint.Rule {
     public static let `system subdomain` = Lint.Rule(
         id: "system subdomain",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformSystemSubdomainVisitor(
                 source: source.file,
                 severity: severity,

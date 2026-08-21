@@ -38,7 +38,7 @@ extension Lint.Rule {
     public static let `architecture namespace shape` = Lint.Rule(
         id: "architecture namespace shape",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ArchitectureNamespaceShapeVisitor(
                 source: source.file,
                 severity: severity,

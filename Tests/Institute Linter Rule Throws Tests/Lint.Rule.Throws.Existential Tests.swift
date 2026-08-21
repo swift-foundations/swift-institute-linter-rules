@@ -33,7 +33,7 @@ extension Lint.Rule.`existential throws Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`existential throws`.findings(parsed, .warning)
+        return Lint.Rule.`existential throws`.observe(parsed, .warning).findings
     }
 }
 

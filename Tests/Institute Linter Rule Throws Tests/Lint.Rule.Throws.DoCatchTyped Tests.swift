@@ -33,7 +33,7 @@ extension Lint.Rule.`do throws for typed catch Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`do throws for typed catch`.findings(parsed, .warning)
+        return Lint.Rule.`do throws for typed catch`.observe(parsed, .warning).findings
     }
 }
 

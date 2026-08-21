@@ -34,7 +34,7 @@ extension Lint.Rule.`test display name string Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`test display name string`.findings(parsed, .warning)
+        return Lint.Rule.`test display name string`.observe(parsed, .warning).findings
     }
 }
 

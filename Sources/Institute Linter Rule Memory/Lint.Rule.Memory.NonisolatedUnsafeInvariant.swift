@@ -35,7 +35,7 @@ extension Lint.Rule {
     public static let `nonisolated unsafe without invariant` = Lint.Rule(
         id: "nonisolated unsafe without invariant",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = MemoryNonisolatedUnsafeInvariantVisitor(
                 source: source.file,
                 severity: severity,

@@ -41,7 +41,7 @@ extension Lint.Rule {
     public static let `raw value access` = Lint.Rule(
         id: "raw value access",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: when the run's own sources declare a
             // numeric brand, same-package `.rawValue` boundary access is
             // legitimate-by-construction. Retires the per-package

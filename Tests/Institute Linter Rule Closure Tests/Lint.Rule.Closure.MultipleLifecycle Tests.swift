@@ -33,7 +33,7 @@ extension Lint.Rule.`unlabeled lifecycle closure Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`unlabeled lifecycle closure`.findings(parsed, .warning)
+        return Lint.Rule.`unlabeled lifecycle closure`.observe(parsed, .warning).findings
     }
 }
 

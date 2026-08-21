@@ -34,7 +34,7 @@ extension Lint.Rule.`uint8 ascii extension Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`uint8 ascii extension`.findings(parsed, .warning)
+        return Lint.Rule.`uint8 ascii extension`.observe(parsed, .warning).findings
     }
 }
 

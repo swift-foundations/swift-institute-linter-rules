@@ -33,7 +33,7 @@ extension Lint.Rule {
     public static let `try optional` = Lint.Rule(
         id: "try optional",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = TryOptionalVisitor(
                 source: source.file,
                 severity: severity,

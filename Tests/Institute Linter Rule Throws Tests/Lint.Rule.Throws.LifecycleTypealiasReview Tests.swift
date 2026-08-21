@@ -33,7 +33,7 @@ extension Lint.Rule.`lifecycle typealias review Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`lifecycle typealias review`.findings(parsed, .warning)
+        return Lint.Rule.`lifecycle typealias review`.observe(parsed, .warning).findings
     }
 }
 

@@ -28,13 +28,12 @@ extension Lint.Rule {
 extension Lint.Rule.`suite categories fix Tests` {
     static func fixed(_ source: String, file: String = "test.swift") -> String? {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        guard let fix = Lint.Rule.`suite categories`.fix else { return nil }
-        return fix(parsed)
+        return Lint.Rule.`suite categories`.rewritten(parsed)
     }
 
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`suite categories`.findings(parsed, .warning)
+        return Lint.Rule.`suite categories`.observe(parsed, .warning).findings
     }
 
     /// The self-round-trip property: flagged before, rewritten, parses, and

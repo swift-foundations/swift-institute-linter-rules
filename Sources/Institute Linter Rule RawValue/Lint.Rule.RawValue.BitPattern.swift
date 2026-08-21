@@ -35,7 +35,7 @@ extension Lint.Rule {
     public static let `bitpattern rawvalue chain` = Lint.Rule(
         id: "bitpattern rawvalue chain",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: the owner's own `Int(bitPattern:
             // brand.rawValue)` integration overload ([INFRA-002]) is
             // legitimate-by-construction. Retires the per-package

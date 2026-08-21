@@ -109,9 +109,8 @@ internal func idiomIterationIntentIsFixable(_ loop: ForStmtSyntax) -> Swift.Bool
 /// loop's own statements into a closure — a distinct activation frame — and
 /// referencing the parameter there does not compile: witnessed at
 /// swift-affine-geometry-primitives PR #5, `error: 'rhs' is borrowed and
-/// cannot be consumed` on exactly this rewrite. `Lint.Fix.apply`'s guard is
-/// re-parse only; this shape parses cleanly and fails at typecheck, so
-/// nothing downstream catches it.
+/// cannot be consumed` on exactly this rewrite. This shape parses cleanly
+/// and fails only at type checking, so the structural repair must refuse it.
 ///
 /// Resolution is by NAME, not by full binding resolution — the same
 /// technique ``MemoryBorrowingSelfShortCircuitFinder`` uses for borrowing

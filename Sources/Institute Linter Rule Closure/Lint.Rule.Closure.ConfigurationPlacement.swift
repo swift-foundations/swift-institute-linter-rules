@@ -26,7 +26,7 @@ extension Lint.Rule {
     public static let `configuration before content` = Lint.Rule(
         id: "configuration before content",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ClosureConfigurationPlacementVisitor(
                 source: source.file,
                 severity: severity,

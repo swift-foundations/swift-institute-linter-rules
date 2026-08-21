@@ -78,7 +78,7 @@ extension Lint.Rule {
     public static let `path name grammar` = Lint.Rule(
         id: "path name grammar",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             namingPathGrammarFindings(
                 source: source.file,
                 severity: severity,

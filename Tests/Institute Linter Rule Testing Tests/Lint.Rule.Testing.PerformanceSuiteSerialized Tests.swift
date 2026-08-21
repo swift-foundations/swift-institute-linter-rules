@@ -32,7 +32,7 @@ extension Lint.Rule.`performance suite serialized Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`performance suite serialized`.findings(parsed, .warning)
+        return Lint.Rule.`performance suite serialized`.observe(parsed, .warning).findings
     }
 }
 

@@ -34,7 +34,7 @@ extension Lint.Rule.`uint8 conforms to byte protocol Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`uint8 conforms to byte protocol`.findings(parsed, .warning)
+        return Lint.Rule.`uint8 conforms to byte protocol`.observe(parsed, .warning).findings
     }
 }
 

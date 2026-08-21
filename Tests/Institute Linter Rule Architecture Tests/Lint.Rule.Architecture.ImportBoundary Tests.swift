@@ -32,7 +32,7 @@ extension Lint.Rule.`architecture import boundary Tests` {
         file: String = "Sources/Model Core/Model.swift"
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`architecture import boundary`.findings(parsed, .warning)
+        return Lint.Rule.`architecture import boundary`.observe(parsed, .warning).findings
     }
 
     @Test

@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `callback result over throws thunk` = Lint.Rule(
         id: "callback result over throws thunk",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsResultCallbackVisitor(
                 source: source.file,
                 severity: severity,

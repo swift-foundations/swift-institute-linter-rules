@@ -23,7 +23,7 @@ extension Lint.Rule {
     public static let `unsafe assignment granularity` = Lint.Rule(
         id: "unsafe assignment granularity",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = MemoryUnsafeAssignmentGranularityVisitor(
                 source: source.file,
                 severity: severity,

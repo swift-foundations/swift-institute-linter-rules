@@ -33,7 +33,7 @@ extension Lint.Rule.`sendable struct with class member Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`sendable struct with class member`.findings(parsed, .warning)
+        return Lint.Rule.`sendable struct with class member`.observe(parsed, .warning).findings
     }
 }
 

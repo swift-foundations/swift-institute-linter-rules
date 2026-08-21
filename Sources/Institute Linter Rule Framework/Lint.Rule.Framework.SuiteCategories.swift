@@ -34,7 +34,7 @@ extension Lint.Rule {
     public static let `suite categories` = Lint.Rule(
         id: "suite categories",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = FrameworkSuiteCategoriesVisitor(
                 source: source.file,
                 severity: severity,
@@ -43,7 +43,10 @@ extension Lint.Rule {
             visitor.walk(source.tree)
             return visitor.matches
         },
-        fix: { source in frameworkSuiteCategoriesFixed(source) }
+        repair: { source in
+            guard let contents = frameworkSuiteCategoriesFixed(source) else { return .unchanged }
+            return .edits([.rewrite(path: source.path, contents: contents)])
+        }
     )
 }
 

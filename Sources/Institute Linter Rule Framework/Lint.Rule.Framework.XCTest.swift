@@ -19,7 +19,7 @@ extension Lint.Rule {
     public static let `xctest import` = Lint.Rule(
         id: "xctest import",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = XCTestImportVisitor(
                 source: source.file,
                 severity: severity,

@@ -54,7 +54,7 @@ extension Lint.Rule {
     public static let `unchecked call site` = Lint.Rule(
         id: "unchecked call site",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: `Brand(__unchecked:)` is the canonical
             // typed-system bottom-out for a brand owner's own domain-validated
             // construction ([CONV-001] same-package use). Retires the per-package

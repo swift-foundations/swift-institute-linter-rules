@@ -27,7 +27,7 @@ extension Lint.Rule {
     public static let `extension noncopyable constraint` = Lint.Rule(
         id: "extension noncopyable constraint",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = MemoryExtensionNoncopyableConstraintVisitor(
                 source: source.file,
                 severity: severity,

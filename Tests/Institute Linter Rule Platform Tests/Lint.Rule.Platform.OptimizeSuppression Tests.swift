@@ -33,7 +33,7 @@ extension Lint.Rule.`optimize suppression attribute Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`optimize suppression attribute`.findings(parsed, .warning)
+        return Lint.Rule.`optimize suppression attribute`.observe(parsed, .warning).findings
     }
 }
 

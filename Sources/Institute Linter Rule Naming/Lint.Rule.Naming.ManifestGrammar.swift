@@ -59,7 +59,7 @@ extension Lint.Rule {
     public static let `manifest naming grammar` = Lint.Rule(
         id: "manifest naming grammar",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             guard namingIsPackageManifest(source.file.filePath) else { return [] }
             let visitor = NamingManifestGrammarVisitor(
                 source: source.file,

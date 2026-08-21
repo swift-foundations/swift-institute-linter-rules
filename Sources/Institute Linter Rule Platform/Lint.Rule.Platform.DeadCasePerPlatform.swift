@@ -21,7 +21,7 @@ extension Lint.Rule {
     public static let `dead case per platform` = Lint.Rule(
         id: "dead case per platform",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformDeadCasePerPlatformVisitor(
                 source: source.file,
                 severity: severity,

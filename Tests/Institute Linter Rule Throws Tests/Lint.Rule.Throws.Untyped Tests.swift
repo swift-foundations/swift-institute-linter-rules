@@ -33,7 +33,7 @@ extension Lint.Rule.`untyped throws Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`untyped throws`.findings(parsed, .warning)
+        return Lint.Rule.`untyped throws`.observe(parsed, .warning).findings
     }
 }
 

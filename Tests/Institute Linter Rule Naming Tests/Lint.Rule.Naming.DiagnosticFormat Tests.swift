@@ -34,7 +34,7 @@ extension Lint.Rule.`diagnostic message format Tests` {
         file: String = "Sources/Rules/Lint.Rule.Demo.Example.swift"
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`diagnostic message format`.findings(parsed, .warning)
+        return Lint.Rule.`diagnostic message format`.observe(parsed, .warning).findings
     }
 
     static func declaration(message: String) -> String {

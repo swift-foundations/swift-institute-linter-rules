@@ -27,7 +27,7 @@ extension Lint.Rule {
     public static let `uint8 forwarder missing disfavored` = Lint.Rule(
         id: "uint8 forwarder missing disfavored",
         default: .error,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ByteUInt8ForwarderMissingDisfavoredVisitor(
                 source: source.file,
                 severity: severity,

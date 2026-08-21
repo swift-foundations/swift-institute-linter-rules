@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`configuration before content Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`configuration before content`.findings(parsed, .warning)
+        return Lint.Rule.`configuration before content`.observe(parsed, .warning).findings
     }
 }
 

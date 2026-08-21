@@ -31,7 +31,7 @@ extension Lint.Rule.`manifest naming grammar Tests` {
         file: Swift.String = "Package.swift"
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`manifest naming grammar`.findings(parsed, .warning)
+        return Lint.Rule.`manifest naming grammar`.observe(parsed, .warning).findings
     }
 }
 

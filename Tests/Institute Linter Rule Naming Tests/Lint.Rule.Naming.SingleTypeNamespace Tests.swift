@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`single type namespace Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`single type namespace`.findings(parsed, .warning)
+        return Lint.Rule.`single type namespace`.observe(parsed, .warning).findings
     }
 }
 

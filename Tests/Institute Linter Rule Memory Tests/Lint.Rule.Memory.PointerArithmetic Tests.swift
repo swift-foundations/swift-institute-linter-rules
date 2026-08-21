@@ -33,7 +33,7 @@ extension Lint.Rule.`pointer advanced by Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`pointer advanced by`.findings(parsed, .warning)
+        return Lint.Rule.`pointer advanced by`.observe(parsed, .warning).findings
     }
 }
 

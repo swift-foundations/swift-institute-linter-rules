@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`hoisted protocol alias Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`hoisted protocol alias`.findings(parsed, .warning)
+        return Lint.Rule.`hoisted protocol alias`.observe(parsed, .warning).findings
     }
 }
 

@@ -30,7 +30,7 @@ extension Lint.Rule {
 extension Lint.Rule.`platform layer import Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`platform layer import`.findings(parsed, .warning)
+        return Lint.Rule.`platform layer import`.observe(parsed, .warning).findings
     }
 
     /// The eight forbidden modules, verbatim from the Python's

@@ -33,7 +33,7 @@ extension Lint.Rule.`generic throws missing never Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`generic throws missing never`.findings(parsed, .warning)
+        return Lint.Rule.`generic throws missing never`.observe(parsed, .warning).findings
     }
 }
 

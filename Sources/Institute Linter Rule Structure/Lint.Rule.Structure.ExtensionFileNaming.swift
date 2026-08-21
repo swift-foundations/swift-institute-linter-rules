@@ -62,7 +62,7 @@ extension Lint.Rule {
     public static let `extension file naming` = Lint.Rule(
         id: "extension file naming",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let path = source.file.filePath
             // The rule's stated surface is "a source file under `Sources/`"
             // (doc comment above); the predicate previously only excluded

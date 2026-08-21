@@ -32,7 +32,15 @@ extension Lint.Rule.`bare string dependency Tests` {
         file: Swift.String = "Package.swift"
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`bare string dependency`.findings(parsed, .warning)
+        return Lint.Rule.`bare string dependency`.observe(parsed, .warning).findings
+    }
+
+    static func observation(
+        source: Swift.String,
+        file: Swift.String = "Package.swift"
+    ) -> Lint.Rule.Observation {
+        let parsed = Lint.Source.parsed(from: source, file: file)
+        return Lint.Rule.`bare string dependency`.observe(parsed, .warning)
     }
 }
 
@@ -121,9 +129,7 @@ extension Lint.Rule.`bare string dependency Tests`.Unit {
     }
 
     @Test
-    func `computed dependency value is the documented residue and is not flagged`() {
-        // The one honest limitation: a value produced by a function call
-        // is not resolved, and is silently unreported.
+    func `computed dependency value is unmeasured`() {
         let source = """
             let package = Package(
               targets: [
@@ -131,8 +137,12 @@ extension Lint.Rule.`bare string dependency Tests`.Unit {
               ]
             )
             """
-        let findings = Lint.Rule.`bare string dependency Tests`.findings(source: source)
-        #expect(findings.isEmpty)
+        let observation = Lint.Rule.`bare string dependency Tests`.observation(source: source)
+        #expect(observation.findings.isEmpty)
+        guard case .unmeasured = observation.coverage else {
+            Issue.record("computed dependency array was accepted as measured")
+            return
+        }
     }
 
     @Test

@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `performance suite serialized` = Lint.Rule(
         id: "performance suite serialized",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = TestingPerformanceSuiteSerializedVisitor(
                 source: source.file,
                 severity: severity,

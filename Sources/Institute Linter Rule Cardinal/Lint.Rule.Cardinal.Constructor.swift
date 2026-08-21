@@ -28,7 +28,7 @@ extension Lint.Rule {
     public static let `zero or one literal` = Lint.Rule(
         id: "zero or one literal",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: brand-SPECIFIC to `Cardinal` (the
             // rule recognises `Cardinal(0)` / `Cardinal(1)` by name), so it
             // guards only `"Cardinal"` — it keeps firing on a stray

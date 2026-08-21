@@ -26,7 +26,7 @@ extension Lint.Rule {
     public static let `result wrapper for rethrows shim` = Lint.Rule(
         id: "result wrapper for rethrows shim",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsRethrowsResultShimVisitor(
                 source: source.file,
                 severity: severity,

@@ -19,7 +19,7 @@ extension Lint.Rule {
     public static let `unlabeled lifecycle closure` = Lint.Rule(
         id: "unlabeled lifecycle closure",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ClosureMultipleLifecycleVisitor(
                 source: source.file,
                 severity: severity,

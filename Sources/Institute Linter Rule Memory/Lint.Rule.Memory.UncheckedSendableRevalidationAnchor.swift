@@ -52,7 +52,7 @@ extension Lint.Rule {
     public static let `unchecked sendable revalidation anchor` = Lint.Rule(
         id: "unchecked sendable revalidation anchor",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = MemoryUncheckedSendableRevalidationAnchorVisitor(
                 source: source.file,
                 severity: severity,

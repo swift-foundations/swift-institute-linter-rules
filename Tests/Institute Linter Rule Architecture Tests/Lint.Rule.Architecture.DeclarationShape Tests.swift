@@ -32,7 +32,7 @@ extension Lint.Rule.`architecture namespace shape Tests` {
         file: String = "Sources/Model Core/Model.swift"
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`architecture namespace shape`.findings(parsed, .warning)
+        return Lint.Rule.`architecture namespace shape`.observe(parsed, .warning).findings
     }
 
     @Test

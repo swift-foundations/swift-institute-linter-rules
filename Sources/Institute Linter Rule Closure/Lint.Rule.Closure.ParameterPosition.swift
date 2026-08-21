@@ -22,7 +22,7 @@ extension Lint.Rule {
     public static let `parameter position` = Lint.Rule(
         id: "parameter position",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ClosureParameterPositionVisitor(
                 source: source.file,
                 severity: severity,

@@ -35,7 +35,7 @@ extension Lint.Rule.`chained rawvalue access Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`chained rawvalue access`.findings(parsed, .warning)
+        return Lint.Rule.`chained rawvalue access`.observe(parsed, .warning).findings
     }
 
     /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`
@@ -45,7 +45,7 @@ extension Lint.Rule.`chained rawvalue access Tests` {
         declaredTypeNames: Swift.Set<Swift.String>
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, declaredTypeNames: declaredTypeNames)
-        return Lint.Rule.`chained rawvalue access`.findings(parsed, .warning)
+        return Lint.Rule.`chained rawvalue access`.observe(parsed, .warning).findings
     }
 }
 
@@ -196,7 +196,7 @@ extension Lint.Rule.`chained rawvalue access Tests`.`Edge Case` {
     func `Custom severity is honored`() {
         let source = "let n = x.rawValue.foo"
         let parsed = Lint.Source.parsed(from: source)
-        let findings = Lint.Rule.`chained rawvalue access`.findings(parsed, .error)
+        let findings = Lint.Rule.`chained rawvalue access`.observe(parsed, .error).findings
         #expect(findings.count == 1)
         if findings.count == 1 {
             #expect(findings[0].severity == .error)

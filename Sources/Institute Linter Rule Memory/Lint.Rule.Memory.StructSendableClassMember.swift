@@ -36,7 +36,7 @@ extension Lint.Rule {
     public static let `sendable struct with class member` = Lint.Rule(
         id: "sendable struct with class member",
         default: .error,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let collector = MemoryStructSendableClassMemberClassCollector(viewMode: .sourceAccurate)
             collector.walk(source.tree)
             let visitor = MemoryStructSendableClassMemberVisitor(

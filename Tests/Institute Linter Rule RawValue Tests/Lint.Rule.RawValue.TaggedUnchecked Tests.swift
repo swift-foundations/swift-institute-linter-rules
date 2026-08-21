@@ -31,7 +31,7 @@ extension Lint.Rule.`tagged unchecked with typed alternative Tests` {
         file: Swift.String = "test.swift"
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`tagged unchecked with typed alternative`.findings(parsed, .warning)
+        return Lint.Rule.`tagged unchecked with typed alternative`.observe(parsed, .warning).findings
     }
 }
 

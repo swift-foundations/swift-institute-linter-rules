@@ -33,7 +33,7 @@ extension Lint.Rule.`dead case per platform Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`dead case per platform`.findings(parsed, .warning)
+        return Lint.Rule.`dead case per platform`.observe(parsed, .warning).findings
     }
 }
 

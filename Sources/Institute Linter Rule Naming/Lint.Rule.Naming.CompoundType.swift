@@ -19,7 +19,7 @@ extension Lint.Rule {
     public static let `compound type name` = Lint.Rule(
         id: "compound type name",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // Scan-scope gate (BEFORE the walk), symmetric with
             // `compound identifier`: a SwiftPM manifest is build configuration,
             // not API surface. See `namingIsPackageManifest`.

@@ -21,7 +21,7 @@ extension Lint.Rule {
     public static let `nested tag` = Lint.Rule(
         id: "nested tag",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingNestedTagVisitor(
                 source: source.file,
                 severity: severity,

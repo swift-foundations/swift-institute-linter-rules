@@ -74,7 +74,7 @@ extension Lint.Rule {
     public static let `file name nested path` = Lint.Rule(
         id: "file name nested path",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let path = source.file.filePath
             // The rule's stated surface is "a source file under `Sources/`"
             // (doc comment above); the predicate previously only excluded

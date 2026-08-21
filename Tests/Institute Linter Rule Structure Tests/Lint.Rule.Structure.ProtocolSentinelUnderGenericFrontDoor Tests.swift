@@ -34,7 +34,7 @@ extension Lint.Rule.`protocol sentinel under generic front door Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`protocol sentinel under generic front door`.findings(parsed, .warning)
+        return Lint.Rule.`protocol sentinel under generic front door`.observe(parsed, .warning).findings
     }
 }
 

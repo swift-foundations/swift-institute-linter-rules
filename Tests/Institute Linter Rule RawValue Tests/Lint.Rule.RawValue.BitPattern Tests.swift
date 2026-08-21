@@ -35,7 +35,7 @@ extension Lint.Rule.`bitpattern rawvalue chain Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`bitpattern rawvalue chain`.findings(parsed, .warning)
+        return Lint.Rule.`bitpattern rawvalue chain`.observe(parsed, .warning).findings
     }
 
     /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`
@@ -45,7 +45,7 @@ extension Lint.Rule.`bitpattern rawvalue chain Tests` {
         declaredTypeNames: Swift.Set<Swift.String>
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, declaredTypeNames: declaredTypeNames)
-        return Lint.Rule.`bitpattern rawvalue chain`.findings(parsed, .warning)
+        return Lint.Rule.`bitpattern rawvalue chain`.observe(parsed, .warning).findings
     }
 }
 
@@ -220,7 +220,7 @@ extension Lint.Rule.`bitpattern rawvalue chain Tests`.`Edge Case` {
     func `Custom severity is honored`() {
         let source = "let i = Int(bitPattern: x.rawValue)"
         let parsed = Lint.Source.parsed(from: source)
-        let findings = Lint.Rule.`bitpattern rawvalue chain`.findings(parsed, .error)
+        let findings = Lint.Rule.`bitpattern rawvalue chain`.observe(parsed, .error).findings
         #expect(findings.count == 1)
         if findings.count == 1 {
             #expect(findings[0].severity == .error)

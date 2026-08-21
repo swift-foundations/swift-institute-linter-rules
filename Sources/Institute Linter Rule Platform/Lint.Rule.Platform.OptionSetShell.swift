@@ -23,7 +23,7 @@ extension Lint.Rule {
     public static let `optionset shell pattern` = Lint.Rule(
         id: "optionset shell pattern",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformOptionSetShellVisitor(
                 source: source.file,
                 severity: severity,

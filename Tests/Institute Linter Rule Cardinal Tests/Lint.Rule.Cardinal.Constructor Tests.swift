@@ -34,7 +34,7 @@ extension Lint.Rule.`zero or one literal Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`zero or one literal`.findings(parsed, .warning)
+        return Lint.Rule.`zero or one literal`.observe(parsed, .warning).findings
     }
 
     /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`.
@@ -43,7 +43,7 @@ extension Lint.Rule.`zero or one literal Tests` {
         declaredTypeNames: Swift.Set<Swift.String>
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, declaredTypeNames: declaredTypeNames)
-        return Lint.Rule.`zero or one literal`.findings(parsed, .warning)
+        return Lint.Rule.`zero or one literal`.observe(parsed, .warning).findings
     }
 }
 
@@ -204,7 +204,7 @@ extension Lint.Rule.`zero or one literal Tests`.`Edge Case` {
     func `Custom severity is honored`() {
         let source = "let c = Cardinal(0)"
         let parsed = Lint.Source.parsed(from: source)
-        let findings = Lint.Rule.`zero or one literal`.findings(parsed, .error)
+        let findings = Lint.Rule.`zero or one literal`.observe(parsed, .error).findings
         #expect(findings.count == 1)
         if findings.count == 1 {
             #expect(findings[0].severity == .error)

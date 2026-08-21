@@ -55,7 +55,7 @@ extension Lint.Rule {
     public static let `string utf8 scanning` = Lint.Rule(
         id: "string utf8 scanning",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             guard !idiomFileImportsFoundation(source.tree) else {
                 return []
             }

@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `do throws for typed catch with throw` = Lint.Rule(
         id: "do throws for typed catch with throw",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsDoCatchTypedThrowVisitor(
                 source: source.file,
                 severity: severity,

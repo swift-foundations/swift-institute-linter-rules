@@ -33,7 +33,7 @@ extension Lint.Rule.`closure typed throws annotation Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`closure typed throws annotation`.findings(parsed, .warning)
+        return Lint.Rule.`closure typed throws annotation`.observe(parsed, .warning).findings
     }
 }
 

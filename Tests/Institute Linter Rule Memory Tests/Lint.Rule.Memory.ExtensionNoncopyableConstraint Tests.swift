@@ -32,7 +32,7 @@ extension Lint.Rule.`extension noncopyable constraint Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`extension noncopyable constraint`.findings(parsed, .warning)
+        return Lint.Rule.`extension noncopyable constraint`.observe(parsed, .warning).findings
     }
 }
 

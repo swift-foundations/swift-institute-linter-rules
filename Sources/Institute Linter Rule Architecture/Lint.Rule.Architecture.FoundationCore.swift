@@ -42,7 +42,7 @@ extension Lint.Rule {
     public static let `architecture foundation type` = Lint.Rule(
         id: "architecture foundation type",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
             // opt-in `* Foundation Integration` subtarget is the sanctioned
             // Foundation boundary. Same carve-out, same suffix predicate as

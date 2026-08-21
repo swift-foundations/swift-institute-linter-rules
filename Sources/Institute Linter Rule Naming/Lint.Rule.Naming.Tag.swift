@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `tag suffix` = Lint.Rule(
         id: "tag suffix",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingTagVisitor(
                 source: source.file,
                 severity: severity,

@@ -34,7 +34,7 @@ extension Lint.Rule.`typealiased namespace bridge Tests` {
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
         let rule = Lint.Rule.`typealiased namespace bridge`
-        return rule.findings(parsed, rule.severity.default)
+        return rule.observe(parsed, rule.severity.default).findings
     }
 }
 

@@ -44,7 +44,7 @@ extension Lint.Rule {
     public static let `c type in public api` = Lint.Rule(
         id: "c type in public api",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformCTypeInPublicAPIVisitor(
                 source: source.file,
                 severity: severity,

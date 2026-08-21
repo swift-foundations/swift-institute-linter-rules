@@ -31,7 +31,7 @@ extension Lint.Rule {
     public static let `platform layer import` = Lint.Rule(
         id: "platform layer import",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // Exempt per [RULE-EXEMPT-12] (path-scoped package): the platform
             // stack itself — L1 platform-aware primitives, L2 spec, L3-policy,
             // L3-unifier and the L3-domain `swift-file-system` — exists

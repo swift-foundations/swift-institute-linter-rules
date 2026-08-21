@@ -33,7 +33,7 @@ extension Lint.Rule.`unchecked sendable revalidation anchor Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`unchecked sendable revalidation anchor`.findings(parsed, .warning)
+        return Lint.Rule.`unchecked sendable revalidation anchor`.observe(parsed, .warning).findings
     }
 }
 

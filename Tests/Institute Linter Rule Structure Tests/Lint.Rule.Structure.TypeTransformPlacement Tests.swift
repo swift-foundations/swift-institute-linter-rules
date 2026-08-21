@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`type transform placement Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`type transform placement`.findings(parsed, .warning)
+        return Lint.Rule.`type transform placement`.observe(parsed, .warning).findings
     }
 }
 

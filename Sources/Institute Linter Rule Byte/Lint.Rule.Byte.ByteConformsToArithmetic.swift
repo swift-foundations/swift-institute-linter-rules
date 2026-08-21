@@ -25,7 +25,7 @@ extension Lint.Rule {
     public static let `byte conforms to arithmetic protocol` = Lint.Rule(
         id: "byte conforms to arithmetic protocol",
         default: .error,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ByteConformsToArithmeticVisitor(
                 source: source.file,
                 severity: severity,

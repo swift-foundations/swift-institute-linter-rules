@@ -34,7 +34,12 @@ extension Lint.Rule.`foundation integration leaf target Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`foundation integration leaf target`.findings(parsed, .warning)
+        return Lint.Rule.`foundation integration leaf target`.observe(parsed, .warning).findings
+    }
+
+    static func observation(source: Swift.String) -> Lint.Rule.Observation {
+        let parsed = Lint.Source.parsed(from: source, file: "Package.swift")
+        return Lint.Rule.`foundation integration leaf target`.observe(parsed, .warning)
     }
 }
 
@@ -316,6 +321,24 @@ extension Lint.Rule.`foundation integration leaf target Tests`.Unit {
 }
 
 extension Lint.Rule.`foundation integration leaf target Tests`.`Edge Case` {
+    @Test
+    func `computed product target list is unmeasured`() {
+        let source = """
+            let package = Package(
+              name: "x",
+              products: [.library(name: "X Foundation Integration", targets: targets)],
+              targets: [.target(name: "X Foundation Integration")]
+            )
+            """
+        let observation = Lint.Rule.`foundation integration leaf target Tests`.observation(
+            source: source
+        )
+        guard case .unmeasured = observation.coverage else {
+            Issue.record("computed product target list was accepted as measured")
+            return
+        }
+    }
+
     @Test
     func `Foundation Integration target that is both non-leaf and depended-on reports once`() {
         let source = """

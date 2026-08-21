@@ -36,7 +36,7 @@ extension Lint.Rule {
     public static let `generic throws missing never` = Lint.Rule(
         id: "generic throws missing never",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsGenericNeverSpecializationVisitor(
                 source: source.file,
                 severity: severity,

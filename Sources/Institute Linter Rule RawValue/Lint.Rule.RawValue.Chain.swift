@@ -35,7 +35,7 @@ extension Lint.Rule {
     public static let `chained rawvalue access` = Lint.Rule(
         id: "chained rawvalue access",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: same-package `.rawValue.<member>`
             // chains on the owner's brand are legitimate-by-construction.
             // Retires the per-package `.excluding(rules:)` stopgap

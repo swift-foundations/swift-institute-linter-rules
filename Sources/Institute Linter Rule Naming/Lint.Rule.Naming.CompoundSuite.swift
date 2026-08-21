@@ -24,7 +24,7 @@ extension Lint.Rule {
     public static let `compound suite name` = Lint.Rule(
         id: "compound suite name",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingCompoundSuiteVisitor(
                 source: source.file,
                 severity: severity,

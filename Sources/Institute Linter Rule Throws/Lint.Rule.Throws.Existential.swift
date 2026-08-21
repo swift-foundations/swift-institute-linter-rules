@@ -23,7 +23,7 @@ extension Lint.Rule {
     public static let `existential throws` = Lint.Rule(
         id: "existential throws",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsExistentialVisitor(
                 source: source.file,
                 severity: severity,

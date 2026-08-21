@@ -33,7 +33,7 @@ extension Lint.Rule.`single type per file Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`single type per file`.findings(parsed, .warning)
+        return Lint.Rule.`single type per file`.observe(parsed, .warning).findings
     }
 }
 

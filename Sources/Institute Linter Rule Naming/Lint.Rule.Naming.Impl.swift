@@ -19,7 +19,7 @@ extension Lint.Rule {
     public static let `variable named impl` = Lint.Rule(
         id: "variable named impl",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingImplVisitor(
                 source: source.file,
                 severity: severity,

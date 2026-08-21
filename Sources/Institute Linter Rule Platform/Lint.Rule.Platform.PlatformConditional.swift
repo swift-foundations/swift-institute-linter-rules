@@ -21,7 +21,7 @@ extension Lint.Rule {
     public static let `canimport conditional` = Lint.Rule(
         id: "canimport conditional",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformPlatformConditionalVisitor(
                 source: source.file,
                 severity: severity,

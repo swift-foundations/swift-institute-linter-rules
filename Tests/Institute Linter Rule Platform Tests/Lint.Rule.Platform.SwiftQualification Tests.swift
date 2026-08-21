@@ -33,7 +33,7 @@ extension Lint.Rule.`swift protocol qualification Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`swift protocol qualification`.findings(parsed, .warning)
+        return Lint.Rule.`swift protocol qualification`.observe(parsed, .warning).findings
     }
 }
 

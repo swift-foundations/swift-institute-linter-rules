@@ -21,7 +21,7 @@ extension Lint.Rule {
     public static let `wrapper backing exposed` = Lint.Rule(
         id: "wrapper backing exposed",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = StructureWrapperBackingExposedVisitor(
                 source: source.file,
                 severity: severity,

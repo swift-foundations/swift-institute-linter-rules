@@ -48,7 +48,7 @@ extension Lint.Rule {
     public static let `safe attribute undocumented` = Lint.Rule(
         id: "safe attribute undocumented",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // Scope: the header doc and the message both assert this rule
             // applies to every `@safe`-attributed declaration IN `Sources/`
             // — a file outside any `Sources/` path component (README

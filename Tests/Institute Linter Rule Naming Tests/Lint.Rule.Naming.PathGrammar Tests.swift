@@ -31,7 +31,7 @@ extension Lint.Rule.`path name grammar Tests` {
         file: Swift.String
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`path name grammar`.findings(parsed, .warning)
+        return Lint.Rule.`path name grammar`.observe(parsed, .warning).findings
     }
 }
 

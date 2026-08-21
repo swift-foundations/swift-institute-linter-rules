@@ -47,7 +47,7 @@ extension Lint.Rule {
     public static let `tagged unchecked with typed alternative` = Lint.Rule(
         id: "tagged unchecked with typed alternative",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = RawValueTaggedUncheckedVisitor(
                 source: source.file,
                 severity: severity,

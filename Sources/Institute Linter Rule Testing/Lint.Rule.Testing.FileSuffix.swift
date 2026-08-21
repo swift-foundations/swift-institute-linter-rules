@@ -39,7 +39,7 @@ extension Lint.Rule {
     public static let `test file suffix` = Lint.Rule(
         id: "test file suffix",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let filePath = source.file.filePath
             let components = filePath.split(separator: "/", omittingEmptySubsequences: true)
             guard components.contains("Tests") else { return [] }

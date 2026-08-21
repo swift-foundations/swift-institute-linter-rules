@@ -34,7 +34,7 @@ extension Lint.Rule.`byte conforms to arithmetic protocol Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`byte conforms to arithmetic protocol`.findings(parsed, .warning)
+        return Lint.Rule.`byte conforms to arithmetic protocol`.observe(parsed, .warning).findings
     }
 }
 

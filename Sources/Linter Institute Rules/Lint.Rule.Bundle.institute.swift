@@ -145,16 +145,10 @@ extension Lint.Rule.Bundle {
             // Implemented per swift-institute-linter-rules#4; advisory at
             // introduction, error only after the graduation gate.
             .enable(.`unknown default`),
-            // Manifest pack (swift-institute-linter-rules#4) — advisory at
-            // introduction. `.byName(name:)`, bare string literals,
-            // file-scope string constants, and file-scope/hoisted or
-            // concatenated dependency arrays are all resolved (#24 section
-            // A). A dependency whose value is computed by a call or a
-            // transform is not, and is silently unreported — that residue
-            // is the one honest limitation left, and a zero from this rule
-            // is not evidence of compliance for a manifest that hoists
-            // every dependency array behind a computed value.
+            // Manifest dependency spellings are measured structurally;
+            // computed or unhandled shapes fail closed as unmeasured.
             .enable(.`bare string dependency`),
+            .enable(.`package policy revision 1`),
             // [#65, principal directive 2026-08-09] — manifest naming
             // grammar: package kebab slug, spaced product/target names,
             // declared-path correspondence. Advisory at introduction; error
@@ -207,9 +201,7 @@ extension Lint.Rule.Bundle {
             .enable(.`typealiased namespace bridge`),
             // Structure pack (Wave 3 2026-05-15)
             .enable(.`hoisted protocol alias`),
-            // `license header` is the universal tier's own rule and arrives with
-            // `Lint.Rule.Bundle.universal` above; re-enabling it here duplicated
-            // the id, which suppression directives and configuration key on.
+            .enable(.`forbidden license header`),
             .enable(.`minimal type body`),
             .enable(.`raw value access`),
             .enable(.`single type per file`),

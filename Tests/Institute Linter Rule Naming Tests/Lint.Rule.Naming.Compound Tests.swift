@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`compound identifier Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`compound identifier`.findings(parsed, .warning)
+        return Lint.Rule.`compound identifier`.observe(parsed, .warning).findings
     }
 }
 

@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`tag suffix Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`tag suffix`.findings(parsed, .warning)
+        return Lint.Rule.`tag suffix`.observe(parsed, .warning).findings
     }
 }
 

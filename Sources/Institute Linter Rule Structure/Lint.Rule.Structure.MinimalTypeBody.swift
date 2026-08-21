@@ -21,7 +21,7 @@ extension Lint.Rule {
     public static let `minimal type body` = Lint.Rule(
         id: "minimal type body",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = StructureMinimalTypeBodyVisitor(
                 source: source.file,
                 severity: severity,
@@ -30,7 +30,10 @@ extension Lint.Rule {
             visitor.walk(source.tree)
             return visitor.matches
         },
-        fix: { source in structureMinimalTypeBodyFixed(source) }
+        repair: { source in
+            guard let contents = structureMinimalTypeBodyFixed(source) else { return .unchanged }
+            return .edits([.rewrite(path: source.path, contents: contents)])
+        }
     )
 }
 

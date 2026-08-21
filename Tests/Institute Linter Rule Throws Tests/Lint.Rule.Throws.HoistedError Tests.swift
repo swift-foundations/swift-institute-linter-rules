@@ -33,7 +33,7 @@ extension Lint.Rule.`hoisted error in public throws Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`hoisted error in public throws`.findings(parsed, .warning)
+        return Lint.Rule.`hoisted error in public throws`.observe(parsed, .warning).findings
     }
 }
 

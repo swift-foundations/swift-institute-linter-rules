@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`nested tag Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`nested tag`.findings(parsed, .warning)
+        return Lint.Rule.`nested tag`.observe(parsed, .warning).findings
     }
 }
 

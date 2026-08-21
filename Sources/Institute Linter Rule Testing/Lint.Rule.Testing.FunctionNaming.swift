@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `test function naming` = Lint.Rule(
         id: "test function naming",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = TestingFunctionNamingVisitor(
                 source: source.file,
                 severity: severity,

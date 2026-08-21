@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`phantom suppression Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`phantom suppression`.findings(parsed, .warning)
+        return Lint.Rule.`phantom suppression`.observe(parsed, .warning).findings
     }
 }
 

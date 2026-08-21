@@ -32,7 +32,7 @@ extension Lint.Rule.`test function naming Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`test function naming`.findings(parsed, .warning)
+        return Lint.Rule.`test function naming`.observe(parsed, .warning).findings
     }
 }
 

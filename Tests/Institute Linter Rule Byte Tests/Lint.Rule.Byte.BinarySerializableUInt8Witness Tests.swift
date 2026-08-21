@@ -34,7 +34,7 @@ extension Lint.Rule.`binary serializable uint8 witness Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`binary serializable uint8 witness`.findings(parsed, .warning)
+        return Lint.Rule.`binary serializable uint8 witness`.observe(parsed, .warning).findings
     }
 }
 

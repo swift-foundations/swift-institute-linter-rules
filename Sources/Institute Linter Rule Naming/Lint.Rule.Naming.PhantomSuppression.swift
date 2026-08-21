@@ -41,7 +41,7 @@ extension Lint.Rule {
     public static let `phantom suppression` = Lint.Rule(
         id: "phantom suppression",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingPhantomSuppressionVisitor(
                 source: source.file,
                 severity: severity,

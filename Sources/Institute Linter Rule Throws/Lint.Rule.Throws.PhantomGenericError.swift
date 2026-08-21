@@ -100,7 +100,7 @@ extension Lint.Rule {
     public static let `phantom generic error in typed throws` = Lint.Rule(
         id: "phantom generic error in typed throws",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsPhantomGenericErrorVisitor(
                 source: source.file,
                 severity: severity,

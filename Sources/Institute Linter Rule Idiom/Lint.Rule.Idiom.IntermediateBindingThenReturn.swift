@@ -26,7 +26,7 @@ extension Lint.Rule {
     public static let `intermediate binding then return` = Lint.Rule(
         id: "intermediate binding then return",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomIntermediateBindingThenReturnVisitor(
                 source: source.file,
                 severity: severity,

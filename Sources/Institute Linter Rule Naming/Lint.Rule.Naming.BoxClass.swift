@@ -20,7 +20,7 @@ extension Lint.Rule {
     public static let `ad hoc box class` = Lint.Rule(
         id: "ad hoc box class",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingBoxClassVisitor(
                 source: source.file,
                 severity: severity,

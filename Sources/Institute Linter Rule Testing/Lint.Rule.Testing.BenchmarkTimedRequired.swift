@@ -23,7 +23,7 @@ extension Lint.Rule {
     public static let `benchmark timed required` = Lint.Rule(
         id: "benchmark timed required",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = TestingBenchmarkTimedRequiredVisitor(
                 source: source.file,
                 severity: severity,

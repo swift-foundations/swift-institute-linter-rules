@@ -20,8 +20,7 @@ import Testing
 extension Lint.Rule.`test display name string Tests` {
     static func fixed(_ source: Swift.String) -> Swift.String? {
         let parsed = Lint.Source.parsed(from: source, file: "Tests/X/Thing Tests.swift")
-        guard let fix = Lint.Rule.`test display name string`.fix else { return nil }
-        return fix(parsed)
+        return Lint.Rule.`test display name string`.rewritten(parsed)
     }
 
     static func name(ofFirstFunctionIn source: Swift.String) -> Swift.String? {

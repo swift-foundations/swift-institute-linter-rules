@@ -32,7 +32,7 @@ extension Lint.Rule.`nonisolated unsafe without invariant Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`nonisolated unsafe without invariant`.findings(parsed, .warning)
+        return Lint.Rule.`nonisolated unsafe without invariant`.observe(parsed, .warning).findings
     }
 }
 

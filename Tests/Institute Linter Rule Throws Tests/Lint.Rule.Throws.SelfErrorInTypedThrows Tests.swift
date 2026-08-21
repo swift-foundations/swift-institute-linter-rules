@@ -33,7 +33,7 @@ extension Lint.Rule.`typed throws cannot use self error Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`typed throws cannot use self error`.findings(parsed, .warning)
+        return Lint.Rule.`typed throws cannot use self error`.observe(parsed, .warning).findings
     }
 }
 

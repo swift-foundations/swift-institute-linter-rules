@@ -36,7 +36,7 @@ extension Lint.Rule.`safe attribute undocumented Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`safe attribute undocumented`.findings(parsed, .warning)
+        return Lint.Rule.`safe attribute undocumented`.observe(parsed, .warning).findings
     }
 }
 

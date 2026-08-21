@@ -20,7 +20,7 @@ extension Lint.Rule {
     public static let `single type per file` = Lint.Rule(
         id: "single type per file",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // Scope-exclusion per Decision 2: skip files whose path has a
             // segment named `Tests`, `Experiments`, or `Examples`.
             let path = source.file.filePath

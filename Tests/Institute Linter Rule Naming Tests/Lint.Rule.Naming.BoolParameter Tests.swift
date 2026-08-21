@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`bool public parameter Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`bool public parameter`.findings(parsed, .warning)
+        return Lint.Rule.`bool public parameter`.observe(parsed, .warning).findings
     }
 }
 

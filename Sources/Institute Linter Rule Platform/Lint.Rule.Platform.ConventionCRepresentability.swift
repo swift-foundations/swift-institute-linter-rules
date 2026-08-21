@@ -22,7 +22,7 @@ extension Lint.Rule {
     public static let `convention c representability` = Lint.Rule(
         id: "convention c representability",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformConventionCRepresentabilityVisitor(
                 source: source.file,
                 severity: severity,

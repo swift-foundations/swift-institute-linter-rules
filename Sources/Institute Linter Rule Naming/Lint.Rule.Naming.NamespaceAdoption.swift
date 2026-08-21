@@ -38,7 +38,7 @@ extension Lint.Rule {
     public static let `namespace adoption typealias` = Lint.Rule(
         id: "namespace adoption typealias",
         default: .note,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingNamespaceAdoptionVisitor(
                 source: source.file,
                 severity: severity,

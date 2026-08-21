@@ -34,7 +34,7 @@ extension Lint.Rule.`sending return conditional sendable state Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`sending return conditional sendable state`.findings(parsed, .warning)
+        return Lint.Rule.`sending return conditional sendable state`.observe(parsed, .warning).findings
     }
 }
 

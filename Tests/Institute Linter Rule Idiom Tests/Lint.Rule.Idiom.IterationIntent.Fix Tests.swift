@@ -29,14 +29,13 @@ extension Lint.Rule.`counter loop iteration fix Tests` {
     /// The rewritten text, or `nil` when the rule declines to rewrite.
     static func fixed(_ source: String, file: String = "test.swift") -> String? {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        guard let fix = Lint.Rule.`counter loop iteration`.fix else { return nil }
-        return fix(parsed)
+        return Lint.Rule.`counter loop iteration`.rewritten(parsed)
     }
 
     /// Findings the rule reports for `source`.
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`counter loop iteration`.findings(parsed, .warning)
+        return Lint.Rule.`counter loop iteration`.observe(parsed, .warning).findings
     }
 
     /// Asserts the self-round-trip property: `source` is flagged, the fix

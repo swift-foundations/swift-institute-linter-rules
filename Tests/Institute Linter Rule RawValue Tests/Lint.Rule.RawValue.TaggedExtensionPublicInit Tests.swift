@@ -33,7 +33,7 @@ extension Lint.Rule.`tagged extension public init Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`tagged extension public init`.findings(parsed, .warning)
+        return Lint.Rule.`tagged extension public init`.observe(parsed, .warning).findings
     }
 
     /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`
@@ -47,7 +47,7 @@ extension Lint.Rule.`tagged extension public init Tests` {
             file: "Sources/X/Test.swift",
             declaredTypeNames: declaredTypeNames
         )
-        return Lint.Rule.`tagged extension public init`.findings(parsed, .warning)
+        return Lint.Rule.`tagged extension public init`.observe(parsed, .warning).findings
     }
 }
 

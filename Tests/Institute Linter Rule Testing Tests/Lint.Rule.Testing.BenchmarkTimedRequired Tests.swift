@@ -32,7 +32,7 @@ extension Lint.Rule.`benchmark timed required Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`benchmark timed required`.findings(parsed, .warning)
+        return Lint.Rule.`benchmark timed required`.observe(parsed, .warning).findings
     }
 }
 

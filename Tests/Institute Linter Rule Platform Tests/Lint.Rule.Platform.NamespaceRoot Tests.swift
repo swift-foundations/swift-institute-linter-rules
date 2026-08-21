@@ -33,7 +33,7 @@ extension Lint.Rule.`compound platform namespace root Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`compound platform namespace root`.findings(parsed, .warning)
+        return Lint.Rule.`compound platform namespace root`.observe(parsed, .warning).findings
     }
 }
 

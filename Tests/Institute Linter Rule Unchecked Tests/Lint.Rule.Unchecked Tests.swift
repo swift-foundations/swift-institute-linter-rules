@@ -33,7 +33,7 @@ extension Lint.Rule.`unchecked call site Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`unchecked call site`.findings(parsed, .warning)
+        return Lint.Rule.`unchecked call site`.observe(parsed, .warning).findings
     }
 
     /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`
@@ -43,7 +43,7 @@ extension Lint.Rule.`unchecked call site Tests` {
         declaredTypeNames: Swift.Set<Swift.String>
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, declaredTypeNames: declaredTypeNames)
-        return Lint.Rule.`unchecked call site`.findings(parsed, .warning)
+        return Lint.Rule.`unchecked call site`.observe(parsed, .warning).findings
     }
 }
 
@@ -106,7 +106,7 @@ extension Lint.Rule.`unchecked call site Tests`.Unit {
     func `Custom severity is honored`() {
         let source = "let x = Foo(__unchecked: ())"
         let parsed = Lint.Source.parsed(from: source)
-        let findings = Lint.Rule.`unchecked call site`.findings(parsed, .error)
+        let findings = Lint.Rule.`unchecked call site`.observe(parsed, .error).findings
         let count = findings.count
         #expect(count == 1)
         if count == 1 {

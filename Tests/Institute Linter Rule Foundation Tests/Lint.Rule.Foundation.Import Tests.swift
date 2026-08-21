@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`foundation import Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`foundation import`.findings(parsed, .warning)
+        return Lint.Rule.`foundation import`.observe(parsed, .warning).findings
     }
 
     @Suite struct `Foundation Integration carve-out` {}

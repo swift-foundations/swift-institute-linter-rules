@@ -33,7 +33,7 @@ extension Lint.Rule.`c type in public api Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`c type in public api`.findings(parsed, .warning)
+        return Lint.Rule.`c type in public api`.observe(parsed, .warning).findings
     }
 }
 

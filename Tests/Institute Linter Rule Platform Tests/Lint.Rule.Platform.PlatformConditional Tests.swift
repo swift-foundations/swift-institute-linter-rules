@@ -33,7 +33,7 @@ extension Lint.Rule.`canimport conditional Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`canimport conditional`.findings(parsed, .warning)
+        return Lint.Rule.`canimport conditional`.observe(parsed, .warning).findings
     }
 }
 

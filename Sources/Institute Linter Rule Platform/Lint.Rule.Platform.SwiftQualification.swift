@@ -20,7 +20,7 @@ extension Lint.Rule {
     public static let `swift protocol qualification` = Lint.Rule(
         id: "swift protocol qualification",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformSwiftQualificationVisitor(
                 source: source.file,
                 severity: severity,
@@ -29,7 +29,10 @@ extension Lint.Rule {
             visitor.walk(source.tree)
             return visitor.matches
         },
-        fix: { source in platformSwiftQualificationFixed(source) }
+        repair: { source in
+            guard let contents = platformSwiftQualificationFixed(source) else { return .unchanged }
+            return .edits([.rewrite(path: source.path, contents: contents)])
+        }
     )
 }
 

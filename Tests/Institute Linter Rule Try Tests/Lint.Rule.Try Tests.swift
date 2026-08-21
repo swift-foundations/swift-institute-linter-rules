@@ -37,7 +37,7 @@ extension Lint.Rule.`try optional Tests` {
             tree: tree,
             converter: converter
         )
-        return Lint.Rule.`try optional`.findings(parsed, .warning)
+        return Lint.Rule.`try optional`.observe(parsed, .warning).findings
     }
 }
 
@@ -108,7 +108,7 @@ extension Lint.Rule.`try optional Tests`.Unit {
             tree: tree,
             converter: converter
         )
-        let findings = Lint.Rule.`try optional`.findings(parsed, .error)
+        let findings = Lint.Rule.`try optional`.observe(parsed, .error).findings
         let count = findings.count
         #expect(count == 1)
         if count == 1 {

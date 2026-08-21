@@ -32,7 +32,7 @@ extension Lint.Rule.`noncopyable error Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`noncopyable error`.findings(parsed, .warning)
+        return Lint.Rule.`noncopyable error`.observe(parsed, .warning).findings
     }
 }
 

@@ -33,7 +33,7 @@ extension Lint.Rule.`system subdomain Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`system subdomain`.findings(parsed, .warning)
+        return Lint.Rule.`system subdomain`.observe(parsed, .warning).findings
     }
 }
 

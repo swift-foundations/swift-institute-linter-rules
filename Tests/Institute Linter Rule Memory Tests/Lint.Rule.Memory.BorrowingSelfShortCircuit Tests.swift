@@ -33,7 +33,7 @@ extension Lint.Rule.`borrowing self short circuit Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`borrowing self short circuit`.findings(parsed, .warning)
+        return Lint.Rule.`borrowing self short circuit`.observe(parsed, .warning).findings
     }
 }
 

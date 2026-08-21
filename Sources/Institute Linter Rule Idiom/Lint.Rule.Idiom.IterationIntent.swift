@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `counter loop iteration` = Lint.Rule(
         id: "counter loop iteration",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomIterationIntentVisitor(
                 source: source.file,
                 severity: severity,
@@ -27,7 +27,10 @@ extension Lint.Rule {
             visitor.walk(source.tree)
             return visitor.matches
         },
-        fix: { source in idiomIterationIntentFixed(source) }
+        repair: { source in
+            guard let contents = idiomIterationIntentFixed(source) else { return .unchanged }
+            return .edits([.rewrite(path: source.path, contents: contents)])
+        }
     )
 }
 

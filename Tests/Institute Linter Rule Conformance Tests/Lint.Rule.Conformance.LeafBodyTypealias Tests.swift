@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`leaf body typealias missing Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`leaf body typealias missing`.findings(parsed, .warning)
+        return Lint.Rule.`leaf body typealias missing`.observe(parsed, .warning).findings
     }
 }
 

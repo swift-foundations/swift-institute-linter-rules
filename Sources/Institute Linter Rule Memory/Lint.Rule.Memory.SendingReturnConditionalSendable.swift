@@ -58,7 +58,7 @@ extension Lint.Rule {
     public static let `sending return conditional sendable state` = Lint.Rule(
         id: "sending return conditional sendable state",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = MemorySendingReturnConditionalSendableVisitor(
                 source: source.file,
                 severity: severity,

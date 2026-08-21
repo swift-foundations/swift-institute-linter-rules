@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `single type namespace` = Lint.Rule(
         id: "single type namespace",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingSingleTypeNamespaceVisitor(
                 source: source.file,
                 severity: severity,

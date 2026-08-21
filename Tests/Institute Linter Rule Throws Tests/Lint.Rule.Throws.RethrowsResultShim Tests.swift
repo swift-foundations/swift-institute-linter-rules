@@ -33,7 +33,7 @@ extension Lint.Rule.`result wrapper for rethrows shim Tests` {
         -> [Diagnostic.Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`result wrapper for rethrows shim`.findings(parsed, .warning)
+        return Lint.Rule.`result wrapper for rethrows shim`.observe(parsed, .warning).findings
     }
 }
 

@@ -21,7 +21,7 @@ extension Lint.Rule {
     public static let `sli literal` = Lint.Rule(
         id: "sli literal",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomSliLiteralVisitor(
                 source: source.file,
                 severity: severity,

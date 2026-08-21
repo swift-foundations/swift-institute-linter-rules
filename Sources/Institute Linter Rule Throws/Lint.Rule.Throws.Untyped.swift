@@ -19,7 +19,7 @@ extension Lint.Rule {
     public static let `untyped throws` = Lint.Rule(
         id: "untyped throws",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsUntypedVisitor(
                 source: source.file,
                 severity: severity,

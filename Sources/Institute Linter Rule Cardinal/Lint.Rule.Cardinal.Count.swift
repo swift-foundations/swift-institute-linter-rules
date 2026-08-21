@@ -62,7 +62,7 @@ extension Lint.Rule {
     public static let `count minus one` = Lint.Rule(
         id: "count minus one",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let folded = OperatorTable.standardOperators.foldAll(
                 source.tree,
                 errorHandler: { _ in }

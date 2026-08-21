@@ -27,7 +27,7 @@ extension Lint.Rule {
     public static let `bool public parameter` = Lint.Rule(
         id: "bool public parameter",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingBoolParameterVisitor(
                 source: source.file,
                 severity: severity,

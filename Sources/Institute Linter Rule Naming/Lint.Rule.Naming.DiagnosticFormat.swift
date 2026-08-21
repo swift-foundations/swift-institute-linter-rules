@@ -27,7 +27,7 @@ extension Lint.Rule {
     public static let `diagnostic message format` = Lint.Rule(
         id: "diagnostic message format",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // Scope per the Python's detection scope: `Sources/**/
             // Lint.Rule.<Module>.<Name>.swift` only — the institute's
             // linter-rule authoring sites. Rule-runner infrastructure, output

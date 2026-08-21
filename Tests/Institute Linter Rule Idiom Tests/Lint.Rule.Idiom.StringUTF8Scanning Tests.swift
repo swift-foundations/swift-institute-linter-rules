@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`string utf8 scanning Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`string utf8 scanning`.findings(parsed, .warning)
+        return Lint.Rule.`string utf8 scanning`.observe(parsed, .warning).findings
     }
 }
 

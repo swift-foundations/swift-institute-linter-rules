@@ -53,7 +53,7 @@ extension Lint.Rule {
     public static let `pointer advanced by` = Lint.Rule(
         id: "pointer advanced by",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: the brand owner's own `* Standard Library
             // Integration` pointer-arithmetic overloads are legitimate-by-
             // construction. Retires the per-package `.excluding(rules:)` stopgap

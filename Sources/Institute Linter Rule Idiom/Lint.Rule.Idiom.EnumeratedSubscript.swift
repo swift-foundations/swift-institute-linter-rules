@@ -34,7 +34,7 @@ extension Lint.Rule {
     public static let `enumerated with subscript` = Lint.Rule(
         id: "enumerated with subscript",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomEnumeratedSubscriptVisitor(
                 source: source.file,
                 severity: severity,

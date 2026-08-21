@@ -49,15 +49,25 @@ extension Lint.Rule {
     public static let `foundation integration leaf target` = Lint.Rule(
         id: "foundation integration leaf target",
         default: .warning,
-        findings: { source, severity in
-            guard manifestIsPackageManifest(source.file.filePath) else { return [] }
+        observe: { source, severity in
+            guard manifestIsPackageManifest(source.file.filePath) else {
+                return Lint.Rule.Observation(
+                    findings: [],
+                    coverage: .measured,
+                    applicable: false
+                )
+            }
             let visitor = ManifestFoundationIntegrationLeafnessVisitor(
                 source: source.file,
                 severity: severity,
                 converter: source.converter
             )
             visitor.walk(source.tree)
-            return visitor.resolvedMatches()
+            let findings = visitor.resolvedMatches()
+            let coverage: Lint.Rule.Coverage = visitor.unhandledSourceShape.map {
+                .unmeasured(.unsupportedSourceShape($0))
+            } ?? .measured
+            return Lint.Rule.Observation(findings: findings, coverage: coverage)
         }
     )
 }
@@ -108,6 +118,7 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
     /// Integration is a target boundary, not a library-only boundary: a command
     /// entrypoint may lawfully be the target's sole executable product.
     private var leafProductTargetLists: [[Swift.String]] = []
+    var unhandledSourceShape: Swift.String?
 
     init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
         self.source = source
@@ -158,12 +169,20 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
 
     private func recordLeafProduct(_ node: FunctionCallExprSyntax) {
         for argument in node.arguments where argument.label?.text == "targets" {
-            guard let array = argument.expression.as(ArrayExprSyntax.self) else { continue }
+            guard let array = argument.expression.as(ArrayExprSyntax.self) else {
+                unhandledSourceShape =
+                    "computed product targets '\(argument.expression.trimmedDescription)'"
+                continue
+            }
             var names: [Swift.String] = []
             for element in array.elements {
                 guard let literal = element.expression.as(StringLiteralExprSyntax.self),
                     let text = manifestFoundationIntegrationStringLiteralText(literal)
-                else { continue }
+                else {
+                    unhandledSourceShape =
+                        "computed product target '\(element.expression.trimmedDescription)'"
+                    continue
+                }
                 names.append(text)
             }
             leafProductTargetLists.append(names)
@@ -175,7 +194,10 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
             let nameArgument = node.arguments.first(where: { $0.label?.text == "name" }),
             let nameLiteral = nameArgument.expression.as(StringLiteralExprSyntax.self),
             let name = manifestFoundationIntegrationStringLiteralText(nameLiteral)
-        else { return }
+        else {
+            unhandledSourceShape = "computed target name '\(node.trimmedDescription)'"
+            return
+        }
 
         if name.hasSuffix(manifestFoundationIntegrationSuffix) {
             foundationIntegrationTargets.append(
@@ -188,7 +210,11 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
 
         var referenced: Swift.Set<Swift.String> = []
         for argument in node.arguments where argument.label?.text == "dependencies" {
-            guard let array = argument.expression.as(ArrayExprSyntax.self) else { continue }
+            guard let array = argument.expression.as(ArrayExprSyntax.self) else {
+                unhandledSourceShape =
+                    "computed target dependencies '\(argument.expression.trimmedDescription)'"
+                continue
+            }
             for element in array.elements {
                 if let literal = element.expression.as(StringLiteralExprSyntax.self),
                     let text = manifestFoundationIntegrationStringLiteralText(literal)
@@ -212,6 +238,14 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
                     referenced.insert(innerText)
                     continue
                 }
+                if let call = element.expression.as(FunctionCallExprSyntax.self),
+                    let callMember = call.calledExpression.as(MemberAccessExprSyntax.self),
+                    callMember.declName.baseName.text == "product"
+                {
+                    continue
+                }
+                unhandledSourceShape =
+                    "unhandled target dependency '\(element.expression.trimmedDescription)'"
             }
         }
         dependencyEdgesByDepender[name, default: []].formUnion(referenced)

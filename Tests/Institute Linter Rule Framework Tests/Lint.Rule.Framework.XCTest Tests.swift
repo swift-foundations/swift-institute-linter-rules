@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`xctest import Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`xctest import`.findings(parsed, .warning)
+        return Lint.Rule.`xctest import`.observe(parsed, .warning).findings
     }
 }
 

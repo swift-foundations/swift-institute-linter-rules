@@ -33,7 +33,7 @@ extension Lint.Rule.`optionset shell pattern Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`optionset shell pattern`.findings(parsed, .warning)
+        return Lint.Rule.`optionset shell pattern`.observe(parsed, .warning).findings
     }
 }
 

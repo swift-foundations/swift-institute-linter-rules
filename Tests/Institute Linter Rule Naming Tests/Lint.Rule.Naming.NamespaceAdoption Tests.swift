@@ -29,7 +29,7 @@ extension Lint.Rule.`namespace adoption typealias Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
         let rule = Lint.Rule.`namespace adoption typealias`
-        return rule.findings(parsed, rule.severity.default)
+        return rule.observe(parsed, rule.severity.default).findings
     }
 }
 

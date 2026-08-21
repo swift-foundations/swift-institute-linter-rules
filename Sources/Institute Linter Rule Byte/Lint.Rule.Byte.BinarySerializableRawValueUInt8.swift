@@ -34,7 +34,7 @@ extension Lint.Rule {
     public static let `binary serializable rawvalue uint8` = Lint.Rule(
         id: "binary serializable rawvalue uint8",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ByteBinarySerializableRawValueUInt8Visitor(
                 source: source.file,
                 severity: severity,

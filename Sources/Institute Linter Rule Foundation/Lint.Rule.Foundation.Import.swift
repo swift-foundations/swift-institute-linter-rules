@@ -24,7 +24,7 @@ extension Lint.Rule {
     public static let `foundation import` = Lint.Rule(
         id: "foundation import",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
             // opt-in `* Foundation Integration` subtarget is the sanctioned
             // Foundation boundary consumers opt into per `[PRIM-FOUND-001]`,

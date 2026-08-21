@@ -35,7 +35,7 @@ extension Lint.Rule.`count minus one Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`count minus one`.findings(parsed, .warning)
+        return Lint.Rule.`count minus one`.observe(parsed, .warning).findings
     }
 }
 
@@ -61,7 +61,7 @@ extension Lint.Rule.`count minus one Tests`.Unit {
     func `Custom severity is honored`() {
         let source = "let n = seq.count - 1"
         let parsed = Lint.Source.parsed(from: source)
-        let findings = Lint.Rule.`count minus one`.findings(parsed, .error)
+        let findings = Lint.Rule.`count minus one`.observe(parsed, .error).findings
         #expect(findings.count == 1)
         if findings.count == 1 {
             #expect(findings[0].severity == .error)

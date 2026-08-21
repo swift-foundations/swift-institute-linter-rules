@@ -52,7 +52,7 @@ extension Lint.Rule {
     public static let `test display name string` = Lint.Rule(
         id: "test display name string",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = TestingDisplayNameStringVisitor(
                 source: source.file,
                 severity: severity,
@@ -61,7 +61,10 @@ extension Lint.Rule {
             visitor.walk(source.tree)
             return visitor.matches
         },
-        fix: { source in testingDisplayNameStringFixed(source) }
+        repair: { source in
+            guard let contents = testingDisplayNameStringFixed(source) else { return .unchanged }
+            return .edits([.rewrite(path: source.path, contents: contents)])
+        }
     )
 }
 

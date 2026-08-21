@@ -17,7 +17,7 @@ extension Lint.Rule {
     public static let `hoisted error in public throws` = Lint.Rule(
         id: "hoisted error in public throws",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsHoistedErrorVisitor(
                 source: source.file,
                 severity: severity,

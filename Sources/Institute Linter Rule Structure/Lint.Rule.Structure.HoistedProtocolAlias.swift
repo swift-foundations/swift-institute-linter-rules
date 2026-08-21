@@ -22,7 +22,7 @@ extension Lint.Rule {
     public static let `hoisted protocol alias` = Lint.Rule(
         id: "hoisted protocol alias",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = StructureHoistedProtocolAliasVisitor(
                 source: source.file,
                 severity: severity,

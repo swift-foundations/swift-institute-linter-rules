@@ -33,7 +33,7 @@ extension Lint.Rule.`compound suite name Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`compound suite name`.findings(parsed, .warning)
+        return Lint.Rule.`compound suite name`.observe(parsed, .warning).findings
     }
 }
 

@@ -27,7 +27,7 @@ extension Lint.Rule {
     public static let `noncopyable error` = Lint.Rule(
         id: "noncopyable error",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // `~Copyable` can only be suppressed on the primary declaration,
             // but `Error` can be added by a same-file extension (#25 defect
             // 5) — a pre-pass collects every extension's inherited leaf

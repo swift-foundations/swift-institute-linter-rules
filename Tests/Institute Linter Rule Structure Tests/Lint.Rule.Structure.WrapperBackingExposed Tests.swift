@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`wrapper backing exposed Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`wrapper backing exposed`.findings(parsed, .warning)
+        return Lint.Rule.`wrapper backing exposed`.observe(parsed, .warning).findings
     }
 }
 

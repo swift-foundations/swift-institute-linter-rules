@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `unification typealias` = Lint.Rule(
         id: "unification typealias",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = NamingUnificationTypealiasVisitor(
                 source: source.file,
                 severity: severity,

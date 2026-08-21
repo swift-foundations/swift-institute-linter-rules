@@ -22,7 +22,7 @@ extension Lint.Rule {
     public static let `compound platform namespace root` = Lint.Rule(
         id: "compound platform namespace root",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformNamespaceRootVisitor(
                 source: source.file,
                 severity: severity,

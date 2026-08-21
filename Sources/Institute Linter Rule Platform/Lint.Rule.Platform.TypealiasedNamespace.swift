@@ -22,7 +22,7 @@ extension Lint.Rule {
     public static let `typealiased namespace bridge` = Lint.Rule(
         id: "typealiased namespace bridge",
         default: .note,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformTypealiasedNamespaceVisitor(
                 source: source.file,
                 severity: severity,

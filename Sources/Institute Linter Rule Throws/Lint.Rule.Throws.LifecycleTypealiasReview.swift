@@ -18,7 +18,7 @@ extension Lint.Rule {
     public static let `lifecycle typealias review` = Lint.Rule(
         id: "lifecycle typealias review",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsLifecycleTypealiasReviewVisitor(
                 source: source.file,
                 severity: severity,

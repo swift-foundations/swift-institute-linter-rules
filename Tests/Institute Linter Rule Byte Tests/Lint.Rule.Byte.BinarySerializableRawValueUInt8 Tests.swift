@@ -34,7 +34,7 @@ extension Lint.Rule.`binary serializable rawvalue uint8 Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`binary serializable rawvalue uint8`.findings(parsed, .warning)
+        return Lint.Rule.`binary serializable rawvalue uint8`.observe(parsed, .warning).findings
     }
 }
 

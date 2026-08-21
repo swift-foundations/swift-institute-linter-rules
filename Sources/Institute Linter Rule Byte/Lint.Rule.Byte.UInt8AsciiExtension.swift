@@ -29,7 +29,7 @@ extension Lint.Rule {
     public static let `uint8 ascii extension` = Lint.Rule(
         id: "uint8 ascii extension",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ByteUInt8AsciiExtensionVisitor(
                 source: source.file,
                 severity: severity,

@@ -35,7 +35,7 @@ extension Lint.Rule {
     public static let `architecture import boundary` = Lint.Rule(
         id: "architecture import boundary",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             // Exempt per [RULE-EXEMPT-12] (path-scoped file): the umbrella
             // `exports.swift` IS the sanctioned re-export surface — the same
             // house convention `Lint.Rule.Foundation.Import`'s soundness suite

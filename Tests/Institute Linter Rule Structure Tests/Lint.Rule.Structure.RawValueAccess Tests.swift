@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`raw value access Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`raw value access`.findings(parsed, .warning)
+        return Lint.Rule.`raw value access`.observe(parsed, .warning).findings
     }
 
     /// Findings against a run whose brand pre-pass stamped `declaredTypeNames`.
@@ -37,7 +37,7 @@ extension Lint.Rule.`raw value access Tests` {
         declaredTypeNames: Set<String>
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, declaredTypeNames: declaredTypeNames)
-        return Lint.Rule.`raw value access`.findings(parsed, .warning)
+        return Lint.Rule.`raw value access`.observe(parsed, .warning).findings
     }
 }
 

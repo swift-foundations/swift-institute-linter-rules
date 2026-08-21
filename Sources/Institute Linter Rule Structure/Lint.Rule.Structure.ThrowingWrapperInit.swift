@@ -22,7 +22,7 @@ extension Lint.Rule {
     public static let `throwing wrapper init` = Lint.Rule(
         id: "throwing wrapper init",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = StructureThrowingWrapperInitVisitor(
                 source: source.file,
                 severity: severity,

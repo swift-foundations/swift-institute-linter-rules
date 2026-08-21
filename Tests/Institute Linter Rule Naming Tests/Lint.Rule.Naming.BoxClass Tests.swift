@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`ad hoc box class Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`ad hoc box class`.findings(parsed, .warning)
+        return Lint.Rule.`ad hoc box class`.observe(parsed, .warning).findings
     }
 }
 

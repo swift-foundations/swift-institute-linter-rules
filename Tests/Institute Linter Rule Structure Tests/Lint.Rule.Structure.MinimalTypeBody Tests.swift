@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`minimal type body Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`minimal type body`.findings(parsed, .warning)
+        return Lint.Rule.`minimal type body`.observe(parsed, .warning).findings
     }
 }
 

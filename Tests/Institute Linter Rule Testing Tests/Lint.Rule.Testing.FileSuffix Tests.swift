@@ -42,7 +42,7 @@ extension Lint.Rule.`test file suffix Tests` {
         file: Swift.String
     ) -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`test file suffix`.findings(parsed, .warning)
+        return Lint.Rule.`test file suffix`.observe(parsed, .warning).findings
     }
 }
 

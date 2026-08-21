@@ -40,7 +40,7 @@ extension Lint.Rule.`phantom generic error in typed throws Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`phantom generic error in typed throws`.findings(parsed, .warning)
+        return Lint.Rule.`phantom generic error in typed throws`.observe(parsed, .warning).findings
     }
 
     /// Which detector produced a finding.

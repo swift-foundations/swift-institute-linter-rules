@@ -28,7 +28,7 @@ extension Lint.Rule {
 extension Lint.Rule.`bounded index static capacity Tests` {
     static func findings(in source: String, file: String = "test.swift") -> [Diagnostic.Record] {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`bounded index static capacity`.findings(parsed, .warning)
+        return Lint.Rule.`bounded index static capacity`.observe(parsed, .warning).findings
     }
 }
 

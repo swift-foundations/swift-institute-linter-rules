@@ -33,7 +33,7 @@ extension Lint.Rule.`unsafe assignment granularity Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`unsafe assignment granularity`.findings(parsed, .warning)
+        return Lint.Rule.`unsafe assignment granularity`.observe(parsed, .warning).findings
     }
 }
 

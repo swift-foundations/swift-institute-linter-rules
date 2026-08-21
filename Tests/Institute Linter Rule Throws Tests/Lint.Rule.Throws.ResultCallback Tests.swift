@@ -33,7 +33,7 @@ extension Lint.Rule.`callback result over throws thunk Tests` {
         .Record]
     {
         let parsed = Lint.Source.parsed(from: source, file: file)
-        return Lint.Rule.`callback result over throws thunk`.findings(parsed, .warning)
+        return Lint.Rule.`callback result over throws thunk`.observe(parsed, .warning).findings
     }
 }
 

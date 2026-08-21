@@ -29,7 +29,7 @@ extension Lint.Rule {
     public static let `closure typed throws annotation` = Lint.Rule(
         id: "closure typed throws annotation",
         default: .warning,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsClosureAnnotationVisitor(
                 source: source.file,
                 severity: severity,

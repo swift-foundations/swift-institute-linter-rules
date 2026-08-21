@@ -23,7 +23,7 @@ extension Lint.Rule {
     public static let `uint8 conforms to byte protocol` = Lint.Rule(
         id: "uint8 conforms to byte protocol",
         default: .error,
-        findings: { source, severity in
+        observe: Lint.Rule.measured { source, severity in
             let visitor = ByteUInt8ConformsToByteProtocolVisitor(
                 source: source.file,
                 severity: severity,
