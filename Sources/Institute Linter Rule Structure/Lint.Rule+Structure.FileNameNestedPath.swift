@@ -234,6 +234,14 @@ private func structureFileNameNestedPathResolve(_ node: DeclSyntax) -> Swift.Str
   return "\(enumDecl.name.text).\(structureFileNameNestedPathResolve(nestedTypes[0]))"
 }
 
+private func structureFileNameNestedPathIsPrimaryTypeDecl(_ declaration: DeclSyntax) -> Swift.Bool {
+  declaration.is(StructDeclSyntax.self)
+    || declaration.is(ClassDeclSyntax.self)
+    || declaration.is(EnumDeclSyntax.self)
+    || declaration.is(ActorDeclSyntax.self)
+    || declaration.is(ProtocolDeclSyntax.self)
+}
+
 private func structureFileNameNestedPathOwnName(_ node: DeclSyntax) -> Swift.String? {
   if let d = node.as(StructDeclSyntax.self) { return d.name.text }
   if let d = node.as(ClassDeclSyntax.self) { return d.name.text }
