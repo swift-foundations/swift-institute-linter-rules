@@ -18,7 +18,7 @@ extension Lint.Rule {
                         forbiddenLicenseHeaderFinding(
                             source: source,
                             severity: severity,
-                            line: header.startLine + 1
+                            line: Swift.Int(clamping: header.start) + 1
                         )
                     ],
                     coverage: .measured

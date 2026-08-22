@@ -89,7 +89,7 @@ internal import SwiftSyntax
 /// properties, computed properties, functions, subscripts, non-sentinel
 /// typealiases, nested types without the extension-pattern attribute, and
 /// nested protocols. It declines one thing the detector still flags: a
-/// member wrapped in `#if`. `Lint.Syntax.IfConfig.members(_:)` splices `#if`
+/// member wrapped in `#if`. `Lint.Syntax.Conditional.members(_:)` splices `#if`
 /// clauses so the DETECTOR still sees what is inside them, but moving only
 /// the inner declaration out from under its `#if` guard would silently drop
 /// the conditional-compilation boundary. A mechanical fix must not do that,
@@ -97,16 +97,16 @@ internal import SwiftSyntax
 /// unconditionally correct, and (if flagged) still a standing finding for a
 /// person to resolve.
 internal func structureMinimalTypeBodyFixed(
-    _ source: borrowing Lint.Source.Parsed
+  _ source: borrowing Lint.Source.Parsed
 ) -> Swift.String? {
-    let rewriter = StructureMinimalTypeBodyRewriter()
-    let rewritten = rewriter.visit(source.tree)
-    guard rewriter.changed else { return nil }
-    var statements = rewritten.statements
-    for extensionDecl in rewriter.pendingExtensions {
-        statements.append(CodeBlockItemSyntax(item: .decl(DeclSyntax(extensionDecl))))
-    }
-    return rewritten.with(\.statements, statements).description
+  let rewriter = StructureMinimalTypeBodyRewriter()
+  let rewritten = rewriter.visit(source.tree)
+  guard rewriter.changed else { return nil }
+  var statements = rewritten.statements
+  for extensionDecl in rewriter.pendingExtensions {
+    statements.append(CodeBlockItemSyntax(item: .decl(DeclSyntax(extensionDecl))))
+  }
+  return rewritten.with(\.statements, statements).description
 }
 
 /// Whether `node` sits where this fix may safely act: reachable from
@@ -115,51 +115,51 @@ internal func structureMinimalTypeBodyFixed(
 /// conditional-compilation block. See the type-level doc comment above for
 /// why both restrictions are load-bearing, not merely conservative.
 internal func structureMinimalTypeBodyIsFixEligible(_ node: Syntax) -> Swift.Bool {
-    var current = node.parent
-    while let ancestor = current {
-        if ancestor.is(SourceFileSyntax.self) {
-            return true
-        }
-        if let ext = ancestor.as(ExtensionDeclSyntax.self) {
-            // An `@available` on an enclosing extension is inherited by every
-            // member declared inside it, including a nested struct/enum with no
-            // attribute of its own. The generated extension carries no
-            // attribute list, so this must refuse exactly like a directly
-            // attributed declaration does (checked separately, on the
-            // declaration's own attributes, by the caller).
-            if structureMinimalTypeBodyHasAvailableAttribute(ext.attributes) {
-                return false
-            }
-            current = ancestor.parent
-            continue
-        }
-        // Any nominal-type body, `#if` block, or function-like body between
-        // `node` and `SourceFileSyntax` disqualifies — climbing PAST a
-        // non-extension, non-list/item wrapper node here would mean the fix
-        // guessed at a position it cannot express as a top-level `extension`.
-        if ancestor.is(StructDeclSyntax.self)
-            || ancestor.is(ClassDeclSyntax.self)
-            || ancestor.is(EnumDeclSyntax.self)
-            || ancestor.is(ActorDeclSyntax.self)
-            || ancestor.is(ProtocolDeclSyntax.self)
-            || ancestor.is(IfConfigDeclSyntax.self)
-            || ancestor.is(FunctionDeclSyntax.self)
-            || ancestor.is(InitializerDeclSyntax.self)
-            || ancestor.is(DeinitializerDeclSyntax.self)
-            || ancestor.is(SubscriptDeclSyntax.self)
-            || ancestor.is(AccessorDeclSyntax.self)
-            || ancestor.is(AccessorBlockSyntax.self)
-            || ancestor.is(ClosureExprSyntax.self)
-        {
-            return false
-        }
-        // Anything else (a list/item wrapper node such as
-        // `CodeBlockItemSyntax`/`CodeBlockItemListSyntax` at file scope, or
-        // `MemberBlockItemSyntax`/`MemberBlockSyntax` inside an extension) is
-        // transparent — keep climbing.
-        current = ancestor.parent
+  var current = node.parent
+  while let ancestor = current {
+    if ancestor.is(SourceFileSyntax.self) {
+      return true
     }
-    return false
+    if let ext = ancestor.as(ExtensionDeclSyntax.self) {
+      // An `@available` on an enclosing extension is inherited by every
+      // member declared inside it, including a nested struct/enum with no
+      // attribute of its own. The generated extension carries no
+      // attribute list, so this must refuse exactly like a directly
+      // attributed declaration does (checked separately, on the
+      // declaration's own attributes, by the caller).
+      if structureMinimalTypeBodyHasAvailableAttribute(ext.attributes) {
+        return false
+      }
+      current = ancestor.parent
+      continue
+    }
+    // Any nominal-type body, `#if` block, or function-like body between
+    // `node` and `SourceFileSyntax` disqualifies — climbing PAST a
+    // non-extension, non-list/item wrapper node here would mean the fix
+    // guessed at a position it cannot express as a top-level `extension`.
+    if ancestor.is(StructDeclSyntax.self)
+      || ancestor.is(ClassDeclSyntax.self)
+      || ancestor.is(EnumDeclSyntax.self)
+      || ancestor.is(ActorDeclSyntax.self)
+      || ancestor.is(ProtocolDeclSyntax.self)
+      || ancestor.is(IfConfigDeclSyntax.self)
+      || ancestor.is(FunctionDeclSyntax.self)
+      || ancestor.is(InitializerDeclSyntax.self)
+      || ancestor.is(DeinitializerDeclSyntax.self)
+      || ancestor.is(SubscriptDeclSyntax.self)
+      || ancestor.is(AccessorDeclSyntax.self)
+      || ancestor.is(AccessorBlockSyntax.self)
+      || ancestor.is(ClosureExprSyntax.self)
+    {
+      return false
+    }
+    // Anything else (a list/item wrapper node such as
+    // `CodeBlockItemSyntax`/`CodeBlockItemListSyntax` at file scope, or
+    // `MemberBlockItemSyntax`/`MemberBlockSyntax` inside an extension) is
+    // transparent — keep climbing.
+    current = ancestor.parent
+  }
+  return false
 }
 
 /// Returns true if `attributes` contains `@available` in any form
@@ -171,15 +171,15 @@ internal func structureMinimalTypeBodyIsFixEligible(_ node: Syntax) -> Swift.Boo
 /// declaration's own `@available` must refuse independently of its
 /// ancestors too.
 internal func structureMinimalTypeBodyHasAvailableAttribute(
-    _ attributes: AttributeListSyntax
+  _ attributes: AttributeListSyntax
 ) -> Swift.Bool {
-    for attribute in attributes {
-        guard let attr = attribute.as(AttributeSyntax.self) else { continue }
-        if attr.attributeName.trimmedDescription == "available" {
-            return true
-        }
+  for attribute in attributes {
+    guard let attr = attribute.as(AttributeSyntax.self) else { continue }
+    if attr.attributeName.trimmedDescription == "available" {
+      return true
     }
-    return false
+  }
+  return false
 }
 
 /// The nearest enclosing `extension`'s own extended-type syntax, or `nil`
@@ -193,30 +193,30 @@ internal func structureMinimalTypeBodyHasAvailableAttribute(
 /// ancestor chain holds at most one `ExtensionDeclSyntax` (extensions are
 /// never themselves nested — see the type-level doc comment above).
 internal func structureMinimalTypeBodyEnclosingExtendedType(_ node: Syntax) -> TypeSyntax? {
-    var current = node.parent
-    while let ancestor = current {
-        if let ext = ancestor.as(ExtensionDeclSyntax.self) {
-            return ext.extendedType
-        }
-        if ancestor.is(SourceFileSyntax.self) { return nil }
-        current = ancestor.parent
+  var current = node.parent
+  while let ancestor = current {
+    if let ext = ancestor.as(ExtensionDeclSyntax.self) {
+      return ext.extendedType
     }
-    return nil
+    if ancestor.is(SourceFileSyntax.self) { return nil }
+    current = ancestor.parent
+  }
+  return nil
 }
 
 /// Builds the `Outer.Inner` (or bare `Inner`) type reference the generated
 /// extension's `extendedType` uses, from the fixable declaration's own name
 /// token and its (possibly absent) enclosing extension.
 internal func structureMinimalTypeBodyExtendedType(
-    for node: Syntax,
-    ownName: TokenSyntax
+  for node: Syntax,
+  ownName: TokenSyntax
 ) -> TypeSyntax {
-    let bareName = ownName.with(\.leadingTrivia, []).with(\.trailingTrivia, [])
-    guard let enclosing = structureMinimalTypeBodyEnclosingExtendedType(node) else {
-        return TypeSyntax(IdentifierTypeSyntax(name: bareName))
-    }
-    let base = enclosing.with(\.leadingTrivia, []).with(\.trailingTrivia, [])
-    return TypeSyntax(MemberTypeSyntax(baseType: base, name: bareName))
+  let bareName = ownName.with(\.leadingTrivia, []).with(\.trailingTrivia, [])
+  guard let enclosing = structureMinimalTypeBodyEnclosingExtendedType(node) else {
+    return TypeSyntax(IdentifierTypeSyntax(name: bareName))
+  }
+  let base = enclosing.with(\.leadingTrivia, []).with(\.trailingTrivia, [])
+  return TypeSyntax(MemberTypeSyntax(baseType: base, name: bareName))
 }
 
 /// Whether a nested struct/class/enum/actor MEMBER may be moved whole, as a
@@ -236,11 +236,11 @@ internal func structureMinimalTypeBodyExtendedType(
 /// remains a standing (unfixed) finding at its original position, same as
 /// a `class`/`actor` member ever would.
 internal func structureMinimalTypeBodyMayMoveNestedTypeWhole(
-    _ attributes: AttributeListSyntax,
-    _ memberBlock: MemberBlockSyntax
+  _ attributes: AttributeListSyntax,
+  _ memberBlock: MemberBlockSyntax
 ) -> Swift.Bool {
-    guard !structureMinimalTypeBodyHasExtensionPatternAttribute(attributes) else { return false }
-    return structureMinimalTypeBodyPartition(memberBlock) == nil
+  guard !structureMinimalTypeBodyHasExtensionPatternAttribute(attributes) else { return false }
+  return structureMinimalTypeBodyPartition(memberBlock) == nil
 }
 
 /// Splits `block`'s members into what MUST stay in the primary body and
@@ -253,99 +253,95 @@ internal func structureMinimalTypeBodyMayMoveNestedTypeWhole(
 /// `moved` — see the type-level doc comment on
 /// ``structureMinimalTypeBodyFixed(_:)`` for why.
 internal func structureMinimalTypeBodyPartition(
-    _ block: MemberBlockSyntax
+  _ block: MemberBlockSyntax
 ) -> (remaining: MemberBlockItemListSyntax, moved: [MemberBlockItemSyntax])? {
-    var remaining: [MemberBlockItemSyntax] = []
-    var moved: [MemberBlockItemSyntax] = []
+  var remaining: [MemberBlockItemSyntax] = []
+  var moved: [MemberBlockItemSyntax] = []
 
-    for member in block.members {
-        let decl = member.decl
-        if let variable = decl.as(VariableDeclSyntax.self) {
-            if structureMinimalTypeBodyIsStaticOrClassMember(variable.modifiers)
-                || structureMinimalTypeBodyIsComputedProperty(variable)
-            {
-                moved.append(member)
-            } else {
-                remaining.append(member)
-            }
-            continue
-        }
-        if decl.is(FunctionDeclSyntax.self) || decl.is(SubscriptDeclSyntax.self) {
-            moved.append(member)
-            continue
-        }
-        if let typealiasDecl = decl.as(TypeAliasDeclSyntax.self) {
-            if structureIsProtocolSentinelName(typealiasDecl.name.text) {
-                remaining.append(member)
-            } else {
-                moved.append(member)
-            }
-            continue
-        }
-        if let nested = decl.as(StructDeclSyntax.self) {
-            if structureMinimalTypeBodyMayMoveNestedTypeWhole(nested.attributes, nested.memberBlock)
-            {
-                moved.append(member)
-            } else {
-                remaining.append(member)
-            }
-            continue
-        }
-        if let nested = decl.as(ClassDeclSyntax.self) {
-            if structureMinimalTypeBodyMayMoveNestedTypeWhole(nested.attributes, nested.memberBlock)
-            {
-                moved.append(member)
-            } else {
-                remaining.append(member)
-            }
-            continue
-        }
-        if let nested = decl.as(EnumDeclSyntax.self) {
-            if structureMinimalTypeBodyMayMoveNestedTypeWhole(nested.attributes, nested.memberBlock)
-            {
-                moved.append(member)
-            } else {
-                remaining.append(member)
-            }
-            continue
-        }
-        if let nested = decl.as(ActorDeclSyntax.self) {
-            if structureMinimalTypeBodyMayMoveNestedTypeWhole(nested.attributes, nested.memberBlock)
-            {
-                moved.append(member)
-            } else {
-                remaining.append(member)
-            }
-            continue
-        }
-        if decl.is(ProtocolDeclSyntax.self) {
-            moved.append(member)
-            continue
-        }
-        // Stored properties, the canonical initializer(s), `deinit`, enum
-        // cases, and `#if`-wrapped members (any decl kind) all stay.
+  for member in block.members {
+    let decl = member.decl
+    if let variable = decl.as(VariableDeclSyntax.self) {
+      if structureMinimalTypeBodyIsStaticOrClassMember(variable.modifiers)
+        || structureMinimalTypeBodyIsComputedProperty(variable)
+      {
+        moved.append(member)
+      } else {
         remaining.append(member)
+      }
+      continue
     }
+    if decl.is(FunctionDeclSyntax.self) || decl.is(SubscriptDeclSyntax.self) {
+      moved.append(member)
+      continue
+    }
+    if let typealiasDecl = decl.as(TypeAliasDeclSyntax.self) {
+      if structureIsProtocolSentinelName(typealiasDecl.name.text) {
+        remaining.append(member)
+      } else {
+        moved.append(member)
+      }
+      continue
+    }
+    if let nested = decl.as(StructDeclSyntax.self) {
+      if structureMinimalTypeBodyMayMoveNestedTypeWhole(nested.attributes, nested.memberBlock) {
+        moved.append(member)
+      } else {
+        remaining.append(member)
+      }
+      continue
+    }
+    if let nested = decl.as(ClassDeclSyntax.self) {
+      if structureMinimalTypeBodyMayMoveNestedTypeWhole(nested.attributes, nested.memberBlock) {
+        moved.append(member)
+      } else {
+        remaining.append(member)
+      }
+      continue
+    }
+    if let nested = decl.as(EnumDeclSyntax.self) {
+      if structureMinimalTypeBodyMayMoveNestedTypeWhole(nested.attributes, nested.memberBlock) {
+        moved.append(member)
+      } else {
+        remaining.append(member)
+      }
+      continue
+    }
+    if let nested = decl.as(ActorDeclSyntax.self) {
+      if structureMinimalTypeBodyMayMoveNestedTypeWhole(nested.attributes, nested.memberBlock) {
+        moved.append(member)
+      } else {
+        remaining.append(member)
+      }
+      continue
+    }
+    if decl.is(ProtocolDeclSyntax.self) {
+      moved.append(member)
+      continue
+    }
+    // Stored properties, the canonical initializer(s), `deinit`, enum
+    // cases, and `#if`-wrapped members (any decl kind) all stay.
+    remaining.append(member)
+  }
 
-    guard !moved.isEmpty else { return nil }
-    return (MemberBlockItemListSyntax(remaining), moved)
+  guard !moved.isEmpty else { return nil }
+  return (MemberBlockItemListSyntax(remaining), moved)
 }
 
 /// Builds the same-file extension a fixed struct/enum's moved members land
 /// in.
 private func structureMinimalTypeBodyExtension(
-    extendedType: TypeSyntax,
-    members: [MemberBlockItemSyntax]
+  extendedType: TypeSyntax,
+  members: [MemberBlockItemSyntax]
 ) -> ExtensionDeclSyntax {
-    ExtensionDeclSyntax(
-        leadingTrivia: .newlines(2),
-        extensionKeyword: .keyword(.extension, trailingTrivia: .space),
-        extendedType: extendedType,
-        memberBlock: MemberBlockSyntax(
-            leftBrace: .leftBraceToken(leadingTrivia: .space),
-            members: MemberBlockItemListSyntax(members)
-        )
+  ExtensionDeclSyntax(
+    leadingTrivia: .newlines(2),
+    extensionKeyword: .keyword(.extension, trailingTrivia: .space),
+    extendedType: extendedType,
+    memberBlock: MemberBlockSyntax(
+      leftBrace: .leftBraceToken(leadingTrivia: .space),
+      members: MemberBlockItemListSyntax(members)
     )
+  )
 }
 
 /// Moves each fixable struct/enum's flagged members into a same-file
@@ -362,53 +358,53 @@ private func structureMinimalTypeBodyExtension(
 /// disqualifies on ANY nominal-type ancestor, class/actor included), but a
 /// class/actor's own members are never even considered for the split.
 internal final class StructureMinimalTypeBodyRewriter: SyntaxRewriter {
-    var changed: Swift.Bool = false
-    var pendingExtensions: [ExtensionDeclSyntax] = []
+  var changed: Swift.Bool = false
+  var pendingExtensions: [ExtensionDeclSyntax] = []
 
-    override func visit(_ node: StructDeclSyntax) -> DeclSyntax {
-        guard let rewritten = fixed(node: node, name: node.name, block: node.memberBlock) else {
-            return super.visit(node)
-        }
-        changed = true
-        return super.visit(node.with(\.memberBlock, rewritten))
+  override func visit(_ node: StructDeclSyntax) -> DeclSyntax {
+    guard let rewritten = fixed(node: node, name: node.name, block: node.memberBlock) else {
+      return super.visit(node)
     }
+    changed = true
+    return super.visit(node.with(\.memberBlock, rewritten))
+  }
 
-    override func visit(_ node: EnumDeclSyntax) -> DeclSyntax {
-        guard let rewritten = fixed(node: node, name: node.name, block: node.memberBlock) else {
-            return super.visit(node)
-        }
-        changed = true
-        return super.visit(node.with(\.memberBlock, rewritten))
+  override func visit(_ node: EnumDeclSyntax) -> DeclSyntax {
+    guard let rewritten = fixed(node: node, name: node.name, block: node.memberBlock) else {
+      return super.visit(node)
     }
+    changed = true
+    return super.visit(node.with(\.memberBlock, rewritten))
+  }
 
-    /// Shared struct/enum logic: eligible position, not extension-pattern
-    /// exempt, and at least one movable member. Returns the primary type's
-    /// NEW member block (with moved members removed) and records the
-    /// generated extension in ``pendingExtensions``, or `nil` when this
-    /// declaration is not fixed.
-    private func fixed(
-        node: some SyntaxProtocol,
-        name: TokenSyntax,
-        block: MemberBlockSyntax
-    ) -> MemberBlockSyntax? {
-        guard structureMinimalTypeBodyIsFixEligible(Syntax(node)) else { return nil }
-        guard !structureMinimalTypeBodyHasExtensionPatternAttribute(attributes(of: node)) else {
-            return nil
-        }
-        guard !structureMinimalTypeBodyHasAvailableAttribute(attributes(of: node)) else {
-            return nil
-        }
-        guard let (remaining, moved) = structureMinimalTypeBodyPartition(block) else { return nil }
-        let extendedType = structureMinimalTypeBodyExtendedType(for: Syntax(node), ownName: name)
-        pendingExtensions.append(
-            structureMinimalTypeBodyExtension(extendedType: extendedType, members: moved)
-        )
-        return block.with(\.members, remaining)
+  /// Shared struct/enum logic: eligible position, not extension-pattern
+  /// exempt, and at least one movable member. Returns the primary type's
+  /// NEW member block (with moved members removed) and records the
+  /// generated extension in ``pendingExtensions``, or `nil` when this
+  /// declaration is not fixed.
+  private func fixed(
+    node: some SyntaxProtocol,
+    name: TokenSyntax,
+    block: MemberBlockSyntax
+  ) -> MemberBlockSyntax? {
+    guard structureMinimalTypeBodyIsFixEligible(Syntax(node)) else { return nil }
+    guard !structureMinimalTypeBodyHasExtensionPatternAttribute(attributes(of: node)) else {
+      return nil
     }
+    guard !structureMinimalTypeBodyHasAvailableAttribute(attributes(of: node)) else {
+      return nil
+    }
+    guard let (remaining, moved) = structureMinimalTypeBodyPartition(block) else { return nil }
+    let extendedType = structureMinimalTypeBodyExtendedType(for: Syntax(node), ownName: name)
+    pendingExtensions.append(
+      structureMinimalTypeBodyExtension(extendedType: extendedType, members: moved)
+    )
+    return block.with(\.members, remaining)
+  }
 
-    private func attributes(of node: some SyntaxProtocol) -> AttributeListSyntax {
-        if let structDecl = node.as(StructDeclSyntax.self) { return structDecl.attributes }
-        if let enumDecl = node.as(EnumDeclSyntax.self) { return enumDecl.attributes }
-        return AttributeListSyntax([])
-    }
+  private func attributes(of node: some SyntaxProtocol) -> AttributeListSyntax {
+    if let structDecl = node.as(StructDeclSyntax.self) { return structDecl.attributes }
+    if let enumDecl = node.as(EnumDeclSyntax.self) { return enumDecl.attributes }
+    return AttributeListSyntax([])
+  }
 }
