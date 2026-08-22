@@ -51,7 +51,7 @@ internal let memoryUnsafeAssignmentGranularityMessage: Swift.String =
 /// storage (`count = unsafe pointer.pointee`) is already fully covered by
 /// the RHS's own `unsafe` acknowledgment; only an unsafe *destination*
 /// widens the region that needs covering.
-private func memoryUnsafeAssignmentGranularityLHSIsUnsafeDestination(
+internal func memoryUnsafeAssignmentGranularityLHSIsUnsafeDestination(
   _ lhs: ExprSyntax
 ) -> Swift.Bool {
   let finder = MemoryUnsafeAssignmentLHSFinder(viewMode: .sourceAccurate)
