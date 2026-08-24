@@ -38,6 +38,26 @@ extension Lint.Rule {
     public static let `namespace adoption typealias` = Lint.Rule(
         id: "namespace adoption typealias",
         default: .note,
+        controls: [
+            .init(
+                id: "namespace adoption typealias same leaf",
+                source: "public typealias Event = Kernel.Event",
+                path: "Sources/Naming Core/SameLeaf.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "namespace adoption typealias different leaf",
+                source: "public typealias SourceLocation = Text.Location",
+                path: "Sources/Naming Core/DifferentLeaf.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "namespace adoption typealias conforming context",
+                source: "extension Tagged: Collection { public typealias Index = Underlying.Index }",
+                path: "Sources/Naming Core/ConformingContext.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingNamespaceAdoptionVisitor(
                 source: source.file,
