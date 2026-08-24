@@ -25,6 +25,26 @@ extension Lint.Rule {
   public static let `compound identifier` = Lint.Rule(
     id: "compound identifier",
     default: .warning,
+    controls: [
+      .init(
+        id: "compound identifier public compound",
+        source: "public func openWrite() {}",
+        path: "Sources/Naming Core/Compound.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "compound identifier single token",
+        source: "public func open() {}",
+        path: "Sources/Naming Core/SingleToken.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "compound identifier boolean prefix",
+        source: "public var isEmpty: Bool { false }",
+        path: "Sources/Naming Core/BooleanPrefix.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // Scan-scope gate (BEFORE the walk): a SwiftPM manifest is build
       // configuration, not API surface. See `namingIsPackageManifest`.
