@@ -24,6 +24,26 @@ extension Lint.Rule {
     public static let `stdlib forwarder outside sli` = Lint.Rule(
         id: "stdlib forwarder outside sli",
         default: .warning,
+        controls: [
+            .init(
+                id: "stdlib forwarder outside sli primary Array",
+                source: "extension Array where Element == UInt8 { @_disfavoredOverload public func append(_ value: UInt8) {} }",
+                path: "Sources/Binary Core/Forwarder.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "stdlib forwarder outside sli integration Array",
+                source: "extension Array where Element == UInt8 { @_disfavoredOverload public func append(_ value: UInt8) {} }",
+                path: "Sources/Binary Standard Library Integration/Forwarder.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "stdlib forwarder outside sli institute type",
+                source: "extension Byte.Input { @_disfavoredOverload public func append(_ value: UInt8) {} }",
+                path: "Sources/Binary Core/ByteInputForwarder.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ByteStdlibForwarderOutsideSLIVisitor(
                 source: source.file,
