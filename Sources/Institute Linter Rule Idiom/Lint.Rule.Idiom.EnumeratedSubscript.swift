@@ -34,6 +34,26 @@ extension Lint.Rule {
     public static let `enumerated with subscript` = Lint.Rule(
         id: "enumerated with subscript",
         default: .warning,
+        controls: [
+            .init(
+                id: "enumerated with subscript same receiver",
+                source: "func scan(items: [Int]) { for (index, _) in items.enumerated() { use(items[index]) } }",
+                path: "Sources/Idiom Core/EnumeratedSubscript.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "enumerated with subscript element",
+                source: "func scan(items: [Int]) { for (_, element) in items.enumerated() { use(element) } }",
+                path: "Sources/Idiom Core/EnumeratedElement.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "enumerated with subscript other receiver",
+                source: "func scan(items: [Int], other: [Int]) { for (index, _) in items.enumerated() { use(other[index]) } }",
+                path: "Sources/Idiom Core/EnumeratedOther.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomEnumeratedSubscriptVisitor(
                 source: source.file,
