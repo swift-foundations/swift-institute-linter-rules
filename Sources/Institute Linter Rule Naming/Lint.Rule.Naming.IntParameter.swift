@@ -20,6 +20,26 @@ extension Lint.Rule {
   public static let `int public parameter` = Lint.Rule(
     id: "int public parameter",
     default: .warning,
+    controls: [
+      .init(
+        id: "int public parameter public int",
+        source: "public func read(count: Int) {}",
+        path: "Sources/Naming Core/PublicInt.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "int public parameter internal int",
+        source: "func read(count: Int) {}",
+        path: "Sources/Naming Core/InternalInt.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "int public parameter cardinal",
+        source: "public func read(count: Cardinal) {}",
+        path: "Sources/Naming Core/Cardinal.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // §A brand-owner recognizer: a brand owner's own `Int`-parameter
       // integration overloads bridge the brand to the stdlib boundary and
