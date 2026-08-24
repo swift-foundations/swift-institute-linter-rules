@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `tag suffix` = Lint.Rule(
         id: "tag suffix",
         default: .warning,
+        controls: [
+            .init(
+                id: "tag suffix phantom type",
+                source: "struct CardinalTag {}",
+                path: "Sources/Naming Core/PhantomTag.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "tag suffix concept name",
+                source: "struct Cardinal {}",
+                path: "Sources/Naming Core/ConceptName.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "tag suffix data type",
+                source: "struct XMLTag { let name: String }",
+                path: "Sources/Naming Core/DataType.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingTagVisitor(
                 source: source.file,
