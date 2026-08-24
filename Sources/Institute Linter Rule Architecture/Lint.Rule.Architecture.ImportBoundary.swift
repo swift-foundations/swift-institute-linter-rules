@@ -35,6 +35,26 @@ extension Lint.Rule {
     public static let `architecture import boundary` = Lint.Rule(
         id: "architecture import boundary",
         default: .warning,
+        controls: [
+            .init(
+                id: "architecture import boundary ordinary reexport",
+                source: "@_exported import Binary_Primitives",
+                path: "Sources/Architecture Core/OrdinaryReexport.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "architecture import boundary plain import",
+                source: "public import Binary_Primitives",
+                path: "Sources/Architecture Core/PlainImport.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "architecture import boundary umbrella exemption",
+                source: "@_exported public import Binary_Primitives",
+                path: "Sources/Architecture Core/exports.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             // Exempt per [RULE-EXEMPT-12] (path-scoped file): the umbrella
             // `exports.swift` IS the sanctioned re-export surface — the same
