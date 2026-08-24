@@ -31,6 +31,26 @@ extension Lint.Rule {
     public static let `unknown default` = Lint.Rule(
         id: "unknown default",
         default: .warning,
+        controls: [
+            .init(
+                id: "unknown default annotated",
+                source: "func classify(value: Value) { switch value { case .byte: break; @unknown default: break } }",
+                path: "Sources/Idiom Core/UnknownDefault.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "unknown default explicit cases",
+                source: "func classify(value: Value) { switch value { case .byte: break; case .other: break } }",
+                path: "Sources/Idiom Core/ExplicitCases.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "unknown default plain",
+                source: "func classify(value: Value) { switch value { case .byte: break; default: break } }",
+                path: "Sources/Idiom Core/PlainDefault.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomUnknownDefaultVisitor(
                 source: source.file,
