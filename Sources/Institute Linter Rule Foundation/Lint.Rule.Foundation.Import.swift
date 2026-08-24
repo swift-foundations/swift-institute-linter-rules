@@ -24,6 +24,26 @@ extension Lint.Rule {
     public static let `foundation import` = Lint.Rule(
         id: "foundation import",
         default: .warning,
+        controls: [
+            .init(
+                id: "foundation import main target",
+                source: "import Foundation",
+                path: "Sources/Foundation Core/FoundationImport.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "foundation import unrelated module",
+                source: "import Binary_Primitives",
+                path: "Sources/Foundation Core/BinaryPrimitivesImport.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "foundation import integration target",
+                source: "import Foundation",
+                path: "Sources/Foundation Foundation Integration/FoundationImport.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
             // opt-in `* Foundation Integration` subtarget is the sanctioned
