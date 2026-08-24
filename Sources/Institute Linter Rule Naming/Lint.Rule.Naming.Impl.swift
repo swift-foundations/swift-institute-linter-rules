@@ -19,6 +19,26 @@ extension Lint.Rule {
     public static let `variable named impl` = Lint.Rule(
         id: "variable named impl",
         default: .warning,
+        controls: [
+            .init(
+                id: "variable named impl binding",
+                source: "let impl = make()",
+                path: "Sources/Naming Core/ImplBinding.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "variable named impl long name",
+                source: "let implementation = make()",
+                path: "Sources/Naming Core/ImplementationBinding.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "variable named impl parameter",
+                source: "func use(impl: Int) -> Int { impl }",
+                path: "Sources/Naming Core/ImplParameter.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingImplVisitor(
                 source: source.file,
