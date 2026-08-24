@@ -34,6 +34,26 @@ extension Lint.Rule {
     public static let `suite categories` = Lint.Rule(
         id: "suite categories",
         default: .warning,
+        controls: [
+            .init(
+                id: "suite categories missing",
+                source: "@Suite struct Example {}",
+                path: "Sources/Framework Core/MissingCategories.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "suite categories canonical",
+                source: "@Suite struct Example { @Suite struct Unit {}; @Suite struct `Edge Case` {}; @Suite struct Integration {} }",
+                path: "Sources/Framework Core/CanonicalCategories.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "suite categories nested nominal",
+                source: "enum Host { @Suite struct Example {} }",
+                path: "Sources/Framework Core/NestedNominal.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = FrameworkSuiteCategoriesVisitor(
                 source: source.file,
