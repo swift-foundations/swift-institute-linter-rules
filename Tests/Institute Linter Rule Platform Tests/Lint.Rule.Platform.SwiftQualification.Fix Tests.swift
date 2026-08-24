@@ -10,6 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 import Linter_Primitives
+import Linter_Rule_Testing
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax

@@ -316,6 +316,7 @@ let package = Package(
       name: "Institute Linter Rule Framework Tests",
       dependencies: [
         .target(name: "Institute Linter Rule Framework"),
+        .product(name: "Linter Rule Testing", package: "swift-linter-rules"),
         .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
         .product(name: "SwiftParser", package: "swift-syntax"),
       ]
@@ -348,6 +349,7 @@ let package = Package(
       name: "Institute Linter Rule Idiom Tests",
       dependencies: [
         .target(name: "Institute Linter Rule Idiom"),
+        .product(name: "Linter Rule Testing", package: "swift-linter-rules"),
         .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
         .product(name: "SwiftParser", package: "swift-syntax"),
       ]
@@ -373,6 +375,7 @@ let package = Package(
       name: "Institute Linter Rule Platform Tests",
       dependencies: [
         .target(name: "Institute Linter Rule Platform"),
+        .product(name: "Linter Rule Testing", package: "swift-linter-rules"),
         .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
         .product(name: "SwiftParser", package: "swift-syntax"),
       ]
@@ -382,6 +385,7 @@ let package = Package(
       dependencies: [
         .target(name: "Institute Linter Rule Structure"),
         .product(name: "Linter Rule Structure", package: "swift-linter-rules"),
+        .product(name: "Linter Rule Testing", package: "swift-linter-rules"),
         .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
         .product(name: "SwiftParser", package: "swift-syntax"),
       ]
@@ -390,6 +394,7 @@ let package = Package(
       name: "Institute Linter Rule Testing Tests",
       dependencies: [
         .target(name: "Institute Linter Rule Testing"),
+        .product(name: "Linter Rule Testing", package: "swift-linter-rules"),
         .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
         .product(name: "SwiftParser", package: "swift-syntax"),
       ]
