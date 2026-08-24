@@ -6,6 +6,28 @@ extension Lint.Rule {
   public static let `package policy revision 1` = Lint.Rule(
     id: "package policy revision 1",
     default: .error,
+    controls: [
+      .init(
+        id: "package policy revision 1 tools 63",
+        source: "// swift-tools-version: 6.3\nimport PackageDescription\n"
+          + "let package = Package(name: \"Fixture\", targets: [], swiftLanguageModes: [.v6])",
+        path: "Package.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "package policy revision 1 tools 64",
+        source: "// swift-tools-version: 6.4\nimport PackageDescription\n"
+          + "let package = Package(name: \"Fixture\", targets: [], swiftLanguageModes: [.v6])",
+        path: "Package.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "package policy revision 1 nonmanifest",
+        source: "struct Package {}",
+        path: "Sources/Package.swift",
+        expectation: .clean
+      ),
+    ],
     observe: { source, severity in
       guard manifestIsPackageManifest(source.file.filePath) else {
         return Lint.Rule.Observation(
