@@ -21,6 +21,26 @@ extension Lint.Rule {
     public static let `sli literal` = Lint.Rule(
         id: "sli literal",
         default: .warning,
+        controls: [
+            .init(
+                id: "sli literal Index literal",
+                source: "func read(slab: Slab) { _ = slab[Index<Int>(Ordinal(UInt(0)))] }",
+                path: "Sources/Idiom Core/IndexLiteral.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "sli literal bare literal",
+                source: "func read(slab: Slab) { _ = slab[0] }",
+                path: "Sources/Idiom Core/BareLiteral.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "sli literal runtime",
+                source: "func read(slot: UInt) { _ = Index<Int>(Ordinal(UInt(slot))) }",
+                path: "Sources/Idiom Core/RuntimeIndex.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomSliLiteralVisitor(
                 source: source.file,
