@@ -23,6 +23,26 @@ extension Lint.Rule {
     public static let `uint8 conforms to byte protocol` = Lint.Rule(
         id: "uint8 conforms to byte protocol",
         default: .error,
+        controls: [
+            .init(
+                id: "uint8 conforms to byte protocol UInt8",
+                source: "extension UInt8: Byte.`Protocol` {}",
+                path: "Sources/Byte Core/UInt8Conformance.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "uint8 conforms to byte protocol Sendable",
+                source: "extension UInt8: Sendable {}",
+                path: "Sources/Byte Core/SendableConformance.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "uint8 conforms to byte protocol Byte",
+                source: "extension Byte: Byte.`Protocol` {}",
+                path: "Sources/Byte Core/ByteConformance.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ByteUInt8ConformsToByteProtocolVisitor(
                 source: source.file,
