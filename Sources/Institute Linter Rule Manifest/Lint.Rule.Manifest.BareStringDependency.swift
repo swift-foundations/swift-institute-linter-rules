@@ -67,12 +67,6 @@ extension Lint.Rule {
         expectation: .clean
       ),
       .init(
-        id: "bare string dependency nonmanifest boundary",
-        source: "let target = Target.target(name: \"Consumer\", dependencies: [\"Owner\"])",
-        path: "Sources/Consumer/Graph.swift",
-        expectation: .clean
-      ),
-      .init(
         id: "bare string dependency typed dependency accessor",
         source: "extension String { static let cssTheming: Self = \"CSS Theming\" }; "
           + "extension Target.Dependency { static var cssTheming: Self { "

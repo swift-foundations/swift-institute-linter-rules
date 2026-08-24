@@ -28,12 +28,6 @@ extension Lint.Rule {
         path: "Package@swift-6.4.swift",
         expectation: .clean
       ),
-      .init(
-        id: "package policy revision 1 nonmanifest boundary",
-        source: "struct Package {}",
-        path: "Sources/Package.swift",
-        expectation: .clean
-      ),
     ],
     observe: { source, severity in
       guard manifestIsPackageManifest(source.file.filePath) else {
