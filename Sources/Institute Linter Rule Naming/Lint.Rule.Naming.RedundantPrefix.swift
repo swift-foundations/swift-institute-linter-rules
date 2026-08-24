@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `redundant prefix` = Lint.Rule(
         id: "redundant prefix",
         default: .warning,
+        controls: [
+            .init(
+                id: "redundant prefix nested name",
+                source: "enum Walk { struct WalkOptions {} }",
+                path: "Sources/Naming Core/NestedPrefix.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "redundant prefix nested leaf",
+                source: "enum Walk { struct Options {} }",
+                path: "Sources/Naming Core/NestedLeaf.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "redundant prefix top level",
+                source: "struct WalkOptions {}",
+                path: "Sources/Naming Core/TopLevel.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingRedundantPrefixVisitor(
                 source: source.file,
