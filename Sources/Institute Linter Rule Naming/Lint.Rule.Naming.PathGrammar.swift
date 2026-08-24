@@ -78,6 +78,26 @@ extension Lint.Rule {
   public static let `path name grammar` = Lint.Rule(
     id: "path name grammar",
     default: .warning,
+    controls: [
+      .init(
+        id: "path name grammar concatenated directory",
+        source: "struct Command {}",
+        path: "Sources/InstituteArchitectureCLI/Command.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "path name grammar spaced directory",
+        source: "struct Command {}",
+        path: "Sources/Institute Architecture CLI/Command.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "path name grammar out of surface",
+        source: "struct Command {}",
+        path: "Plugins/BadPluginName/Plugin.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       namingPathGrammarFindings(
         source: source.file,
