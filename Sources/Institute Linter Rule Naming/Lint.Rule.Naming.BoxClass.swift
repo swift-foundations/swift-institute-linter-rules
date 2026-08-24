@@ -20,6 +20,26 @@ extension Lint.Rule {
     public static let `ad hoc box class` = Lint.Rule(
         id: "ad hoc box class",
         default: .warning,
+        controls: [
+            .init(
+                id: "ad hoc box class positive",
+                source: "final class Storage {}",
+                path: "Controls/AdHocBoxClass/Positive.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "ad hoc box class unrelated name",
+                source: "final class Inventory {}",
+                path: "Controls/AdHocBoxClass/UnrelatedName.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "ad hoc box class inherited exemption",
+                source: "final class Storage: ManagedBuffer<Int, Int> {}",
+                path: "Controls/AdHocBoxClass/InheritedExemption.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingBoxClassVisitor(
                 source: source.file,
