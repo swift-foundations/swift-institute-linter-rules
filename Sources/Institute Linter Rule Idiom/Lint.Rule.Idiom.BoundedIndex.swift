@@ -30,6 +30,26 @@ extension Lint.Rule {
     public static let `bounded index static capacity` = Lint.Rule(
         id: "bounded index static capacity",
         default: .warning,
+        controls: [
+            .init(
+                id: "bounded index static capacity raw Int",
+                source: "struct Buffer<let N: Int> { subscript(index: Int) -> Int { 0 } }",
+                path: "Sources/Idiom Core/RawIndex.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "bounded index static capacity bounded",
+                source: "struct Buffer<let N: Int> { subscript(index: Index<Int>.Bounded<N>) -> Int { 0 } }",
+                path: "Sources/Idiom Core/BoundedIndex.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "bounded index static capacity dynamic",
+                source: "struct Buffer { subscript(index: Int) -> Int { 0 } }",
+                path: "Sources/Idiom Core/DynamicIndex.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomBoundedIndexVisitor(
                 source: source.file,
