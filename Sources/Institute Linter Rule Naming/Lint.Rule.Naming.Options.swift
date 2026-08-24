@@ -17,6 +17,26 @@ extension Lint.Rule {
     public static let `property named flags` = Lint.Rule(
         id: "property named flags",
         default: .warning,
+        controls: [
+            .init(
+                id: "property named flags option set",
+                source: "struct OpenFlags: OptionSet { let rawValue: Int }",
+                path: "Sources/Naming Core/FlagsOptionSet.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "property named flags options convention",
+                source: "struct OpenOptions: OptionSet { let rawValue: Int }",
+                path: "Sources/Naming Core/OptionsOptionSet.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "property named flags non option set",
+                source: "struct DebugFlags { var verbose: Bool }",
+                path: "Sources/Naming Core/NonOptionSet.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingOptionsVisitor(
                 source: source.file,
