@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `unification typealias` = Lint.Rule(
         id: "unification typealias",
         default: .warning,
+        controls: [
+            .init(
+                id: "unification typealias different leaf",
+                source: "public typealias SourceLocation = Text.Location",
+                path: "Sources/Naming Core/DifferentLeaf.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "unification typealias same leaf",
+                source: "public typealias Event = Kernel.Event",
+                path: "Sources/Naming Core/SameLeaf.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "unification typealias swift bridge",
+                source: "public typealias Protocol = Swift.Equatable",
+                path: "Sources/Naming Core/SwiftBridge.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingUnificationTypealiasVisitor(
                 source: source.file,
