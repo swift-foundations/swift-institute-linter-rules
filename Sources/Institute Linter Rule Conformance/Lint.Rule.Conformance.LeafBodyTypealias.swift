@@ -30,6 +30,26 @@ extension Lint.Rule {
     public static let `leaf body typealias missing` = Lint.Rule(
         id: "leaf body typealias missing",
         default: .warning,
+        controls: [
+            .init(
+                id: "leaf body typealias missing Parser",
+                source: "extension Example: Parser.`Protocol` {}",
+                path: "Sources/Conformance Core/MissingBody.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "leaf body typealias missing Never",
+                source: "extension Example: Parser.`Protocol` { public typealias Body = Never }",
+                path: "Sources/Conformance Core/NeverBody.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "leaf body typealias missing Sendable",
+                source: "extension Example: Sendable {}",
+                path: "Sources/Conformance Core/Sendable.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ConformanceLeafBodyTypealiasVisitor(
                 source: source.file,
