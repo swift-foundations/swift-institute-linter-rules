@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `single type namespace` = Lint.Rule(
         id: "single type namespace",
         default: .warning,
+        controls: [
+            .init(
+                id: "single type namespace one type",
+                source: "public enum Cooperative { public struct Executor {} }",
+                path: "Sources/Naming Core/SingleNestedType.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "single type namespace two types",
+                source: "public enum Cooperative { public struct Executor {}; public struct Scheduler {} }",
+                path: "Sources/Naming Core/TwoNestedTypes.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "single type namespace inhabited enum",
+                source: "public enum State { case ready; public struct Metadata {} }",
+                path: "Sources/Naming Core/InhabitedEnum.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingSingleTypeNamespaceVisitor(
                 source: source.file,
