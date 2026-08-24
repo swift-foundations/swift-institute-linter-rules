@@ -50,7 +50,8 @@ extension Lint.Rule {
       ),
       .init(
         id: "bare string dependency manifest target",
-        source: "let target = Target.target(name: \"Consumer\", dependencies: [.target(name: \"Owner\")])",
+        source: "let target = Target.target(name: \"Consumer\", "
+          + "dependencies: [.target(name: \"Owner\")])",
         path: "Package.swift",
         expectation: .clean
       ),
