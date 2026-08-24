@@ -28,6 +28,27 @@ extension Lint.Rule {
   public static let `diagnostic message format` = Lint.Rule(
     id: "diagnostic message format",
     default: .warning,
+    controls: [
+      .init(
+        id: "diagnostic message format malformed",
+        source: "enum Demo { static let message = \"prefer typed throws\" }",
+        path: "Sources/Controls/Lint.Rule.Demo.Example.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "diagnostic message format conforming",
+        source: "enum Demo { static let message = \"[try_optional] "
+          + "[API-ERR-001]: prefer typed throws\" }",
+        path: "Sources/Controls/Lint.Rule.Demo.Example.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "diagnostic message format helper scope",
+        source: "enum Demo { static let message = \"prefer typed throws\" }",
+        path: "Sources/Controls/Helper.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // Scope per the Python's detection scope: `Sources/**/
       // Lint.Rule.<Module>.<Name>.swift` only — the institute's
