@@ -26,6 +26,28 @@ extension Lint.Rule {
     public static let `binary serializable uint8 witness` = Lint.Rule(
         id: "binary serializable uint8 witness",
         default: .error,
+        controls: [
+            .init(
+                id: "binary serializable uint8 witness UInt8",
+                source: "extension Foo: Binary.Serializable { public static func "
+                    + "serialize<Buffer: RangeReplaceableCollection>(_ value: Self, into buffer: inout Buffer) where Buffer.Element == UInt8 {} }",
+                path: "Sources/Byte Core/UInt8Witness.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "binary serializable uint8 witness Byte",
+                source: "extension Foo: Binary.Serializable { public static func "
+                    + "serialize<Buffer: RangeReplaceableCollection>(_ value: Self, into buffer: inout Buffer) where Buffer.Element == Byte {} }",
+                path: "Sources/Byte Core/ByteWitness.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "binary serializable uint8 witness outside context",
+                source: "extension Array { public static func serialize<Buffer: RangeReplaceableCollection>(_ value: Self, into buffer: inout Buffer) where Buffer.Element == UInt8 {} }",
+                path: "Sources/Byte Core/OutsideWitness.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ByteBinarySerializableUInt8WitnessVisitor(
                 source: source.file,
