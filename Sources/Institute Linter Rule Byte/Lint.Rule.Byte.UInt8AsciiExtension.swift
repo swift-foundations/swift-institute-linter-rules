@@ -29,6 +29,26 @@ extension Lint.Rule {
     public static let `uint8 ascii extension` = Lint.Rule(
         id: "uint8 ascii extension",
         default: .warning,
+        controls: [
+            .init(
+                id: "uint8 ascii extension UInt8 namespace",
+                source: "extension UInt8 { static var ascii: Self { 0 } }",
+                path: "Sources/Byte Core/UInt8ASCII.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "uint8 ascii extension ASCII Code",
+                source: "extension ASCII.Code { static let lf: ASCII.Code = 0x0A }",
+                path: "Sources/Byte Core/ASCIICode.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "uint8 ascii extension unrelated member",
+                source: "extension UInt8 { static var zero: Self { 0 } }",
+                path: "Sources/Byte Core/UInt8Zero.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ByteUInt8AsciiExtensionVisitor(
                 source: source.file,
