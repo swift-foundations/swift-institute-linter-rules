@@ -19,6 +19,26 @@ extension Lint.Rule {
     public static let `xctest import` = Lint.Rule(
         id: "xctest import",
         default: .warning,
+        controls: [
+            .init(
+                id: "xctest import XCTest",
+                source: "import XCTest",
+                path: "Sources/Framework Core/XCTestImport.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "xctest import Testing",
+                source: "import Testing",
+                path: "Sources/Framework Core/TestingImport.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "xctest import XCTestHelpers",
+                source: "import XCTestHelpers",
+                path: "Sources/Framework Core/XCTestHelpersImport.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = XCTestImportVisitor(
                 source: source.file,
