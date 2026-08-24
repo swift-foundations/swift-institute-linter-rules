@@ -59,6 +59,30 @@ extension Lint.Rule {
     public static let `manifest naming grammar` = Lint.Rule(
         id: "manifest naming grammar",
         default: .warning,
+        controls: [
+            .init(
+                id: "manifest naming grammar concatenated target",
+                source: "let package = Package(name: \"swift-example\", "
+                    + "targets: [.executableTarget(name: \"InstituteArchitectureCLI\")] )",
+                path: "Package.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "manifest naming grammar spaced target",
+                source: "let package = Package(name: \"swift-example\", "
+                    + "targets: [.executableTarget(name: \"Institute Architecture CLI\")] )",
+                path: "Package.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "manifest naming grammar upstream product",
+                source: "let package = Package(name: \"swift-example\", "
+                    + "targets: [.target(name: \"Consumer\", dependencies: "
+                    + "[.product(name: \"OrderedCollections\", package: \"swift-collections\")])])",
+                path: "Package.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             guard namingIsPackageManifest(source.file.filePath) else { return [] }
             let visitor = NamingManifestGrammarVisitor(
