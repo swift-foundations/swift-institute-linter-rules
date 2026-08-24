@@ -18,6 +18,26 @@ extension Lint.Rule {
   public static let `lifecycle order` = Lint.Rule(
     id: "lifecycle order",
     default: .warning,
+    controls: [
+      .init(
+        id: "lifecycle order completion before body",
+        source: "func perform(completion: () -> Void, body: () -> Void) {}",
+        path: "Sources/Closure Core/CompletionBeforeBody.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "lifecycle order canonical",
+        source: "func perform(setup: () -> Void, body: () -> Void, completion: () -> Void) {}",
+        path: "Sources/Closure Core/CanonicalLifecycle.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "lifecycle order other labels",
+        source: "func perform(first: () -> Void, second: () -> Void) {}",
+        path: "Sources/Closure Core/OtherClosures.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = ClosureLifecycleOrderVisitor(
         source: source.file,
