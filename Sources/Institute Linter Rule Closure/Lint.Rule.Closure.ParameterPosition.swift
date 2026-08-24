@@ -22,6 +22,26 @@ extension Lint.Rule {
     public static let `parameter position` = Lint.Rule(
         id: "parameter position",
         default: .warning,
+        controls: [
+            .init(
+                id: "parameter position nonclosure after closure",
+                source: "func perform(body: () -> Void, count: Int) {}",
+                path: "Sources/Closure Core/ClosureThenValue.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "parameter position trailing closure",
+                source: "func perform(count: Int, body: () -> Void) {}",
+                path: "Sources/Closure Core/ValueThenClosure.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "parameter position trailing closures",
+                source: "func perform(count: Int, body: () -> Void, completion: () -> Void) {}",
+                path: "Sources/Closure Core/TrailingClosures.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ClosureParameterPositionVisitor(
                 source: source.file,
