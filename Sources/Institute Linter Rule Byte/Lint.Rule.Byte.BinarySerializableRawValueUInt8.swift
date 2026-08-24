@@ -34,6 +34,26 @@ extension Lint.Rule {
     public static let `binary serializable rawvalue uint8` = Lint.Rule(
         id: "binary serializable rawvalue uint8",
         default: .warning,
+        controls: [
+            .init(
+                id: "binary serializable rawvalue uint8 conformer",
+                source: "public struct TypeOfService: Binary.Serializable { public let rawValue: UInt8 }",
+                path: "Sources/Byte Core/ConformingUInt8.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "binary serializable rawvalue uint8 Byte",
+                source: "public struct TypeOfService: Binary.Serializable { public let rawValue: Byte }",
+                path: "Sources/Byte Core/ConformingByte.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "binary serializable rawvalue uint8 nonconforming",
+                source: "public struct TypeOfService { public let rawValue: UInt8 }",
+                path: "Sources/Byte Core/NonconformingUInt8.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ByteBinarySerializableRawValueUInt8Visitor(
                 source: source.file,
