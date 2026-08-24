@@ -19,6 +19,26 @@ extension Lint.Rule {
   public static let `compound type name` = Lint.Rule(
     id: "compound type name",
     default: .warning,
+    controls: [
+      .init(
+        id: "compound type name public compound",
+        source: "public struct FileDirectory {}",
+        path: "Sources/Naming Core/CompoundType.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "compound type name single token",
+        source: "public struct Directory {}",
+        path: "Sources/Naming Core/SingleTokenType.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "compound type name spec namespace",
+        source: "public enum RFC_4122 {}",
+        path: "Sources/Naming Core/SpecNamespace.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // Scan-scope gate (BEFORE the walk), symmetric with
       // `compound identifier`: a SwiftPM manifest is build configuration,
