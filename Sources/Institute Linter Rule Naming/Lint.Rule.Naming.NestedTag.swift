@@ -21,6 +21,26 @@ extension Lint.Rule {
     public static let `nested tag` = Lint.Rule(
         id: "nested tag",
         default: .warning,
+        controls: [
+            .init(
+                id: "nested tag empty nested",
+                source: "enum Order { enum Tag {} }",
+                path: "Sources/Naming Core/EmptyNestedTag.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "nested tag top level",
+                source: "enum Tag {}",
+                path: "Sources/Naming Core/TopLevelTag.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "nested tag data bearing",
+                source: "enum Order { struct Tag { let value: Int } }",
+                path: "Sources/Naming Core/DataBearingTag.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingNestedTagVisitor(
                 source: source.file,
