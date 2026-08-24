@@ -26,6 +26,26 @@ extension Lint.Rule {
     public static let `configuration before content` = Lint.Rule(
         id: "configuration before content",
         default: .warning,
+        controls: [
+            .init(
+                id: "configuration before content middle",
+                source: "func perform(on target: Target, options: Options, mode: Mode) {}",
+                path: "Sources/Closure Core/MiddleConfiguration.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "configuration before content first",
+                source: "func perform(options: Options, target: Target, mode: Mode) {}",
+                path: "Sources/Closure Core/FirstConfiguration.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "configuration before content before closure",
+                source: "func perform(target: Target, options: Options, body: () -> Void) {}",
+                path: "Sources/Closure Core/ClosureConfiguration.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ClosureConfigurationPlacementVisitor(
                 source: source.file,
