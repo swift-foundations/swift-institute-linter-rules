@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `test function naming` = Lint.Rule(
         id: "test function naming",
         default: .warning,
+        controls: [
+            .init(
+                id: "test function naming camel case",
+                source: "@Test func testCreatesValue() {}",
+                path: "Tests/Testing Tests/Value Tests.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "test function naming descriptive identifier",
+                source: "@Test func `creates value`() {}",
+                path: "Tests/Testing Tests/Value Tests.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "test function naming non-test function",
+                source: "func testCreatesValue() {}",
+                path: "Sources/Testing Support/Value.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = TestingFunctionNamingVisitor(
                 source: source.file,

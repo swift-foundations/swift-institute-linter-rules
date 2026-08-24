@@ -22,6 +22,28 @@ extension Lint.Rule {
     public static let `throwing wrapper init` = Lint.Rule(
         id: "throwing wrapper init",
         default: .warning,
+        controls: [
+            .init(
+                id: "throwing wrapper init base forward",
+                source: "struct Wrapper { init(_ raw: Int) throws { self.base = try Base(raw) } }",
+                path: "Sources/Structure Core/Wrapper.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "throwing wrapper init validates invariant",
+                source: "struct Wrapper { init(_ raw: Int) throws { "
+                    + "self.base = try Base(raw); try validate(base) } }",
+                path: "Sources/Structure Core/Wrapper.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "throwing wrapper init lax primitive",
+                source: "extension Int { init(_ value: Wrapper) throws { "
+                    + "self = try UInt(value) } }",
+                path: "Sources/Structure Core/Int.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = StructureThrowingWrapperInitVisitor(
                 source: source.file,

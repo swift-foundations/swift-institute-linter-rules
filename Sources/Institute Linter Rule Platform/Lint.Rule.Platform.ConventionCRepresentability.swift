@@ -22,6 +22,27 @@ extension Lint.Rule {
     public static let `convention c representability` = Lint.Rule(
         id: "convention c representability",
         default: .warning,
+        controls: [
+            .init(
+                id: "convention c representability swift struct pointer",
+                source: "let callback: @convention(c) "
+                    + "(UnsafeMutablePointer<Kernel.Signal.Information>?) -> Void",
+                path: "Sources/Platform Core/SwiftStructCallback.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "convention c representability primitive pointer",
+                source: "let callback: @convention(c) (UnsafeMutablePointer<Int32>?) -> Void",
+                path: "Sources/Platform Core/PrimitiveCallback.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "convention c representability swift convention",
+                source: "let callback: (UnsafeMutablePointer<Kernel.Signal.Information>?) -> Void",
+                path: "Sources/Platform Core/SwiftCallback.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformConventionCRepresentabilityVisitor(
                 source: source.file,

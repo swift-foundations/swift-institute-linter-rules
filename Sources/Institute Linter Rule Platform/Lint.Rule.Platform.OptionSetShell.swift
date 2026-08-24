@@ -23,6 +23,28 @@ extension Lint.Rule {
   public static let `optionset shell pattern` = Lint.Rule(
     id: "optionset shell pattern",
     default: .warning,
+    controls: [
+      .init(
+        id: "optionset shell pattern value in shell",
+        source: "struct Options: OptionSet { let rawValue: Int; "
+          + "static let create = Self(rawValue: 1) }",
+        path: "Sources/Platform Core/OptionsShell.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "optionset shell pattern value in extension",
+        source: "struct Options: OptionSet { let rawValue: Int }; "
+          + "extension Options { static let create = Self(rawValue: 1) }",
+        path: "Sources/Platform Core/OptionsValues.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "optionset shell pattern non-optionset",
+        source: "struct Holder { let rawValue: Int; static let create = Self(rawValue: 1) }",
+        path: "Sources/Platform Core/Holder.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = PlatformOptionSetShellVisitor(
         source: source.file,

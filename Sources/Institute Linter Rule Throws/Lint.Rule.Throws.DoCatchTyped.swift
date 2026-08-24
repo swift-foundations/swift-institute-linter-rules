@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `do throws for typed catch` = Lint.Rule(
         id: "do throws for typed catch",
         default: .warning,
+        controls: [
+            .init(
+                id: "do throws for typed catch bare do try",
+                source: "do { try load() } catch { handle(error) }",
+                path: "Sources/Throws Consumer/BareDoTry.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "do throws for typed catch typed do",
+                source: "do throws(Read.Error) { try load() } catch { handle(error) }",
+                path: "Sources/Throws Consumer/TypedDoTry.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "do throws for typed catch optional try",
+                source: "do { _ = try? load() } catch { handle(error) }",
+                path: "Sources/Throws Consumer/OptionalDoTry.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsDoCatchTypedVisitor(
                 source: source.file,

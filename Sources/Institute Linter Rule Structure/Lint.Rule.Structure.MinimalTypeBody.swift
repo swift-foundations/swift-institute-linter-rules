@@ -21,6 +21,26 @@ extension Lint.Rule {
   public static let `minimal type body` = Lint.Rule(
     id: "minimal type body",
     default: .warning,
+    controls: [
+      .init(
+        id: "minimal type body method",
+        source: "struct Value { func read() -> Int { 0 } }",
+        path: "Sources/Structure Core/Value.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "minimal type body storage and initializer",
+        source: "struct Value { let raw: Int; init(raw: Int) { self.raw = raw } }",
+        path: "Sources/Structure Core/Value.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "minimal type body extension method",
+        source: "extension Value { func read() -> Int { 0 } }",
+        path: "Sources/Structure Core/Value+Read.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = StructureMinimalTypeBodyVisitor(
         source: source.file,

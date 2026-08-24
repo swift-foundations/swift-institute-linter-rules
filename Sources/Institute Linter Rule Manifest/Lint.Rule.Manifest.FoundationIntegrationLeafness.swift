@@ -31,6 +31,12 @@ internal import SwiftSyntax
 /// this package's dependencies' own manifests, out of scope for a
 /// single-file rule.
 ///
+/// Manifest-local `String` name accessors and `Target.Dependency`
+/// accessors are resolved through their typed extension owners. This
+/// includes a static name followed by a shorthand instance accessor
+/// (for example, `.module.tests` backed by `self + " Tests"`). Other
+/// computed name/dependency shapes remain unmeasured.
+///
 /// Reference sanctioned shape:
 /// `swift-primitives/swift-structured-queries-primitives`'s
 /// `Structured Queries Primitives Foundation Integration` — declared
@@ -49,6 +55,59 @@ extension Lint.Rule {
   public static let `foundation integration leaf target` = Lint.Rule(
     id: "foundation integration leaf target",
     default: .warning,
+    controls: [
+      .init(
+        id: "foundation integration leaf target missing product",
+        source: "let package = Package(products: [], targets: ["
+          + ".target(name: \"Example Foundation Integration\")])",
+        path: "Package.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "foundation integration leaf target dedicated product",
+        source: "let package = Package(products: ["
+          + ".library(name: \"Example Foundation Integration\", "
+          + "targets: [\"Example Foundation Integration\"])], targets: ["
+          + ".target(name: \"Example Foundation Integration\")])",
+        path: "Package.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "foundation integration leaf target versioned executable product",
+        source: "let package = Package(products: ["
+          + ".executable(name: \"Example Foundation Integration\", "
+          + "targets: [\"Example Foundation Integration\"])], targets: ["
+          + ".executableTarget(name: \"Example Foundation Integration\")])",
+        path: "Package@swift-6.4.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "foundation integration leaf target typed manifest vocabulary",
+        source: "extension String { static let css: Self = \"CSS\"; "
+          + "static let cssTheming: Self = \"CSS Theming\"; "
+          + "var tests: Self { self + \" Tests\" } }; "
+          + "extension Target.Dependency { static var cssTheming: Self { "
+          + ".target(name: .cssTheming) } }; "
+          + "let package = Package(products: ["
+          + ".library(name: \"CSS Theming Foundation Integration\", "
+          + "targets: [\"CSS Theming Foundation Integration\"])], targets: ["
+          + ".target(name: .cssTheming), "
+          + ".target(name: \"CSS Theming Foundation Integration\", "
+          + "dependencies: [.cssTheming]), "
+          + ".testTarget(name: .css.tests, dependencies: [.cssTheming])])",
+        path: "Package.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "foundation integration leaf target typed name missing product",
+        source: "extension String { static let integration: Self = "
+          + "\"Example Foundation Integration\" }; "
+          + "let package = Package(products: [], targets: ["
+          + ".target(name: .integration)])",
+        path: "Package.swift",
+        expectation: .findings(1)
+      ),
+    ],
     observe: { source, severity in
       guard manifestIsPackageManifest(source.file.filePath) else {
         return Lint.Rule.Observation(
@@ -62,6 +121,7 @@ extension Lint.Rule {
         severity: severity,
         converter: source.converter
       )
+      visitor.collectManifestAccessors(source.tree)
       visitor.walk(source.tree)
       let findings = visitor.resolvedMatches()
       let coverage: Lint.Rule.Coverage =
@@ -120,12 +180,34 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
   /// entrypoint may lawfully be the target's sole executable product.
   private var leafProductTargetLists: [[Swift.String]] = []
   var unhandledSourceShape: Swift.String?
+  private var stringStaticAccessorBodies: [Swift.String: ExprSyntax] = [:]
+  private var stringInstanceAccessorBodies: [Swift.String: ExprSyntax] = [:]
+  private var dependencyAccessorBodies: [Swift.String: ExprSyntax] = [:]
 
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
     self.source = source
     self.severity = severity
     self.converter = converter
     super.init(viewMode: .sourceAccurate)
+  }
+
+  internal func collectManifestAccessors(_ file: SourceFileSyntax) {
+    let stringTypes: Swift.Set<Swift.String> = ["String", "Swift.String"]
+    stringStaticAccessorBodies = manifestAccessorBodies(
+      in: file,
+      extendedTypes: stringTypes,
+      static: true
+    )
+    stringInstanceAccessorBodies = manifestAccessorBodies(
+      in: file,
+      extendedTypes: stringTypes,
+      static: false
+    )
+    dependencyAccessorBodies = manifestAccessorBodies(
+      in: file,
+      extendedTypes: ["Target.Dependency", "PackageDescription.Target.Dependency"],
+      static: true
+    )
   }
 
   override func visit(_ node: FunctionCallExprSyntax) -> SyntaxVisitorContinueKind {
@@ -177,13 +259,14 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
       }
       var names: [Swift.String] = []
       for element in array.elements {
-        guard let literal = element.expression.as(StringLiteralExprSyntax.self),
-          let text = manifestFoundationIntegrationStringLiteralText(literal)
-        else {
-          unhandledSourceShape =
-            "computed product target '\(element.expression.trimmedDescription)'"
-          continue
-        }
+        guard
+          let text = manifestResolvedString(
+            element.expression,
+            staticAccessors: stringStaticAccessorBodies,
+            instanceAccessors: stringInstanceAccessorBodies,
+            unhandledSourceShape: &unhandledSourceShape
+          )
+        else { continue }
         names.append(text)
       }
       leafProductTargetLists.append(names)
@@ -193,18 +276,19 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
   private func recordTargetDecl(_ node: FunctionCallExprSyntax) {
     guard
       let nameArgument = node.arguments.first(where: { $0.label?.text == "name" }),
-      let nameLiteral = nameArgument.expression.as(StringLiteralExprSyntax.self),
-      let name = manifestFoundationIntegrationStringLiteralText(nameLiteral)
-    else {
-      unhandledSourceShape = "computed target name '\(node.trimmedDescription)'"
-      return
-    }
+      let name = manifestResolvedString(
+        nameArgument.expression,
+        staticAccessors: stringStaticAccessorBodies,
+        instanceAccessors: stringInstanceAccessorBodies,
+        unhandledSourceShape: &unhandledSourceShape
+      )
+    else { return }
 
     if name.hasSuffix(manifestFoundationIntegrationSuffix) {
       foundationIntegrationTargets.append(
         FoundationIntegrationTarget(
           name: name,
-          position: nameLiteral.positionAfterSkippingLeadingTrivia
+          position: nameArgument.expression.positionAfterSkippingLeadingTrivia
         )
       )
     }
@@ -217,36 +301,17 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
         continue
       }
       for element in array.elements {
-        if let literal = element.expression.as(StringLiteralExprSyntax.self),
-          let text = manifestFoundationIntegrationStringLiteralText(literal)
-        {
-          referenced.insert(text)
-          continue
+        let resolution = manifestFoundationIntegrationDependency(
+          element.expression,
+          dependencyAccessorBodies: dependencyAccessorBodies,
+          stringStaticAccessors: stringStaticAccessorBodies,
+          stringInstanceAccessors: stringInstanceAccessorBodies,
+          unhandledSourceShape: &unhandledSourceShape
+        )
+        guard resolution.handled else { continue }
+        if let target = resolution.localTarget {
+          referenced.insert(target)
         }
-        if let call = element.expression.as(FunctionCallExprSyntax.self),
-          let callMember = call.calledExpression.as(MemberAccessExprSyntax.self),
-          callMember.declName.baseName.text == "target"
-            || callMember.declName.baseName.text
-              == "byName",
-          let innerNameArgument =
-            call.arguments.first(where: { $0.label?.text == "name" || $0.label == nil }
-            ),
-          let innerLiteral = innerNameArgument.expression.as(
-            StringLiteralExprSyntax.self
-          ),
-          let innerText = manifestFoundationIntegrationStringLiteralText(innerLiteral)
-        {
-          referenced.insert(innerText)
-          continue
-        }
-        if let call = element.expression.as(FunctionCallExprSyntax.self),
-          let callMember = call.calledExpression.as(MemberAccessExprSyntax.self),
-          callMember.declName.baseName.text == "product"
-        {
-          continue
-        }
-        unhandledSourceShape =
-          "unhandled target dependency '\(element.expression.trimmedDescription)'"
       }
     }
     dependencyEdgesByDepender[name, default: []].formUnion(referenced)
@@ -280,17 +345,66 @@ internal final class ManifestFoundationIntegrationLeafnessVisitor: SyntaxVisitor
   }
 }
 
-/// Returns a string literal's plain text when it is a simple
-/// single-segment literal with no interpolation — the only shape a
-/// manifest's target/product names are ever written as.
-private func manifestFoundationIntegrationStringLiteralText(
-  _ literal: StringLiteralExprSyntax
-)
-  -> Swift.String?
-{
-  guard literal.segments.count == 1,
-    let segment = literal.segments.first,
-    let stringSegment = segment.as(StringSegmentSyntax.self)
-  else { return nil }
-  return stringSegment.content.text
+private func manifestFoundationIntegrationDependency(
+  _ expression: ExprSyntax,
+  dependencyAccessorBodies: [Swift.String: ExprSyntax],
+  stringStaticAccessors: [Swift.String: ExprSyntax],
+  stringInstanceAccessors: [Swift.String: ExprSyntax],
+  visited: Swift.Set<Swift.String> = [],
+  unhandledSourceShape: inout Swift.String?
+) -> (handled: Swift.Bool, localTarget: Swift.String?) {
+  if let literal = expression.as(StringLiteralExprSyntax.self) {
+    guard let text = manifestStringLiteralText(literal) else {
+      unhandledSourceShape =
+        unhandledSourceShape ?? "interpolated target dependency '\(expression.trimmedDescription)'"
+      return (false, nil)
+    }
+    return (true, text)
+  }
+
+  if let call = expression.as(FunctionCallExprSyntax.self),
+    let member = call.calledExpression.as(MemberAccessExprSyntax.self)
+  {
+    switch member.declName.baseName.text {
+    case "target", "byName":
+      guard
+        let nameArgument = call.arguments.first(where: {
+          $0.label?.text == "name" || $0.label == nil
+        }),
+        let name = manifestResolvedString(
+          nameArgument.expression,
+          staticAccessors: stringStaticAccessors,
+          instanceAccessors: stringInstanceAccessors,
+          unhandledSourceShape: &unhandledSourceShape
+        )
+      else { return (false, nil) }
+      return (true, name)
+    case "product", "plugin":
+      return (true, nil)
+    default:
+      break
+    }
+  }
+
+  if let member = expression.as(MemberAccessExprSyntax.self), member.base == nil {
+    let name = member.declName.baseName.text
+    guard !visited.contains(name), let body = dependencyAccessorBodies[name] else {
+      unhandledSourceShape =
+        unhandledSourceShape ?? "unresolved target dependency accessor '\(name)'"
+      return (false, nil)
+    }
+    return manifestFoundationIntegrationDependency(
+      body,
+      dependencyAccessorBodies: dependencyAccessorBodies,
+      stringStaticAccessors: stringStaticAccessors,
+      stringInstanceAccessors: stringInstanceAccessors,
+      visited: visited.union([name]),
+      unhandledSourceShape: &unhandledSourceShape
+    )
+  }
+
+  unhandledSourceShape =
+    unhandledSourceShape
+    ?? "unhandled target dependency '\(expression.trimmedDescription)'"
+  return (false, nil)
 }

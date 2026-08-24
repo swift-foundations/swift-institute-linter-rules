@@ -23,6 +23,27 @@ extension Lint.Rule {
   public static let `existential throws` = Lint.Rule(
     id: "existential throws",
     default: .warning,
+    controls: [
+      .init(
+        id: "existential throws any error",
+        source: "func read() throws(any Error) {}",
+        path: "Sources/Throws Consumer/ExistentialError.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "existential throws concrete error",
+        source: "func read() throws(Read.Error) {}",
+        path: "Sources/Throws Consumer/ConcreteError.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "existential throws encodable witness",
+        source: "extension Value: Encodable { "
+          + "func encode(to encoder: any Encoder) throws(any Error) {} }",
+        path: "Sources/Throws Consumer/EncodableWitness.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = ThrowsExistentialVisitor(
         source: source.file,

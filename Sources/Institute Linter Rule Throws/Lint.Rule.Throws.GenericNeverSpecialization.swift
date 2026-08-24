@@ -36,6 +36,29 @@ extension Lint.Rule {
     public static let `generic throws missing never` = Lint.Rule(
         id: "generic throws missing never",
         default: .warning,
+        controls: [
+            .init(
+                id: "generic throws missing never public generic failure",
+                source: "public struct Parser<Sink> { "
+                    + "public func parse() throws(Sink.Failure) {} }",
+                path: "Sources/Throws Consumer/GenericFailure.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "generic throws missing never concrete failure",
+                source: "public struct Parser<Sink> { "
+                    + "public func parse() throws(Parse.Error) {} }",
+                path: "Sources/Throws Consumer/ConcreteFailure.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "generic throws missing never inlinable boundary",
+                source: "public struct Parser<Sink> { "
+                    + "@inlinable public func parse() throws(Sink.Failure) {} }",
+                path: "Sources/Throws Consumer/InlinableGenericFailure.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsGenericNeverSpecializationVisitor(
                 source: source.file,

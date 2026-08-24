@@ -62,6 +62,26 @@ extension Lint.Rule {
     public static let `count minus one` = Lint.Rule(
         id: "count minus one",
         default: .warning,
+        controls: [
+            .init(
+                id: "count minus one member access",
+                source: "let last = values.count - 1",
+                path: "Sources/Cardinal Consumer/MemberCount.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "count minus one different literal",
+                source: "let remaining = values.count - 2",
+                path: "Sources/Cardinal Consumer/CountMinusTwo.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "count minus one bare binding",
+                source: "let count = limit\nlet last = count - 1",
+                path: "Sources/Cardinal Consumer/BareCount.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let folded = OperatorTable.standardOperators.foldAll(
                 source.tree,

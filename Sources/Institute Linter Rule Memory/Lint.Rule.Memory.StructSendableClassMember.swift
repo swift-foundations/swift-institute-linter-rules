@@ -36,6 +36,26 @@ extension Lint.Rule {
   public static let `sendable struct with class member` = Lint.Rule(
     id: "sendable struct with class member",
     default: .error,
+    controls: [
+      .init(
+        id: "sendable struct with class member unchecked",
+        source: "final class Storage {}\nstruct Box: @unchecked Sendable { var storage: Storage }",
+        path: "Sources/Memory Core/UncheckedClassStorage.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "sendable struct with class member plain",
+        source: "final class Storage {}\nstruct Box: Sendable { var storage: Storage }",
+        path: "Sources/Memory Core/PlainSendableClassStorage.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "sendable struct with class member value",
+        source: "struct Box: @unchecked Sendable { var count: Int }",
+        path: "Sources/Memory Core/UncheckedValueStorage.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let collector = MemoryStructSendableClassMemberClassCollector(viewMode: .sourceAccurate)
       collector.walk(source.tree)

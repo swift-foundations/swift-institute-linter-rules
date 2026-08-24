@@ -54,6 +54,27 @@ extension Lint.Rule {
   public static let `unchecked call site` = Lint.Rule(
     id: "unchecked call site",
     default: .warning,
+    controls: [
+      .init(
+        id: "unchecked call site consumer bypass",
+        source: "let value = Cardinal(__unchecked: raw)",
+        path: "Sources/Unchecked Consumer/ConsumerBypass.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "unchecked call site declaration parameter",
+        source: "struct Cardinal { init(__unchecked _: Int) {} }",
+        path: "Sources/Unchecked Consumer/DeclarationParameter.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "unchecked call site extension initializer bottom out",
+        source: "extension Cardinal { init(validated value: Int) { "
+          + "self.init(__unchecked: value) } }",
+        path: "Sources/Unchecked Consumer/ExtensionInitializer.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // §A brand-owner recognizer: `Brand(__unchecked:)` is the canonical
       // typed-system bottom-out for a brand owner's own domain-validated

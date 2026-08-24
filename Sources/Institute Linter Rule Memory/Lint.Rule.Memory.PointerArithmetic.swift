@@ -53,6 +53,26 @@ extension Lint.Rule {
   public static let `pointer advanced by` = Lint.Rule(
     id: "pointer advanced by",
     default: .warning,
+    controls: [
+      .init(
+        id: "pointer advanced by unsafe",
+        source: "func advance(_ pointer: UnsafePointer<Int>, by offset: Int) { _ = unsafe pointer.advanced(by: offset) }",
+        path: "Sources/Memory Core/UnsafePointerAdvance.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "pointer advanced by strideable",
+        source: "func advance(_ value: Int) { _ = value.advanced(by: 1) }",
+        path: "Sources/Memory Core/StrideableAdvance.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "pointer advanced by test fixture",
+        source: "func advance(_ pointer: UnsafePointer<Int>, by offset: Int) { _ = unsafe pointer.advanced(by: offset) }",
+        path: "Tests/Memory Tests/UnsafePointerAdvance.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // §A brand-owner recognizer: the brand owner's own `* Standard Library
       // Integration` pointer-arithmetic overloads are legitimate-by-

@@ -33,6 +33,26 @@ extension Lint.Rule {
     public static let `try optional` = Lint.Rule(
         id: "try optional",
         default: .warning,
+        controls: [
+            .init(
+                id: "try optional erased failure",
+                source: "let value = try? load()",
+                path: "Sources/Try Consumer/OptionalTry.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "try optional propagating try",
+                source: "let value = try load()",
+                path: "Sources/Try Consumer/PropagatingTry.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "try optional forced try",
+                source: "let value = try! load()",
+                path: "Sources/Try Consumer/ForcedTry.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = TryOptionalVisitor(
                 source: source.file,

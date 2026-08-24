@@ -21,6 +21,26 @@ extension Lint.Rule {
   public static let `dead case per platform` = Lint.Rule(
     id: "dead case per platform",
     default: .warning,
+    controls: [
+      .init(
+        id: "dead case per platform public platform cases",
+        source: "public enum Encoding { case posix; case windows }",
+        path: "Sources/Platform Core/PlatformEncoding.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "dead case per platform domain alternatives",
+        source: "public enum URLScheme { case http; case https }",
+        path: "Sources/Platform Core/DomainAlternatives.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "dead case per platform internal boundary",
+        source: "internal enum Encoding { case posix; case windows }",
+        path: "Sources/Platform Core/InternalEncoding.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = PlatformDeadCasePerPlatformVisitor(
         source: source.file,

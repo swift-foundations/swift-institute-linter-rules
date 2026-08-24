@@ -22,6 +22,28 @@ extension Lint.Rule {
     public static let `typed throws cannot use self error` = Lint.Rule(
         id: "typed throws cannot use self error",
         default: .error,
+        controls: [
+            .init(
+                id: "typed throws cannot use self error unresolved protocol",
+                source: "protocol Reader { func read() throws(Self.Error) }",
+                path: "Sources/Throws Consumer/UnresolvedSelfError.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "typed throws cannot use self error associated type",
+                source: "protocol Reader { associatedtype Error: Swift.Error; "
+                    + "func read() throws(Self.Error) }",
+                path: "Sources/Throws Consumer/AssociatedSelfError.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "typed throws cannot use self error concrete type",
+                source: "struct Reader { enum Error: Swift.Error { case invalid }; "
+                    + "func read() throws(Self.Error) {} }",
+                path: "Sources/Throws Consumer/ConcreteSelfError.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsSelfErrorInTypedThrowsVisitor(
                 source: source.file,

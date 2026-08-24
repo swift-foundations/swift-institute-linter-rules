@@ -22,6 +22,26 @@ extension Lint.Rule {
     public static let `hoisted protocol alias` = Lint.Rule(
         id: "hoisted protocol alias",
         default: .warning,
+        controls: [
+            .init(
+                id: "hoisted protocol alias self conformance",
+                source: "extension Parser.Error.Located: Parser.Error.Located.Protocol {}",
+                path: "Sources/Structure Core/Located.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "hoisted protocol alias hoisted name",
+                source: "extension Parser.Error.Located: _LocatedErrorProtocol {}",
+                path: "Sources/Structure Core/Located.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "hoisted protocol alias consumer conformance",
+                source: "extension MyError: Parser.Error.Located.Protocol {}",
+                path: "Sources/Structure Core/MyError.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = StructureHoistedProtocolAliasVisitor(
                 source: source.file,

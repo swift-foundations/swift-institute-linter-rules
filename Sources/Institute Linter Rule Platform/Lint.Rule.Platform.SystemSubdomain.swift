@@ -22,6 +22,26 @@ extension Lint.Rule {
     public static let `system subdomain` = Lint.Rule(
         id: "system subdomain",
         default: .warning,
+        controls: [
+            .init(
+                id: "system subdomain platform-qualified extension",
+                source: "extension Darwin.System { public static func probe() {} }",
+                path: "Sources/Platform Core/DarwinSystem.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "system subdomain direct system extension",
+                source: "extension System { public static func probe() {} }",
+                path: "Sources/Platform Core/System.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "system subdomain nonplatform parent",
+                source: "public enum Domain { public enum System {} }",
+                path: "Sources/Platform Core/DomainSystem.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformSystemSubdomainVisitor(
                 source: source.file,

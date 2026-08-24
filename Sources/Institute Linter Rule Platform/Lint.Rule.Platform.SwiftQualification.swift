@@ -20,6 +20,26 @@ extension Lint.Rule {
     public static let `swift protocol qualification` = Lint.Rule(
         id: "swift protocol qualification",
         default: .warning,
+        controls: [
+            .init(
+                id: "swift protocol qualification bare sequence",
+                source: "func consume(_ values: some Sequence<Int>) {}",
+                path: "Sources/Platform Core/BareSequence.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "swift protocol qualification qualified sequence",
+                source: "func consume(_ values: some Swift.Sequence<Int>) {}",
+                path: "Sources/Platform Core/QualifiedSequence.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "swift protocol qualification stdlib extension boundary",
+                source: "extension Array { func consume(_ values: some Sequence<Int>) {} }",
+                path: "Sources/Platform Core/ArrayExtension.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformSwiftQualificationVisitor(
                 source: source.file,

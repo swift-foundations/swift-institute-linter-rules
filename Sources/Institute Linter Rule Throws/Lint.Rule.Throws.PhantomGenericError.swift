@@ -100,6 +100,35 @@ extension Lint.Rule {
     public static let `phantom generic error in typed throws` = Lint.Rule(
         id: "phantom generic error in typed throws",
         default: .warning,
+        controls: [
+            .init(
+                id: "phantom generic error declaration site",
+                source: "public struct Parser<Input> { "
+                    + "public enum Error: Swift.Error { case invalid } }",
+                path: "Sources/Throws Consumer/PhantomErrorDeclaration.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "phantom generic error use site",
+                source: "public struct Parser<Input> { "
+                    + "public typealias Failure = Parser<Input>.Error }",
+                path: "Sources/Throws Consumer/PhantomErrorUse.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "phantom generic error substantive parameter",
+                source: "public struct Parser<Input> { "
+                    + "public enum Error: Swift.Error { case invalid(Input) } }",
+                path: "Sources/Throws Consumer/GenericErrorDeclaration.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "phantom generic error nongeneric owner",
+                source: "public struct Parser { public enum Error: Swift.Error { case invalid } }",
+                path: "Sources/Throws Consumer/NongenericErrorDeclaration.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsPhantomGenericErrorVisitor(
                 source: source.file,

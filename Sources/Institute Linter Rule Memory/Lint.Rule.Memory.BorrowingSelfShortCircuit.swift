@@ -38,6 +38,26 @@ extension Lint.Rule {
     public static let `borrowing self short circuit` = Lint.Rule(
         id: "borrowing self short circuit",
         default: .warning,
+        controls: [
+            .init(
+                id: "borrowing self short circuit disjunction",
+                source: "public static func < (lhs: borrowing Self, rhs: borrowing Self) -> Bool { lhs.priority < rhs.priority || lhs.sequence < rhs.sequence }",
+                path: "Sources/Memory Core/BorrowingSelfDisjunction.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "borrowing self short circuit tuple comparison",
+                source: "public static func < (lhs: borrowing Self, rhs: borrowing Self) -> Bool { (lhs.priority, lhs.sequence) < (rhs.priority, rhs.sequence) }",
+                path: "Sources/Memory Core/BorrowingSelfTuple.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "borrowing self short circuit nonborrowing parameters",
+                source: "public static func < (lhs: Self, rhs: Self) -> Bool { lhs.priority < rhs.priority || lhs.sequence < rhs.sequence }",
+                path: "Sources/Memory Core/NonborrowingDisjunction.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = MemoryBorrowingSelfShortCircuitVisitor(
                 source: source.file,

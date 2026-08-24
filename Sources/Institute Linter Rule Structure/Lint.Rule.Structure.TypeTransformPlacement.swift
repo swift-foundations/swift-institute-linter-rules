@@ -21,6 +21,26 @@ extension Lint.Rule {
     public static let `type transform placement` = Lint.Rule(
         id: "type transform placement",
         default: .warning,
+        controls: [
+            .init(
+                id: "type transform placement instance conversion",
+                source: "extension Source { func toTarget() -> Target { fatalError() } }",
+                path: "Sources/Structure Core/Source.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "type transform placement target static conversion",
+                source: "extension Target { static func from(_ source: Source) -> Target { fatalError() } }",
+                path: "Sources/Structure Core/Target.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "type transform placement protocol requirement",
+                source: "protocol Conversion { func toTarget() -> Target }",
+                path: "Sources/Structure Core/Conversion.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = StructureTypeTransformPlacementVisitor(
                 source: source.file,

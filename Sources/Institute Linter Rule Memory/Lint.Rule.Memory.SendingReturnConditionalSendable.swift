@@ -58,6 +58,26 @@ extension Lint.Rule {
     public static let `sending return conditional sendable state` = Lint.Rule(
         id: "sending return conditional sendable state",
         default: .warning,
+        controls: [
+            .init(
+                id: "sending return conditional sendable state disconnected",
+                source: "public final class State<Base> { public func borrow() -> sending Base? { fatalError() } }\nextension State: @unchecked Sendable where Base: Sendable {}",
+                path: "Sources/Memory Core/SendingConditionalState.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "sending return conditional sendable state plain",
+                source: "public final class State<Base> { public func borrow() -> Base? { fatalError() } }\nextension State: @unchecked Sendable where Base: Sendable {}",
+                path: "Sources/Memory Core/PlainConditionalState.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "sending return conditional sendable state ungated",
+                source: "public final class State<Base> { public func borrow() -> sending Base? { fatalError() } }",
+                path: "Sources/Memory Core/UngatedSendingState.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = MemorySendingReturnConditionalSendableVisitor(
                 source: source.file,

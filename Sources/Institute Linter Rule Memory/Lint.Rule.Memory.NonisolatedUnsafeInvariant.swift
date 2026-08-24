@@ -35,6 +35,26 @@ extension Lint.Rule {
     public static let `nonisolated unsafe without invariant` = Lint.Rule(
         id: "nonisolated unsafe without invariant",
         default: .warning,
+        controls: [
+            .init(
+                id: "nonisolated unsafe without invariant missing",
+                source: "nonisolated(unsafe) let sentinel: UnsafeMutableRawPointer = .allocate(capacity: 0)",
+                path: "Sources/Memory Core/MissingUnsafeInvariant.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "nonisolated unsafe without invariant documented",
+                source: "// SAFETY: Allocated once and never mutated.\nnonisolated(unsafe) let sentinel: UnsafeMutableRawPointer = .allocate(capacity: 0)",
+                path: "Sources/Memory Core/DocumentedUnsafeInvariant.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "nonisolated unsafe without invariant isolated",
+                source: "let value: Int = 0",
+                path: "Sources/Memory Core/IsolatedValue.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = MemoryNonisolatedUnsafeInvariantVisitor(
                 source: source.file,

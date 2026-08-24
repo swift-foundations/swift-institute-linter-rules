@@ -62,6 +62,26 @@ extension Lint.Rule {
   public static let `extension file naming` = Lint.Rule(
     id: "extension file naming",
     default: .warning,
+    controls: [
+      .init(
+        id: "extension file naming missing topic",
+        source: "extension Array.Dynamic { func iterate() {} }",
+        path: "Sources/Structure Core/Array.Dynamic.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "extension file naming member topic",
+        source: "extension Array.Dynamic { func iterate() {} }",
+        path: "Sources/Structure Core/Array.Dynamic+Iteration.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "extension file naming test scope",
+        source: "extension Array.Dynamic { func iterate() {} }",
+        path: "Tests/Structure Tests/Array.Dynamic.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let path = source.file.filePath
       // The rule's stated surface is "a source file under `Sources/`"

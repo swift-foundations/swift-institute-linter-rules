@@ -44,6 +44,26 @@ extension Lint.Rule {
     public static let `c type in public api` = Lint.Rule(
         id: "c type in public api",
         default: .warning,
+        controls: [
+            .init(
+                id: "c type in public api exposed kevent",
+                source: "public func register(events: [kevent]) {}",
+                path: "Sources/Platform Core/ExposedKevent.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "c type in public api ecosystem wrapper",
+                source: "public func register(events: [Kernel.Kqueue.Event]) {}",
+                path: "Sources/Platform Core/WrappedEvent.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "c type in public api internal boundary",
+                source: "internal func register(event: kevent) {}",
+                path: "Sources/Platform Core/InternalKevent.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformCTypeInPublicAPIVisitor(
                 source: source.file,

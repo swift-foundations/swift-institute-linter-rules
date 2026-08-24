@@ -39,6 +39,26 @@ extension Lint.Rule {
     public static let `test file suffix` = Lint.Rule(
         id: "test file suffix",
         default: .warning,
+        controls: [
+            .init(
+                id: "test file suffix joined suffix",
+                source: "@Suite struct ValueTests {}",
+                path: "Tests/Testing Tests/ValueTests.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "test file suffix spaced suffix",
+                source: "@Suite struct `Value Tests` {}",
+                path: "Tests/Testing Tests/Value Tests.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "test file suffix production scope",
+                source: "@Suite struct ValueTests {}",
+                path: "Sources/Testing Support/ValueTests.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let filePath = source.file.filePath
             let components = filePath.split(separator: "/", omittingEmptySubsequences: true)

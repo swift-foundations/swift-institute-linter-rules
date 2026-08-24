@@ -27,6 +27,26 @@ extension Lint.Rule {
     public static let `extension noncopyable constraint` = Lint.Rule(
         id: "extension noncopyable constraint",
         default: .warning,
+        controls: [
+            .init(
+                id: "extension noncopyable constraint missing",
+                source: "extension Container<Element> { consuming func transfer() {} }",
+                path: "Sources/Memory Core/MissingNoncopyableConstraint.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "extension noncopyable constraint explicit",
+                source: "extension Container where Element: ~Copyable { consuming func transfer() {} }",
+                path: "Sources/Memory Core/ExplicitNoncopyableConstraint.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "extension noncopyable constraint no ownership",
+                source: "extension Container<Element> { func describe() -> String { \"\" } }",
+                path: "Sources/Memory Core/NoOwnershipSurface.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = MemoryExtensionNoncopyableConstraintVisitor(
                 source: source.file,

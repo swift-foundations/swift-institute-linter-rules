@@ -23,6 +23,26 @@ extension Lint.Rule {
   public static let `unsafe assignment granularity` = Lint.Rule(
     id: "unsafe assignment granularity",
     default: .warning,
+    controls: [
+      .init(
+        id: "unsafe assignment granularity rhs only",
+        source: "func store() { pointer.pointee = unsafe other.pointee }",
+        path: "Sources/Memory Core/UnsafeAssignmentRHS.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "unsafe assignment granularity whole expression",
+        source: "func store() { unsafe (pointer.pointee = other.pointee) }",
+        path: "Sources/Memory Core/UnsafeAssignmentWhole.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "unsafe assignment granularity safe destination",
+        source: "func load() { count = unsafe pointer.pointee }",
+        path: "Sources/Memory Core/UnsafeLoad.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = MemoryUnsafeAssignmentGranularityVisitor(
         source: source.file,

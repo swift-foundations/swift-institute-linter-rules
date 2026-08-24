@@ -37,6 +37,27 @@ extension Lint.Rule {
   public static let `tagged extension public init` = Lint.Rule(
     id: "tagged extension public init",
     default: .warning,
+    controls: [
+      .init(
+        id: "tagged extension public init exposed initializer",
+        source: "extension Tagged { public init(rawValue: String) { fatalError() } }",
+        path: "Sources/Raw Value Core/ExposedInitializer.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "tagged extension public init internal initializer",
+        source: "extension Tagged { init(rawValue: String) { fatalError() } }",
+        path: "Sources/Raw Value Core/InternalInitializer.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "tagged extension public init protocol witness boundary",
+        source: "extension Tagged: Decodable { "
+          + "public init(from decoder: any Decoder) throws { fatalError() } }",
+        path: "Sources/Raw Value Core/DecodableWitness.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // §A brand-owner recognizer: a brand owner's own
       // `extension Tagged where Tag == <its brand> { public init }`

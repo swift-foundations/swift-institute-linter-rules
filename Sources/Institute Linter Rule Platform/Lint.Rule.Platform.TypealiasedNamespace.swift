@@ -22,6 +22,26 @@ extension Lint.Rule {
   public static let `typealiased namespace bridge` = Lint.Rule(
     id: "typealiased namespace bridge",
     default: .note,
+    controls: [
+      .init(
+        id: "typealiased namespace bridge matching leaf",
+        source: "typealias Socket = Foundation.Socket",
+        path: "Sources/Platform Core/SocketBridge.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "typealiased namespace bridge different leaf",
+        source: "typealias Storage = Internal.Buffer",
+        path: "Sources/Platform Core/StorageAlias.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "typealiased namespace bridge conformance boundary",
+        source: "extension Tagged: Collection { typealias Index = Underlying.Index }",
+        path: "Sources/Platform Core/CollectionWitness.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = PlatformTypealiasedNamespaceVisitor(
         source: source.file,

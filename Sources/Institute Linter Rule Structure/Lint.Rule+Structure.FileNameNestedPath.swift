@@ -74,6 +74,26 @@ extension Lint.Rule {
   public static let `file name nested path` = Lint.Rule(
     id: "file name nested path",
     default: .warning,
+    controls: [
+      .init(
+        id: "file name nested path mismatched basename",
+        source: "enum Array { struct Dynamic {} }",
+        path: "Sources/Structure Core/Array.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "file name nested path matching basename",
+        source: "enum Array { struct Dynamic {} }",
+        path: "Sources/Structure Core/Array.Dynamic.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "file name nested path test scope",
+        source: "enum Array { struct Dynamic {} }",
+        path: "Tests/Structure Tests/Array.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let path = source.file.filePath
       // The rule's stated surface is "a source file under `Sources/`"

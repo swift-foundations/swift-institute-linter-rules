@@ -27,6 +27,26 @@ extension Lint.Rule {
   public static let `noncopyable error` = Lint.Rule(
     id: "noncopyable error",
     default: .warning,
+    controls: [
+      .init(
+        id: "noncopyable error conformance",
+        source: "struct Failure: Error, ~Copyable {}",
+        path: "Sources/Memory Core/NoncopyableError.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "noncopyable error copyable",
+        source: "struct Failure: Error {}",
+        path: "Sources/Memory Core/CopyableError.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "noncopyable error nonerror",
+        source: "struct Token: ~Copyable {}",
+        path: "Sources/Memory Core/NoncopyableToken.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // `~Copyable` can only be suppressed on the primary declaration,
       // but `Error` can be added by a same-file extension (#25 defect

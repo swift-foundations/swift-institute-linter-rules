@@ -35,6 +35,26 @@ extension Lint.Rule {
   public static let `chained rawvalue access` = Lint.Rule(
     id: "chained rawvalue access",
     default: .warning,
+    controls: [
+      .init(
+        id: "chained rawvalue access member chain",
+        source: "let normalized = value.rawValue.lowercased()",
+        path: "Sources/Raw Value Core/ChainedAccess.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "chained rawvalue access terminal access",
+        source: "let raw = value.rawValue",
+        path: "Sources/Raw Value Core/TerminalAccess.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "chained rawvalue access string boundary",
+        source: #"let example = "value.rawValue.lowercased()""#,
+        path: "Tests/Raw Value Tests/ChainExample.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // §A brand-owner recognizer: same-package `.rawValue.<member>`
       // chains on the owner's brand are legitimate-by-construction.

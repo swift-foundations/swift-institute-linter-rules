@@ -19,6 +19,27 @@ extension Lint.Rule {
     public static let `untyped throws` = Lint.Rule(
         id: "untyped throws",
         default: .warning,
+        controls: [
+            .init(
+                id: "untyped throws bare function",
+                source: "func read() throws {}",
+                path: "Sources/Throws Consumer/BareThrows.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "untyped throws concrete function",
+                source: "func read() throws(Read.Error) {}",
+                path: "Sources/Throws Consumer/TypedThrows.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "untyped throws encodable witness",
+                source: "extension Value: Encodable { "
+                    + "func encode(to encoder: any Encoder) throws {} }",
+                path: "Sources/Throws Consumer/EncodableWitness.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsUntypedVisitor(
                 source: source.file,

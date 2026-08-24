@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `callback result over throws thunk` = Lint.Rule(
         id: "callback result over throws thunk",
         default: .warning,
+        controls: [
+            .init(
+                id: "callback result over throws thunk result callback",
+                source: "func register(_ callback: (Result<Int, Read.Error>) -> Void) {}",
+                path: "Sources/Throws Consumer/ResultCallback.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "callback result over throws thunk typed thunk",
+                source: "func register(_ callback: (() throws(Read.Error) -> Int) -> Void) {}",
+                path: "Sources/Throws Consumer/TypedThunkCallback.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "callback result over throws thunk return value",
+                source: "func read() -> Result<Int, Read.Error> { fatalError() }",
+                path: "Sources/Throws Consumer/ResultReturn.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsResultCallbackVisitor(
                 source: source.file,

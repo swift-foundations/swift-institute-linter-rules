@@ -26,6 +26,27 @@ extension Lint.Rule {
     public static let `result wrapper for rethrows shim` = Lint.Rule(
         id: "result wrapper for rethrows shim",
         default: .warning,
+        controls: [
+            .init(
+                id: "result wrapper for rethrows shim map try",
+                source: "let output = values.map { try transform($0) }",
+                path: "Sources/Throws Consumer/RethrowsMap.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "result wrapper for rethrows shim map nonthrowing",
+                source: "let output = values.map { transform($0) }",
+                path: "Sources/Throws Consumer/NonthrowingMap.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "result wrapper for rethrows shim typed map boundary",
+                source: "let output = try values.map { value throws(Read.Error) in "
+                    + "try transform(value) }",
+                path: "Sources/Throws Consumer/TypedThrowsMap.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsRethrowsResultShimVisitor(
                 source: source.file,

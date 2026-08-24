@@ -22,7 +22,14 @@ extension Lint.Rule {
         expectation: .clean
       ),
       .init(
-        id: "package policy revision 1 nonmanifest",
+        id: "package policy revision 1 versioned manifest",
+        source: "// swift-tools-version: 6.4\nimport PackageDescription\n"
+          + "let package = Package(name: \"Fixture\", targets: [], swiftLanguageModes: [.v6])",
+        path: "Package@swift-6.4.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "package policy revision 1 nonmanifest boundary",
         source: "struct Package {}",
         path: "Sources/Package.swift",
         expectation: .clean

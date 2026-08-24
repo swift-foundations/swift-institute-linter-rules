@@ -29,6 +29,30 @@ extension Lint.Rule {
     public static let `closure typed throws annotation` = Lint.Rule(
         id: "closure typed throws annotation",
         default: .warning,
+        controls: [
+            .init(
+                id: "closure typed throws annotation inferred closure",
+                source: "func read<E: Swift.Error>(_ values: [Int]) throws(E) { "
+                    + "_ = values.map { try load($0) } }",
+                path: "Sources/Throws Consumer/InferredThrowingClosure.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "closure typed throws annotation explicit closure",
+                source: "func read<E: Swift.Error>(_ values: [Int]) throws(E) { "
+                    + "_ = values.map { (value: Int) throws(E) -> Int in "
+                    + "try load(value) } }",
+                path: "Sources/Throws Consumer/TypedThrowingClosure.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "closure typed throws annotation expect throws boundary",
+                source: "func read() throws(Read.Error) { "
+                    + "#expect(throws: Read.Error.self) { try load() } }",
+                path: "Sources/Throws Consumer/ExpectThrows.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsClosureAnnotationVisitor(
                 source: source.file,

@@ -7,6 +7,27 @@ extension Lint.Rule {
   public static let `forbidden license header` = Lint.Rule(
     id: "forbidden license header",
     default: .error,
+    controls: [
+      .init(
+        id: "forbidden license header complete",
+        source: "// Copyright (c) 2026 Example\n"
+          + "// Licensed under Apache License v2.0\n\nstruct Value {}",
+        path: "Sources/Structure Core/Value.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "forbidden license header ordinary comment",
+        source: "// Implementation note\nstruct Value {}",
+        path: "Sources/Structure Core/Value.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "forbidden license header partial",
+        source: "// Licensed under Apache License v2.0\nstruct Value {}",
+        path: "Sources/Structure Core/Value.swift",
+        expectation: .findings(1)
+      ),
+    ],
     observe: { source, severity in
       let recognition = Lint.License.Header.recognize(in: source.tree.description)
       switch recognition {

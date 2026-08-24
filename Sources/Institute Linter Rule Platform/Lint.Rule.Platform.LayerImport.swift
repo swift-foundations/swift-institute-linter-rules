@@ -31,6 +31,26 @@ extension Lint.Rule {
     public static let `platform layer import` = Lint.Rule(
         id: "platform layer import",
         default: .warning,
+        controls: [
+            .init(
+                id: "platform layer import direct policy module",
+                source: "import POSIX_Kernel",
+                path: "Sources/Consumer Core/DirectPolicyImport.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "platform layer import unifier surface",
+                source: "import Kernel",
+                path: "Sources/Consumer Core/KernelImport.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "platform layer import test boundary",
+                source: "import POSIX_Kernel",
+                path: "Tests/Consumer Tests/PolicyFixture.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             // Exempt per [RULE-EXEMPT-12] (path-scoped package): the platform
             // stack itself — L1 platform-aware primitives, L2 spec, L3-policy,

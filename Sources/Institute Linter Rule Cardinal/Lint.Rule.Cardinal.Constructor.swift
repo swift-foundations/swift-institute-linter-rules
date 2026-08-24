@@ -28,6 +28,26 @@ extension Lint.Rule {
     public static let `zero or one literal` = Lint.Rule(
         id: "zero or one literal",
         default: .warning,
+        controls: [
+            .init(
+                id: "zero or one literal cardinal zero",
+                source: "let value = Cardinal(0)",
+                path: "Sources/Cardinal Consumer/CardinalZero.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "zero or one literal cardinal two",
+                source: "let value = Cardinal(2)",
+                path: "Sources/Cardinal Consumer/CardinalTwo.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "zero or one literal other type",
+                source: "let value = Ordinal(1)",
+                path: "Sources/Cardinal Consumer/OrdinalOne.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             // §A brand-owner recognizer: brand-SPECIFIC to `Cardinal` (the
             // rule recognises `Cardinal(0)` / `Cardinal(1)` by name), so it

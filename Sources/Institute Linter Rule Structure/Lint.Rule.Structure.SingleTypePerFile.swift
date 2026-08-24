@@ -20,6 +20,26 @@ extension Lint.Rule {
     public static let `single type per file` = Lint.Rule(
         id: "single type per file",
         default: .warning,
+        controls: [
+            .init(
+                id: "single type per file two declarations",
+                source: "struct First {}\nstruct Second {}",
+                path: "Sources/Structure Core/First.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "single type per file one declaration",
+                source: "struct First {}",
+                path: "Sources/Structure Core/First.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "single type per file test scope",
+                source: "struct First {}\nstruct Second {}",
+                path: "Tests/Structure Tests/First Tests.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             // Scope-exclusion per Decision 2: skip files whose path has a
             // segment named `Tests`, `Experiments`, or `Examples`.

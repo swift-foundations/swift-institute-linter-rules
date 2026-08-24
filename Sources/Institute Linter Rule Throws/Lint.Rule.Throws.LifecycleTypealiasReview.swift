@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `lifecycle typealias review` = Lint.Rule(
         id: "lifecycle typealias review",
         default: .warning,
+        controls: [
+            .init(
+                id: "lifecycle typealias review shared lifecycle error",
+                source: "typealias Error = Async.Lifecycle.Error",
+                path: "Sources/Throws Consumer/SharedLifecycleError.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "lifecycle typealias review domain error",
+                source: "typealias Error = Async.Parse.Error",
+                path: "Sources/Throws Consumer/DomainError.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "lifecycle typealias review nonerror alias",
+                source: "typealias Failure = Async.Lifecycle.Error",
+                path: "Sources/Throws Consumer/FailureAlias.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsLifecycleTypealiasReviewVisitor(
                 source: source.file,

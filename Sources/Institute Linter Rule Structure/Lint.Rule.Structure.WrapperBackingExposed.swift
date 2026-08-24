@@ -21,6 +21,26 @@ extension Lint.Rule {
     public static let `wrapper backing exposed` = Lint.Rule(
         id: "wrapper backing exposed",
         default: .warning,
+        controls: [
+            .init(
+                id: "wrapper backing exposed internal backing",
+                source: "struct Wrapper { var _backing: Int }",
+                path: "Sources/Structure Core/Wrapper.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "wrapper backing exposed private backing",
+                source: "struct Wrapper { private var _backing: Int }",
+                path: "Sources/Structure Core/Wrapper.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "wrapper backing exposed file scope",
+                source: "var _backing: Int = 0",
+                path: "Sources/Structure Core/Backing.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = StructureWrapperBackingExposedVisitor(
                 source: source.file,

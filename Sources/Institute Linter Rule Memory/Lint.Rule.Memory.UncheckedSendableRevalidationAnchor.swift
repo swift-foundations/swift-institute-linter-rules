@@ -52,6 +52,26 @@ extension Lint.Rule {
   public static let `unchecked sendable revalidation anchor` = Lint.Rule(
     id: "unchecked sendable revalidation anchor",
     default: .warning,
+    controls: [
+      .init(
+        id: "unchecked sendable revalidation anchor incomplete",
+        source: "// WHY: Category D — compiler workaround.\nextension Container: @unchecked Sendable {}",
+        path: "Sources/Memory Core/IncompleteRevalidationAnchor.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "unchecked sendable revalidation anchor complete",
+        source: "// WHY: Category D — compiler workaround.\n// WHEN TO REMOVE: When structural inference lands.\n// TRACKING: issue-1.\nextension Container: @unchecked Sendable {}",
+        path: "Sources/Memory Core/CompleteRevalidationAnchor.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "unchecked sendable revalidation anchor semantic",
+        source: "// Callers externally synchronize access.\nextension Container: @unchecked Sendable {}",
+        path: "Sources/Memory Core/SemanticSendable.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = MemoryUncheckedSendableRevalidationAnchorVisitor(
         source: source.file,

@@ -21,6 +21,26 @@ extension Lint.Rule {
     public static let `canimport conditional` = Lint.Rule(
         id: "canimport conditional",
         default: .warning,
+        controls: [
+            .init(
+                id: "canimport conditional platform module",
+                source: "#if canImport(Linux_Kernel)\nimport Linux_Kernel\n#endif",
+                path: "Sources/Platform Core/LinuxAvailability.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "canimport conditional c library availability",
+                source: "#if canImport(Glibc)\nimport Glibc\n#endif",
+                path: "Sources/Platform Core/LibcAvailability.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "canimport conditional os boundary",
+                source: "#if os(Linux)\nimport Glibc\n#endif",
+                path: "Sources/Platform Core/OperatingSystem.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformPlatformConditionalVisitor(
                 source: source.file,

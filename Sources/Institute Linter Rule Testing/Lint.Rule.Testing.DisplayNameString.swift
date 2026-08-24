@@ -52,6 +52,26 @@ extension Lint.Rule {
     public static let `test display name string` = Lint.Rule(
         id: "test display name string",
         default: .warning,
+        controls: [
+            .init(
+                id: "test display name string descriptive literal",
+                source: "@Test(\"creates value\") func fixture() {}",
+                path: "Tests/Testing Tests/Value Tests.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "test display name string declaration name",
+                source: "@Test func `creates value`() {}",
+                path: "Tests/Testing Tests/Value Tests.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "test display name string operator boundary",
+                source: "@Test(\"<=>\") func comparison() {}",
+                path: "Tests/Testing Tests/Value Tests.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = TestingDisplayNameStringVisitor(
                 source: source.file,

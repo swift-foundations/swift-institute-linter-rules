@@ -28,6 +28,26 @@ extension Lint.Rule {
     public static let `optimize suppression attribute` = Lint.Rule(
         id: "optimize suppression attribute",
         default: .warning,
+        controls: [
+            .init(
+                id: "optimize suppression attribute optimize none",
+                source: "@_optimize(none) func run() {}",
+                path: "Sources/Platform Core/SuppressedOptimization.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "optimize suppression attribute inline never",
+                source: "@inline(never) func run() {}",
+                path: "Sources/Platform Core/InlineControl.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "optimize suppression attribute string boundary",
+                source: #"let example = "@_optimize(none) func run() {}""#,
+                path: "Tests/Platform Tests/OptimizationExample.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformOptimizeSuppressionVisitor(
                 source: source.file,

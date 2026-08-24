@@ -47,6 +47,26 @@ extension Lint.Rule {
     public static let `tagged unchecked with typed alternative` = Lint.Rule(
         id: "tagged unchecked with typed alternative",
         default: .warning,
+        controls: [
+            .init(
+                id: "tagged unchecked with typed alternative unchecked construction",
+                source: "let value = Tagged<Tag, Int>(_unchecked: 42)",
+                path: "Sources/Raw Value Core/UncheckedConstruction.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "tagged unchecked with typed alternative literal construction",
+                source: "let value: Tagged<Tag, Int> = 42",
+                path: "Sources/Raw Value Core/LiteralConstruction.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "tagged unchecked with typed alternative test boundary",
+                source: "@Test func construction() { _ = Tagged<Tag, Int>(_unchecked: 42) }",
+                path: "Tests/Raw Value Tests/UncheckedConstruction.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = RawValueTaggedUncheckedVisitor(
                 source: source.file,

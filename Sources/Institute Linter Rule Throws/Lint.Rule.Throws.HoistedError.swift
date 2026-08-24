@@ -17,6 +17,26 @@ extension Lint.Rule {
     public static let `hoisted error in public throws` = Lint.Rule(
         id: "hoisted error in public throws",
         default: .warning,
+        controls: [
+            .init(
+                id: "hoisted error in public throws internal spelling",
+                source: "public func read() throws(__ReadError) {}",
+                path: "Sources/Throws Consumer/PublicHoistedError.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "hoisted error in public throws canonical spelling",
+                source: "public func read() throws(Read.Error) {}",
+                path: "Sources/Throws Consumer/PublicCanonicalError.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "hoisted error in public throws internal API",
+                source: "func read() throws(__ReadError) {}",
+                path: "Sources/Throws Consumer/InternalHoistedError.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ThrowsHoistedErrorVisitor(
                 source: source.file,

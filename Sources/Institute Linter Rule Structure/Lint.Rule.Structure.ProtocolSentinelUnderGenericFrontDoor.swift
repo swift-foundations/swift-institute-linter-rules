@@ -64,6 +64,29 @@ extension Lint.Rule {
     public static let `protocol sentinel under generic front door` = Lint.Rule(
         id: "protocol sentinel under generic front door",
         default: .warning,
+        controls: [
+            .init(
+                id: "protocol sentinel under generic front door generic alias",
+                source: "public typealias Array<Element> = __Array<Element>\n"
+                    + "extension __Array { typealias `Protocol` = __ArrayProtocol }",
+                path: "Sources/Structure Core/Array.Protocol.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "protocol sentinel under generic front door nominal carrier",
+                source: "public struct Store {}\n"
+                    + "extension Store { typealias `Protocol` = StoreProtocol }",
+                path: "Sources/Structure Core/Store.Protocol.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "protocol sentinel under generic front door different carrier",
+                source: "public typealias Array<Element> = __Array<Element>\n"
+                    + "extension Store { typealias `Protocol` = StoreProtocol }",
+                path: "Sources/Structure Core/Store.Protocol.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = StructureProtocolSentinelUnderGenericFrontDoorVisitor(
                 source: source.file,

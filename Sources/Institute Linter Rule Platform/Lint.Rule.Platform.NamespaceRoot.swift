@@ -22,6 +22,26 @@ extension Lint.Rule {
     public static let `compound platform namespace root` = Lint.Rule(
         id: "compound platform namespace root",
         default: .warning,
+        controls: [
+            .init(
+                id: "compound platform namespace root top level",
+                source: "public enum LinuxKernel {}",
+                path: "Sources/Platform Core/LinuxKernel.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "compound platform namespace root shared namespace",
+                source: "public enum Kernel {}",
+                path: "Sources/Platform Core/Kernel.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "compound platform namespace root nested boundary",
+                source: "public enum Outer { public enum LinuxKernel {} }",
+                path: "Sources/Platform Core/NestedLinuxKernel.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = PlatformNamespaceRootVisitor(
                 source: source.file,

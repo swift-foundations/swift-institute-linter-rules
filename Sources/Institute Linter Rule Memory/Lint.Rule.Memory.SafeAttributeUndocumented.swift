@@ -48,6 +48,26 @@ extension Lint.Rule {
     public static let `safe attribute undocumented` = Lint.Rule(
         id: "safe attribute undocumented",
         default: .warning,
+        controls: [
+            .init(
+                id: "safe attribute undocumented missing",
+                source: "@safe public struct Storage {}",
+                path: "Sources/Memory Core/UndocumentedSafe.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "safe attribute undocumented disclosed",
+                source: "// SAFETY: Safe by construction.\n@safe public struct Storage {}",
+                path: "Sources/Memory Core/DocumentedSafe.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "safe attribute undocumented outside sources",
+                source: "@safe public struct Storage {}",
+                path: "Tests/Memory Tests/SafeFixture.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             // Scope: the header doc and the message both assert this rule
             // applies to every `@safe`-attributed declaration IN `Sources/`

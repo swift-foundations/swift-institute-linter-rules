@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `performance suite serialized` = Lint.Rule(
         id: "performance suite serialized",
         default: .warning,
+        controls: [
+            .init(
+                id: "performance suite serialized missing trait",
+                source: "@Suite struct Performance {}",
+                path: "Tests/Testing Tests/Performance Tests.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "performance suite serialized trait",
+                source: "@Suite(.serialized) struct Performance {}",
+                path: "Tests/Testing Tests/Performance Tests.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "performance suite serialized different suite",
+                source: "@Suite struct Benchmark {}",
+                path: "Tests/Testing Tests/Benchmark Tests.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = TestingPerformanceSuiteSerializedVisitor(
                 source: source.file,

@@ -30,7 +30,11 @@ internal import SwiftSyntax
 /// concatenated `SequenceExprSyntax` of such arrays, since a
 /// SwiftPM manifest is a single file by construction and every one
 /// of those bindings is declared in the file the rule is already
-/// parsing (#24 section A). The canonical fix names the typed
+/// parsing (#24 section A). A manifest-local static
+/// `Target.Dependency` accessor is resolved to its shorthand getter or
+/// initializer, so an accessor backed by `.target`/`.product` remains
+/// measured while one backed by a string or `.byName` still fires. The
+/// canonical fix names the typed
 /// accessor: `.target(name:)` for a same-package target,
 /// `.product(name:package:)` for a product of a declared package
 /// dependency.
@@ -56,10 +60,33 @@ extension Lint.Rule {
         expectation: .clean
       ),
       .init(
-        id: "bare string dependency nonmanifest",
+        id: "bare string dependency versioned manifest typed target",
+        source: "let target = Target.target(name: \"Consumer\", "
+          + "dependencies: [.target(name: \"Owner\")])",
+        path: "Package@swift-6.4.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "bare string dependency nonmanifest boundary",
         source: "let target = Target.target(name: \"Consumer\", dependencies: [\"Owner\"])",
         path: "Sources/Consumer/Graph.swift",
         expectation: .clean
+      ),
+      .init(
+        id: "bare string dependency typed dependency accessor",
+        source: "extension String { static let cssTheming: Self = \"CSS Theming\" }; "
+          + "extension Target.Dependency { static var cssTheming: Self { "
+          + ".target(name: .cssTheming) } }; "
+          + "let target = Target.target(name: \"Consumer\", dependencies: [.cssTheming])",
+        path: "Package.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "bare string dependency accessor hiding string",
+        source: "extension Target.Dependency { static var owner: Self { \"Owner\" } }; "
+          + "let target = Target.target(name: \"Consumer\", dependencies: [.owner])",
+        path: "Package.swift",
+        expectation: .findings(1)
       ),
     ],
     observe: { source, severity in
@@ -126,6 +153,7 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
   /// call that references a constant is resolvable regardless of
   /// declaration order (#24 section A).
   private var fileScopeBindings: [Swift.String: ExprSyntax] = [:]
+  private var dependencyAccessorBodies: [Swift.String: ExprSyntax] = [:]
 
   init(source: Source.File, severity: Diagnostic.Severity, converter: SourceLocationConverter) {
     self.source = source
@@ -139,6 +167,11 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
   /// `Lint.Syntax.Conditional.statements(_:)` so a manifest with a
   /// top-level `#if` is covered too.
   internal func collectFileScopeBindings(_ file: SourceFileSyntax) {
+    dependencyAccessorBodies = manifestAccessorBodies(
+      in: file,
+      extendedTypes: ["Target.Dependency", "PackageDescription.Target.Dependency"],
+      static: true
+    )
     for statement in Lint.Syntax.Conditional.statements(file.statements) {
       guard let variable = statement.item.as(VariableDeclSyntax.self) else { continue }
       for binding in variable.bindings {
@@ -222,6 +255,15 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
       }
       return reference.positionAfterSkippingLeadingTrivia
     }
+    if element.is(MemberAccessExprSyntax.self) {
+      let classification = manifestBareStringDependencyClassification(
+        element,
+        accessorBodies: dependencyAccessorBodies,
+        unhandledSourceShape: &unhandledSourceShape
+      )
+      guard classification.handled else { return nil }
+      return classification.isBare ? element.positionAfterSkippingLeadingTrivia : nil
+    }
     if let call = element.as(FunctionCallExprSyntax.self),
       let member = call.calledExpression.as(MemberAccessExprSyntax.self),
       ["target", "product", "plugin"].contains(member.declName.baseName.text)
@@ -265,4 +307,48 @@ internal final class ManifestBareStringDependencyVisitor: SyntaxVisitor {
       )
     )
   }
+}
+
+private func manifestBareStringDependencyClassification(
+  _ expression: ExprSyntax,
+  accessorBodies: [Swift.String: ExprSyntax],
+  visited: Swift.Set<Swift.String> = [],
+  unhandledSourceShape: inout Swift.String?
+) -> (handled: Swift.Bool, isBare: Swift.Bool) {
+  if expression.is(StringLiteralExprSyntax.self) {
+    return (true, true)
+  }
+
+  if let call = expression.as(FunctionCallExprSyntax.self),
+    let member = call.calledExpression.as(MemberAccessExprSyntax.self)
+  {
+    switch member.declName.baseName.text {
+    case "byName":
+      return (true, true)
+    case "target", "product", "plugin":
+      return (true, false)
+    default:
+      break
+    }
+  }
+
+  if let member = expression.as(MemberAccessExprSyntax.self), member.base == nil {
+    let name = member.declName.baseName.text
+    guard !visited.contains(name), let body = accessorBodies[name] else {
+      unhandledSourceShape =
+        unhandledSourceShape ?? "unresolved target dependency accessor '\(name)'"
+      return (false, false)
+    }
+    return manifestBareStringDependencyClassification(
+      body,
+      accessorBodies: accessorBodies,
+      visited: visited.union([name]),
+      unhandledSourceShape: &unhandledSourceShape
+    )
+  }
+
+  unhandledSourceShape =
+    unhandledSourceShape
+    ?? "unhandled target dependency '\(expression.trimmedDescription)'"
+  return (false, false)
 }

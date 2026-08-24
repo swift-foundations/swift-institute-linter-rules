@@ -35,6 +35,26 @@ extension Lint.Rule {
   public static let `bitpattern rawvalue chain` = Lint.Rule(
     id: "bitpattern rawvalue chain",
     default: .warning,
+    controls: [
+      .init(
+        id: "bitpattern rawvalue chain labeled raw value",
+        source: "let value = Int(bitPattern: index.rawValue)",
+        path: "Sources/Raw Value Core/BitPatternRawValue.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "bitpattern rawvalue chain typed argument",
+        source: "let value = Int(bitPattern: index)",
+        path: "Sources/Raw Value Core/BitPatternTyped.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "bitpattern rawvalue chain different label",
+        source: "let value = Int(other: index.rawValue)",
+        path: "Sources/Raw Value Core/OtherInitializer.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // §A brand-owner recognizer: the owner's own `Int(bitPattern:
       // brand.rawValue)` integration overload ([INFRA-002]) is

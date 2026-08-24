@@ -41,6 +41,26 @@ extension Lint.Rule {
   public static let `raw value access` = Lint.Rule(
     id: "raw value access",
     default: .warning,
+    controls: [
+      .init(
+        id: "raw value access consumer",
+        source: "func value(_ tag: Tag) -> Int { tag.rawValue }",
+        path: "Sources/Structure Core/Consumer.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "raw value access initializer boundary",
+        source: "struct Wrapper { init(_ tag: Tag) { _ = tag.rawValue } }",
+        path: "Sources/Structure Core/Wrapper.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "raw value access enclosing self",
+        source: "struct Tag { func value() -> Int { self.rawValue } }",
+        path: "Sources/Structure Core/Tag.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       // §A brand-owner recognizer: when the run's own sources declare a
       // numeric brand, same-package `.rawValue` boundary access is
