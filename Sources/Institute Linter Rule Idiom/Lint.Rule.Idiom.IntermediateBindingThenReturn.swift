@@ -26,6 +26,26 @@ extension Lint.Rule {
   public static let `intermediate binding then return` = Lint.Rule(
     id: "intermediate binding then return",
     default: .warning,
+    controls: [
+      .init(
+        id: "intermediate binding then return redundant",
+        source: "func value() -> Int { let result = compute(); return result }",
+        path: "Sources/Idiom Core/IntermediateReturn.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "intermediate binding then return annotated",
+        source: "func value() -> Int { let result: Int = compute(); return result }",
+        path: "Sources/Idiom Core/AnnotatedReturn.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "intermediate binding then return direct",
+        source: "func value() -> Int { return compute() }",
+        path: "Sources/Idiom Core/DirectReturn.swift",
+        expectation: .clean
+      ),
+    ],
     observe: Lint.Rule.measured { source, severity in
       let visitor = IdiomIntermediateBindingThenReturnVisitor(
         source: source.file,
