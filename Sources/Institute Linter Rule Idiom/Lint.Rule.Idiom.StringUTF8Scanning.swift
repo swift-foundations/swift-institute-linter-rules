@@ -55,6 +55,26 @@ extension Lint.Rule {
     public static let `string utf8 scanning` = Lint.Rule(
         id: "string utf8 scanning",
         default: .warning,
+        controls: [
+            .init(
+                id: "string utf8 scanning unicode scalars",
+                source: "func scan(content: String) { _ = content.unicodeScalars.firstIndex(of: \"x\") }",
+                path: "Sources/String Core/UnicodeScalars.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "string utf8 scanning utf8",
+                source: "func scan(content: String) { _ = content.utf8.firstIndex(of: 0x78) }",
+                path: "Sources/String Core/UTF8.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "string utf8 scanning Foundation",
+                source: "import Foundation\nfunc scan(content: String) { _ = content.unicodeScalars.firstIndex(of: \"x\") }",
+                path: "Sources/String Foundation Integration/UnicodeScalars.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             guard !idiomFileImportsFoundation(source.tree) else {
                 return []
