@@ -24,6 +24,26 @@ extension Lint.Rule {
     public static let `compound suite name` = Lint.Rule(
         id: "compound suite name",
         default: .warning,
+        controls: [
+            .init(
+                id: "compound suite name compound suite",
+                source: "@Suite struct MemoryBufferTests {}",
+                path: "Sources/Naming Core/CompoundSuite.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "compound suite name leaf suite",
+                source: "@Suite struct Test {}",
+                path: "Sources/Naming Core/LeafSuite.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "compound suite name narrative suite",
+                source: "@Suite struct `Memory Buffer Tests` {}",
+                path: "Sources/Naming Core/NarrativeSuite.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingCompoundSuiteVisitor(
                 source: source.file,
