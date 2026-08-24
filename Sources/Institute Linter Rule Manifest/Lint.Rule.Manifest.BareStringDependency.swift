@@ -41,6 +41,26 @@ extension Lint.Rule {
   public static let `bare string dependency` = Lint.Rule(
     id: "bare string dependency",
     default: .warning,
+    controls: [
+      .init(
+        id: "bare string dependency manifest string",
+        source: "let target = Target.target(name: \"Consumer\", dependencies: [\"Owner\"])",
+        path: "Package.swift",
+        expectation: .findings(1)
+      ),
+      .init(
+        id: "bare string dependency manifest target",
+        source: "let target = Target.target(name: \"Consumer\", dependencies: [.target(name: \"Owner\")])",
+        path: "Package.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "bare string dependency nonmanifest",
+        source: "let target = Target.target(name: \"Consumer\", dependencies: [\"Owner\"])",
+        path: "Sources/Consumer/Graph.swift",
+        expectation: .clean
+      ),
+    ],
     observe: { source, severity in
       guard manifestIsPackageManifest(source.file.filePath) else {
         return Lint.Rule.Observation(
