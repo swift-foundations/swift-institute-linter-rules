@@ -42,6 +42,26 @@ extension Lint.Rule {
     public static let `architecture foundation type` = Lint.Rule(
         id: "architecture foundation type",
         default: .warning,
+        controls: [
+            .init(
+                id: "architecture foundation type qualified use",
+                source: "public var payload: Foundation.Data",
+                path: "Sources/Architecture Core/QualifiedUse.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "architecture foundation type unqualified short name",
+                source: "public var payload: Data",
+                path: "Sources/Architecture Core/UnqualifiedShortName.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "architecture foundation type integration exemption",
+                source: "public var payload: Foundation.Data",
+                path: "Sources/Architecture Foundation Integration/QualifiedUse.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             // Exempt per [RULE-EXEMPT-12] (path-scoped target): the dedicated,
             // opt-in `* Foundation Integration` subtarget is the sanctioned
