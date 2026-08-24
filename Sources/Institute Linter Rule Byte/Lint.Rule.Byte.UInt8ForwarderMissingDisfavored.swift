@@ -27,6 +27,26 @@ extension Lint.Rule {
     public static let `uint8 forwarder missing disfavored` = Lint.Rule(
         id: "uint8 forwarder missing disfavored",
         default: .error,
+        controls: [
+            .init(
+                id: "uint8 forwarder missing disfavored Byte domain",
+                source: "extension Array where Element == Byte { public func append(_ value: UInt8) {} }",
+                path: "Sources/Byte Core/UInt8Forwarder.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "uint8 forwarder missing disfavored annotation",
+                source: "extension Array where Element == Byte { @_disfavoredOverload public func append(_ value: UInt8) {} }",
+                path: "Sources/Byte Core/DisfavoredUInt8Forwarder.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "uint8 forwarder missing disfavored outside Byte",
+                source: "extension Array { public func appendRaw(_ value: UInt8) {} }",
+                path: "Sources/Byte Core/UnconstrainedUInt8Forwarder.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ByteUInt8ForwarderMissingDisfavoredVisitor(
                 source: source.file,
