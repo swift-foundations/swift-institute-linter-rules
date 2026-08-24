@@ -25,6 +25,26 @@ extension Lint.Rule {
     public static let `byte conforms to arithmetic protocol` = Lint.Rule(
         id: "byte conforms to arithmetic protocol",
         default: .error,
+        controls: [
+            .init(
+                id: "byte conforms to arithmetic protocol Byte",
+                source: "extension Byte: AdditiveArithmetic {}",
+                path: "Sources/Byte Core/ByteArithmetic.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "byte conforms to arithmetic protocol Sendable",
+                source: "extension Byte: Sendable {}",
+                path: "Sources/Byte Core/ByteSendable.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "byte conforms to arithmetic protocol UInt8",
+                source: "extension UInt8: AdditiveArithmetic {}",
+                path: "Sources/Byte Core/UInt8Arithmetic.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ByteConformsToArithmeticVisitor(
                 source: source.file,
