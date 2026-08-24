@@ -18,6 +18,26 @@ extension Lint.Rule {
     public static let `counter loop iteration` = Lint.Rule(
         id: "counter loop iteration",
         default: .warning,
+        controls: [
+            .init(
+                id: "counter loop iteration range",
+                source: "func scan(items: [Int]) { for index in 0..<items.count { use(items[index]) } }",
+                path: "Sources/Idiom Core/CounterLoop.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "counter loop iteration indices",
+                source: "func scan(items: [Int]) { items.indices.forEach { index in use(items[index]) } }",
+                path: "Sources/Idiom Core/IndicesIteration.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "counter loop iteration elements",
+                source: "func scan(items: [Int]) { for item in items { use(item) } }",
+                path: "Sources/Idiom Core/ElementIteration.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = IdiomIterationIntentVisitor(
                 source: source.file,
