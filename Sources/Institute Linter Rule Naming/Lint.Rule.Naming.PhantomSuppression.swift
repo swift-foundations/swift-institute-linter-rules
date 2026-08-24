@@ -41,6 +41,26 @@ extension Lint.Rule {
     public static let `phantom suppression` = Lint.Rule(
         id: "phantom suppression",
         default: .warning,
+        controls: [
+            .init(
+                id: "phantom suppression copyable only",
+                source: "extension Tagged where Underlying == Ordinal, Tag: ~Copyable { public var probe: Int { 0 } }",
+                path: "Sources/Naming Core/CopyableOnly.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "phantom suppression maximal bound",
+                source: "extension Tagged where Underlying == Ordinal, Tag: ~Copyable & ~Escapable { public var probe: Int { 0 } }",
+                path: "Sources/Naming Core/MaximalBound.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "phantom suppression stored value",
+                source: "extension Sequence { public func collect<Element: ~Copyable>(_ value: [Element]) {} }",
+                path: "Sources/Naming Core/StoredValue.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingPhantomSuppressionVisitor(
                 source: source.file,
