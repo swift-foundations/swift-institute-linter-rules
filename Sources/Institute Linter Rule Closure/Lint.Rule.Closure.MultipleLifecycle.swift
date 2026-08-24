@@ -19,6 +19,26 @@ extension Lint.Rule {
     public static let `unlabeled lifecycle closure` = Lint.Rule(
         id: "unlabeled lifecycle closure",
         default: .warning,
+        controls: [
+            .init(
+                id: "unlabeled lifecycle closure secondary",
+                source: "func perform(_ body: () -> Void, _ completion: () -> Void) {}",
+                path: "Sources/Closure Core/UnlabeledSecondary.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "unlabeled lifecycle closure labelled secondary",
+                source: "func perform(_ body: () -> Void, completion: () -> Void) {}",
+                path: "Sources/Closure Core/LabelledSecondary.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "unlabeled lifecycle closure single",
+                source: "func perform(_ body: () -> Void) {}",
+                path: "Sources/Closure Core/SingleClosure.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ClosureMultipleLifecycleVisitor(
                 source: source.file,
