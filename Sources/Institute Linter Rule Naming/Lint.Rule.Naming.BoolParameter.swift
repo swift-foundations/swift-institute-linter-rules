@@ -27,6 +27,26 @@ extension Lint.Rule {
     public static let `bool public parameter` = Lint.Rule(
         id: "bool public parameter",
         default: .warning,
+        controls: [
+            .init(
+                id: "bool public parameter public bool",
+                source: "public func open(create: Bool) {}",
+                path: "Sources/Naming Core/PublicBool.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "bool public parameter internal bool",
+                source: "func open(create: Bool) {}",
+                path: "Sources/Naming Core/InternalBool.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "bool public parameter enum alternative",
+                source: "public enum Mode { case create }; public func open(mode: Mode) {}",
+                path: "Sources/Naming Core/EnumAlternative.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = NamingBoolParameterVisitor(
                 source: source.file,
