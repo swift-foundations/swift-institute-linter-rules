@@ -38,6 +38,26 @@ extension Lint.Rule {
     public static let `architecture namespace shape` = Lint.Rule(
         id: "architecture namespace shape",
         default: .warning,
+        controls: [
+            .init(
+                id: "architecture namespace shape instance member",
+                source: "public enum Render { public func run() {} }",
+                path: "Sources/Architecture Core/InstanceMember.swift",
+                expectation: .findings(1)
+            ),
+            .init(
+                id: "architecture namespace shape static member",
+                source: "public enum Render { public static func run() {} }",
+                path: "Sources/Architecture Core/StaticMember.swift",
+                expectation: .clean
+            ),
+            .init(
+                id: "architecture namespace shape inhabited enum",
+                source: "public enum Render { case ready; public func run() {} }",
+                path: "Sources/Architecture Core/InhabitedEnum.swift",
+                expectation: .clean
+            ),
+        ],
         observe: Lint.Rule.measured { source, severity in
             let visitor = ArchitectureNamespaceShapeVisitor(
                 source: source.file,
