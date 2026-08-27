@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -591,7 +591,7 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
     #expect(findings.isEmpty)
   }
 
-  // MARK: - #32 six-name allowlist batch (swift-array-primitives#9 adjudication)
+  // MARK: - #32 six-name allowlist batch (swift-array#9 adjudication)
 
   @Test
   func `removeAll(keepingCapacity:) is NOT flagged`() {
@@ -651,7 +651,7 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
   @Test
   func `withElement is NOT flagged`() {
     // Stdlib withX scoped-borrow family — 8 declaring packages across
-    // swift-primitives.
+    // swift-molecules.
     let source = """
       extension MyArray {
           public func withElement<R: ~Copyable, E: Error>(
@@ -668,7 +668,7 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
   @Test
   func `freeCapacity is NOT flagged`() {
     // L1 container-family vocabulary — 4 declaring packages across
-    // swift-primitives (Array, SlotMap, Queue, Queue.DoubleEnded).
+    // swift-molecules (Array, SlotMap, Queue, Queue.DoubleEnded).
     let source = """
       extension MyArray {
           public var freeCapacity: Index<Element>.Count { capacity - count }
@@ -697,7 +697,7 @@ extension Lint.Rule.`compound identifier Tests`.`Edge Case` {
 
   @Test
   func `narrative backticked test name with embedded API reference is NOT flagged`() {
-    // Cohort precedent from swift-foundations/swift-json:
+    // Cohort precedent from swift-compositions/swift-json:
     //   func `next emits objectStart and objectEnd for empty object`()
     // The embedded `objectStart` / `objectEnd` API references carry
     // internal uppercase that pre-exemption would fire the rule.
@@ -1153,7 +1153,7 @@ extension Lint.Rule.`compound identifier Tests`.Unit {
     let source = "public struct Support { public static var sampleBytes: Int { 0 } }"
     let findings = Lint.Rule.`compound identifier Tests`.findings(
       in: source,
-      file: "Tests/Support/Binary Base Primitives Test Support/Support.swift"
+      file: "Tests/Support/Binary Base Test Support/Support.swift"
     )
     #expect(findings.count == 1)
   }

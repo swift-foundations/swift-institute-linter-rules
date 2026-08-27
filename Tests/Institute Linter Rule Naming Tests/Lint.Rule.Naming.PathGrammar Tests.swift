@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -195,7 +195,7 @@ extension Lint.Rule.`path name grammar Tests`.`Edge Case` {
     // segments bind here.
     let findings = Lint.Rule.`path name grammar Tests`.findings(
       in: "extension Array { struct Dynamic {} }",
-      file: "Sources/Collections Primitives/Array.Dynamic+CustomStringConvertible.swift"
+      file: "Sources/Collections/Array.Dynamic+CustomStringConvertible.swift"
     )
     #expect(findings.isEmpty)
   }

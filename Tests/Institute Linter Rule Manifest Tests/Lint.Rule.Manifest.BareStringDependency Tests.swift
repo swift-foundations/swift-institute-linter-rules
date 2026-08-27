@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -72,7 +72,7 @@ extension Lint.Rule.`bare string dependency Tests`.Unit {
                   name: "Consumer",
                   dependencies: [
                     .target(name: "Owner"),
-                    .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+                    .product(name: "Linter", package: "swift-linter"),
                   ]
                 )
               ]

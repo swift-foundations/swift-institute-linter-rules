@@ -2,7 +2,7 @@
 
 ![Development Status](https://img.shields.io/badge/status-active--development-blue.svg)
 
-Institute-tier lint rule packs for [swift-linter](https://github.com/swift-foundations/swift-linter) — SwiftSyntax-based rules covering naming, typed throws, byte discipline, memory safety, platform layering, and code structure, published together as `Lint.Rule.Bundle.institute`.
+Institute-tier lint rule packs for [swift-linter](https://github.com/swift-compositions/swift-linter) — SwiftSyntax-based rules covering naming, typed throws, byte discipline, memory safety, platform layering, and code structure, published together as `Lint.Rule.Bundle.institute`.
 
 ---
 
@@ -18,7 +18,7 @@ import Linter_Institute_Rules
 
 Lint.run(dependencies: [
     .package(
-        url: "https://github.com/swift-foundations/swift-institute-linter-rules.git",
+        url: "https://github.com/swift-compositions/swift-institute-linter-rules.git",
         branch: "main",
         products: ["Linter Institute Rules"]
     ),
@@ -39,7 +39,7 @@ For direct use of the rule definitions in Swift code — for example, composing 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/swift-foundations/swift-institute-linter-rules.git", branch: "main")
+    .package(url: "https://github.com/swift-compositions/swift-institute-linter-rules.git", branch: "main")
 ]
 ```
 
@@ -94,8 +94,8 @@ Every rule's diagnostic message is meant to state the default disposition (how t
 
 ## Related Packages
 
-- [swift-linter](https://github.com/swift-foundations/swift-linter) — The lint engine that consumes these packs via `Lint.swift`.
-- [swift-linter-primitives](https://github.com/swift-primitives/swift-linter-primitives) — `Lint.Rule` and source-model primitives the rules are built on.
+- [swift-linter](https://github.com/swift-compositions/swift-linter) — The lint engine that consumes these packs via `Lint.swift`.
+- [swift-linter](https://github.com/swift-molecules/swift-linter) — `Lint.Rule` and source-model primitives the rules are built on.
 - swift-linter-rules (public release pending) — Universal-tier rule packs; `Lint.Rule.Bundle.institute` includes its universal bundle.
 
 ---

@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules
 import Testing
 
@@ -33,7 +33,7 @@ import Testing
 /// the property this test exists to enforce.
 private let allDeclaredRuleIDs: Swift.Set<Swift.String> = [
   "ad hoc box class",
-  // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
+  // Architecture pack (TX-A2, swift-compositions/swift-linter#44).
   "architecture foundation type",
   "architecture import boundary",
   "architecture namespace shape",

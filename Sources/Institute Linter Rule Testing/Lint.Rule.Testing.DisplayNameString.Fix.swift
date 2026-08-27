@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Linter_Primitives
+internal import Linter
 internal import SwiftSyntax
 
 /// Removes a duplicate display-name argument without changing the declaration

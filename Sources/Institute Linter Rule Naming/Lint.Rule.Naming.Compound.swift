@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Wave-1 — compound identifiers (verb-noun camelCase methods/properties).
@@ -184,7 +184,7 @@ private let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.String
   // Scoped-access counterparts to the `span` / `mutableSpan` computed
   // properties above — the stdlib `withX` scoped-borrow idiom applied to
   // the same SE-0517 non-copyable Span access. Ratified per the
-  // swift-array-primitives#9 adjudication (comment 5134794606,
+  // swift-array#9 adjudication (comment 5134794606,
   // 2026-07-30), Escalation item 1; six-name #32 batch.
   "withSpan": "SE-0517 Span scoped-access counterpart to the allowlisted `span` getter",
   "withMutableSpan":
@@ -192,24 +192,24 @@ private let namingCompoundSwiftNativeIdiomCitations: [Swift.String: Swift.String
   // Swift.Array bulk-mutation vocabulary the front-door institute
   // container types mirror to preserve their `Swift.Array`-shadowing
   // source-compatibility contract ([DS-028]). Ratified per the
-  // swift-array-primitives#9 adjudication (comment 5134794606,
+  // swift-array#9 adjudication (comment 5134794606,
   // 2026-07-30), Escalation item 1; six-name #32 batch.
   "removeAll": "Swift.Array.removeAll(keepingCapacity:)",
   "reserveCapacity": "Swift.Array.reserveCapacity(_:)",
   // Stdlib `withX` scoped-borrow family, applied to a single-element
-  // scoped access. Declared across 8 packages in swift-primitives.
-  // Ratified per the swift-array-primitives#9 adjudication (comment
+  // scoped access. Declared across 8 packages in swift-molecules.
+  // Ratified per the swift-array#9 adjudication (comment
   // 5134794606, 2026-07-30), Escalation item 1; six-name #32 batch.
   "withElement":
-    "stdlib withX scoped-borrow family — 8 declaring packages across swift-primitives",
+    "stdlib withX scoped-borrow family — 8 declaring packages across swift-molecules",
   // L1 container-family vocabulary: the identical member exists on
-  // `SlotMap` (swift-slot-map-primitives), `Queue`
-  // (swift-queue-primitives), and `Queue.DoubleEnded`
-  // (swift-deque-primitives) in addition to `Array` — 4 declaring
-  // packages. Ratified per the swift-array-primitives#9 adjudication
+  // `SlotMap` (swift-slot-map), `Queue`
+  // (swift-queue), and `Queue.DoubleEnded`
+  // (swift-deque) in addition to `Array` — 4 declaring
+  // packages. Ratified per the swift-array#9 adjudication
   // (comment 5134794606, 2026-07-30), Escalation item 1; six-name
   // #32 batch.
-  "freeCapacity": "L1 container-family vocabulary — 4 declaring packages across swift-primitives",
+  "freeCapacity": "L1 container-family vocabulary — 4 declaring packages across swift-molecules",
   // SE-0253 callable values of user-defined nominal types: the compiler
   // recognises a method literally named `callAsFunction` and synthesises
   // `instance(args)` call-site syntax against it. The compound name is
@@ -285,7 +285,7 @@ private let namingCompoundProtocolWitnessMethodCitations:
     // Institute Sequence.Iterator.`Protocol` sole protocol requirement.
     // Span-based primitive (`mutating func nextSpan(maximumCount:) -> Span<Element>`)
     // is the institute counterpart to Swift.IteratorProtocol's `next()`;
-    // see `swift-primitives/swift-sequence-primitives/Sources/Sequence Primitives Core/Sequence.Iterator.Protocol.swift`.
+    // see `swift-molecules/swift-sequence/Sources/Sequence Core/Sequence.Iterator.Protocol.swift`.
     "nextSpan":
       (
         "Sequence.Iterator.`Protocol`.nextSpan(maximumCount:) — institute span-based iterator primitive aligned with Swift.IteratorProtocol vocabulary",
@@ -378,7 +378,7 @@ internal final class NamingCompoundVisitor: SyntaxVisitor {
     // attribute lives in a different file, the walker stops at the
     // extension and the exemption never fires. Surfaced 2026-05-15
     // by the byte-extraction arc against
-    // `swift-parser-primitives/Sources/Parser Primitives Core/Parser.Builder.swift`
+    // `swift-parser/Sources/Parser Core/Parser.Builder.swift`
     // (the extension lives in one file; the `@resultBuilder` decl in
     // another). False-negative risk of name-only relaxation is
     // negligible — the 8 builder method names are unique

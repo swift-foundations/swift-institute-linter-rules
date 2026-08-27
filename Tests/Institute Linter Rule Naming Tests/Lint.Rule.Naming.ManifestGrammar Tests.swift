@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -169,9 +169,9 @@ extension Lint.Rule.`manifest naming grammar Tests`.`Edge Case` {
     // correspondence predicate's reach, deliberately silent.
     let source = """
       let package = Package(
-        name: "swift-memory-primitives",
+        name: "swift-memory",
         targets: [
-          .target(name: "Memory Primitives Test Support", path: "Tests/Support")
+          .target(name: "Memory Test Support", path: "Tests/Support")
         ]
       )
       """

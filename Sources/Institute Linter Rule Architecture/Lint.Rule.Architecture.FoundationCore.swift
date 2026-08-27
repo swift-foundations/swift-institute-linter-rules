@@ -9,12 +9,12 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Foundation-freedom governs *use* of Foundation types, not just the import
 /// statement. Citation: `[ARCH-LAYER-007]`, `[ARCH-FOUND-001]` (TX-A2,
-/// swift-foundations/swift-linter#44).
+/// swift-compositions/swift-linter#44).
 ///
 /// `Lint.Rule.Foundation.Import` owns the import form, and its own doctrine
 /// records the residual blind spot: a Foundation type reached transitively —

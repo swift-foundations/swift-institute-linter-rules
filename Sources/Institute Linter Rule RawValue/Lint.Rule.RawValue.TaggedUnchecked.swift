@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// `Tagged<…>(_unchecked: …)` construction sites SHOULD go through a
@@ -18,7 +18,7 @@ internal import SwiftSyntax
 /// resort).
 ///
 /// `_unchecked` bypasses the typed-init alternatives that
-/// `swift-tagged-primitives`'s standard-library-integration target ships
+/// `swift-tagged`'s standard-library-integration target ships
 /// (`ExpressibleBy*Literal`, `LosslessStringConvertible`, …); when one of
 /// those typed inits fits, the typed form is preferred because the
 /// underlying value is then validated by the literal-protocol's
@@ -37,9 +37,9 @@ internal import SwiftSyntax
 ///     Underlying, literal-vs-canonical comparisons, hot-path
 ///     construction benchmarks).
 ///
-/// Promoted 2026-07-07 from swift-tagged-primitives' nested `Lint/` PoC
+/// Promoted 2026-07-07 from swift-tagged' nested `Lint/` PoC
 /// (`Lint.Rule.TaggedDomainAudit`, architecture cohort Phase A) per
-/// principal ruling; the PoC's `Tagged_Primitives` domain-anchor import
+/// principal ruling; the PoC's `Tagged` domain-anchor import
 /// was a nested-package-mechanism proof and is intentionally dropped —
 /// the predicate is purely syntactic.
 extension Lint.Rule {
@@ -82,7 +82,7 @@ extension Lint.Rule {
 @usableFromInline
 internal let rawValueTaggedUncheckedMessage: Swift.String =
     "[tagged unchecked with typed alternative] [CONV-015]: "
-    + "`Tagged<…>(_unchecked: …)` bypasses tagged-primitives' typed-init alternatives "
+    + "`Tagged<…>(_unchecked: …)` bypasses tagged' typed-init alternatives "
     + "(ExpressibleBy*Literal conformances in the Standard Library Integration target). "
     + "Prefer a literal-typed init when the underlying type's literal protocol fits; "
     + "reach for `_unchecked` only when the underlying value is already validated upstream "

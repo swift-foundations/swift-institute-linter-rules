@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -140,7 +140,7 @@ extension Lint.Rule.`leaf body typealias missing Tests`.Unit {
   @Test
   func `module-qualified Parser conformance still flagged`() {
     let source = """
-      extension X: Parser_Primitives_Core.Parser.`Protocol` {
+      extension X: Parser_Core.Parser.`Protocol` {
           public typealias Input = [UInt8]
           public typealias Output = Int
           public typealias Failure = Never

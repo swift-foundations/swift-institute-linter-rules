@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// `Byte` MUST NOT gain stdlib arithmetic conformances. Per
@@ -140,9 +140,9 @@ internal final class ByteConformsToArithmeticVisitor: SyntaxVisitor {
     }
 }
 
-/// Returns true when `type` is `Byte` (with optional `Byte_Primitives.Byte`
+/// Returns true when `type` is `Byte` (with optional `Byte.Byte`
 /// module qualification). The qualified form requires the base to
-/// actually be `Byte_Primitives` — an arbitrary consumer namespace that
+/// actually be `Byte` — an arbitrary consumer namespace that
 /// happens to nest an unrelated type named `Byte` (e.g.
 /// `RFC_1234.Byte`) must not match.
 internal func extensionIsOnByte(_ type: TypeSyntax) -> Swift.Bool {
@@ -152,7 +152,7 @@ internal func extensionIsOnByte(_ type: TypeSyntax) -> Swift.Bool {
     if let memberType = type.as(MemberTypeSyntax.self) {
         guard Lint.Syntax.Identifier.unescaped(memberType.name.text) == "Byte" else { return false }
         if let base = memberType.baseType.as(IdentifierTypeSyntax.self) {
-            return Lint.Syntax.Identifier.unescaped(base.name.text) == "Byte_Primitives"
+            return Lint.Syntax.Identifier.unescaped(base.name.text) == "Byte"
         }
         return false
     }

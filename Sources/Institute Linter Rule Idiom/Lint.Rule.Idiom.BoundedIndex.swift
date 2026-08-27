@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Static-capacity types (`<let N: Int>` value-generic parameter) MUST
@@ -89,7 +89,7 @@ internal func idiomHasValueGenericParameter(_ clause: GenericParameterClauseSynt
 /// a separate copy here, not a shared call: `Institute Linter Rule Idiom`
 /// and `Institute Linter Rule Closure` are independent SwiftPM targets with
 /// no dependency edge between them (per this package's design, every rule
-/// pack depends only on `Linter Primitives` and `SwiftSyntax`). Sharing this
+/// pack depends only on `Linter` and `SwiftSyntax`). Sharing this
 /// helper across packs would mean introducing a new common target and
 /// wiring every pack to depend on it — an architecture decision, not a
 /// mechanical dedup, and out of this pass's scope. Recorded as the blocker

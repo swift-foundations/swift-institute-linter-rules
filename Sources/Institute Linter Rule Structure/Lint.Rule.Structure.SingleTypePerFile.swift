@@ -9,8 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Cardinal_Primitives
-public import Linter_Primitives
+internal import Cardinal
+public import Linter
 internal import SwiftSyntax
 
 /// Wave 2b finalization (2026-05-10) — one type declaration per file.

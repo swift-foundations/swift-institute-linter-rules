@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -65,7 +65,7 @@ extension Lint.Rule.`tagged unchecked with typed alternative Tests`.Unit {
 
   @Test
   func `module-qualified Tagged with _unchecked is flagged`() {
-    let source = "let id = Tagged_Primitives.Tagged(_unchecked: 0)"
+    let source = "let id = Tagged.Tagged(_unchecked: 0)"
     let findings = Lint.Rule.`tagged unchecked with typed alternative Tests`.findings(
       in: source
     )
@@ -182,7 +182,7 @@ extension Lint.Rule.`tagged unchecked with typed alternative Tests`.`Edge Case` 
   @Test
   func `_unchecked call example in a doc comment is NOT flagged`() {
     // Doc-comment content is trivia, never expression nodes — the
-    // fleet's only pre-promotion mention (swift-linter-primitives
+    // fleet's only pre-promotion mention (swift-linter
     // Lint.Rule.Bundle.swift:45 doc example) must stay silent.
     let source = """
       /// Enable via:

@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// A phantom generic parameter — a pure compile-time discriminator over
@@ -32,7 +32,7 @@ internal import SwiftSyntax
 ///      reaches the storage type as a nested generic argument of the
 ///      requirement's concrete type, not through a `: P` text position).
 ///      Same-signature column-generic L1 shape; see [API-NAME-010b]
-///      outcome record, swift-array-primitives#9 adjudication (comment
+///      outcome record, swift-array#9 adjudication (comment
 ///      5134794606, 2026-07-30).
 /// The bare-`<P>` form and the `extension Tagged where … Tag: ~Copyable`
 /// associatedtype/conditional-conformance companions are intentionally out of
@@ -99,7 +99,7 @@ internal final class NamingPhantomSuppressionVisitor: SyntaxVisitor {
     // definitionally phantom). Other where-clause identifiers (`Underlying`,
     // `Base`, …) name STORED / value parameters, where a `~Copyable`-only
     // bound is correct — firing there was a false-positive class surfaced
-    // on swift-tagged-primitives' own surface (Tagged.swift `Underlying:
+    // on swift-tagged' own surface (Tagged.swift `Underlying:
     // ~Copyable` extensions, 2026-07-07 tower-validation follow-up).
     override func visit(_ node: ExtensionDeclSyntax) -> SyntaxVisitorContinueKind {
         guard let wrapper = phantomWrapperBaseName(node.extendedType) else { return .visitChildren }
@@ -209,7 +209,7 @@ private func phantomParameterName(ofWrapper leaf: Swift.String) -> Swift.String 
 }
 
 /// The wrapper's leaf name if `type` is `Tagged` / `Index` / `Property`
-/// (bare or member-qualified, e.g. `Index_Primitives.Index`), else nil.
+/// (bare or member-qualified, e.g. `Index.Index`), else nil.
 private func phantomWrapperBaseName(_ type: TypeSyntax) -> Swift.String? {
     let leaf: Swift.String?
     if let identifier = type.as(IdentifierTypeSyntax.self) {
@@ -294,7 +294,7 @@ private let namingPhantomEscapableConstrainedGenericTypes: [Swift.String] = [
 ///
 /// Phantom-suppression defect (swift-institute/.github#90 comment
 /// 5150641576 item 1, sourced from the batch-1 backlog, comment
-/// 5150595934, `swift-primitives/swift-ordinal-primitives` entry
+/// 5150595934, `swift-molecules/swift-ordinal` entry
 /// "phantom-suppression prescribed fix doesn't compile"): a `<P: ~Copyable>`
 /// used as a `Tagged<P, …>` discriminator AND as `UnsafeMutablePointer<P>`'s
 /// `Pointee` is structurally `Escapable`. `Pointee` has no `~Escapable`
@@ -325,7 +325,7 @@ private func usedAtStructurallyEscapablePosition(
 /// e.g. `where S == Buffer<Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear`
 /// binds `E` as a nested generic argument of `Contiguous`, which stores
 /// values of `E`. Citation: [API-NAME-010b] outcome record,
-/// swift-array-primitives#9 adjudication (comment 5134794606, 2026-07-30).
+/// swift-array#9 adjudication (comment 5134794606, 2026-07-30).
 ///
 /// This is a same-signature shape the text-based ``usedAsStoredValue(_:in:)``
 /// heuristic cannot see: `name` never appears at a `: E` / `[E]` / `-> E`

@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Top-level `@Suite struct X` declarations MUST contain all three
@@ -133,7 +133,7 @@ internal final class FrameworkSuiteCategoriesVisitor: SyntaxVisitor {
 /// Suffix-based, matching the `.Suite`-suffix handling this package's other
 /// predicates already use (`Lint.Rule.Structure.MinimalTypeBody`'s
 /// extension-pattern-attribute check, `Lint.Rule.Throws.Untyped`'s leaf
-/// match) — see swift-foundations/swift-institute-linter-rules#45. A bare
+/// match) — see swift-compositions/swift-institute-linter-rules#45. A bare
 /// name that merely ENDS IN "Suite" without the separating dot (`@BarSuite`)
 /// does not match: `"BarSuite".hasSuffix(".Suite")` is false because there
 /// is no dot before the suffix.

@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// A target whose name ends in `Foundation Integration` MUST be a
@@ -20,7 +20,7 @@ internal import SwiftSyntax
 /// conditions: the target must (a) be named `* Foundation
 /// Integration`, (b) be a leaf product of its own, and (c) have no
 /// core target depend on it directly or transitively. The companion
-/// Tier 2 SwiftLint carve-out (`swift-primitives/.github@498f76a`)
+/// Tier 2 SwiftLint carve-out (`swift-molecules/.github@498f76a`)
 /// checks only (a) — a source-path regex exclusion has no view of
 /// `Package.swift`'s target graph, so it cannot see (b) or (c). This
 /// rule mechanizes what the manifest CAN prove: (b) directly (is
@@ -38,20 +38,20 @@ internal import SwiftSyntax
 /// computed name/dependency shapes remain unmeasured.
 ///
 /// Reference sanctioned shape:
-/// `swift-primitives/swift-structured-queries-primitives`'s
-/// `Structured Queries Primitives Foundation Integration` — declared
+/// `swift-molecules/swift-structured-queries`'s
+/// `Structured Queries Foundation Integration` — declared
 /// as its own `.library` product, and appears in no other target's
 /// `dependencies:` array (it may depend outward on the core target;
 /// only INCOMING edges are checked).
 ///
-/// Citation: `swift-primitives/swift-structured-queries-primitives#2`
+/// Citation: `swift-molecules/swift-structured-queries#2`
 /// (coordinator ruling, 2026-07-30) — companion to the Tier 2
 /// amendment; filed as `swift-institute-linter-rules#31`.
 ///
 /// ADVISORY at introduction, per the standing graduation discipline
 /// (issue #11) — promote to `.error` only after fleet validation.
 extension Lint.Rule {
-  /// Flags a `* Foundation Integration` target that is not its own leaf product, or that another target depends on ([swift-structured-queries-primitives#2]).
+  /// Flags a `* Foundation Integration` target that is not its own leaf product, or that another target depends on ([swift-structured-queries#2]).
   public static let `foundation integration leaf target` = Lint.Rule(
     id: "foundation integration leaf target",
     default: .warning,
@@ -144,7 +144,7 @@ private let manifestFoundationIntegrationLeafnessMessage: Swift.String =
   + "only "
   + "this target, or remove it from whichever other target's "
   + "`dependencies:` still lists it (per "
-  + "swift-structured-queries-primitives#2)."
+  + "swift-structured-queries#2)."
 
 /// The target-declaring manifest factory members this rule inspects
 /// for both the FI-suffixed target's own declaration and every other

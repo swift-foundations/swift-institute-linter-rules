@@ -1,7 +1,7 @@
 # .github/metadata.yaml
 description: "Institute-tier SwiftSyntax lint rule packs (naming, typed throws, byte discipline, memory safety, platform layering) for swift-linter."
 topics:
-  - foundations
+  - compositions
   - linter
   - static-analysis
 homepage: "https://swift-institute.org"

@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Wave 4 (mechanization-program) — ad-hoc `_Box` (or `Box` / `_Storage`)
@@ -56,7 +56,7 @@ private let namingBoxClassMessage: Swift.String =
     "[ad hoc box class] [IMPL-107]: ad-hoc `_Box` / `_Storage` reference "
     + "wrapper duplicates ecosystem primitives. Prefer `Reference<T>` "
     + "(shared mutable indirection) or `Owned<T>` (unique-owner indirection) "
-    + "from `swift-ownership-primitives` so the wrapper's ownership story "
+    + "from `swift-ownership` so the wrapper's ownership story "
     + "is checked by the type system, not ad-hoc."
 
 private let namingBoxClassFlaggedNames: Swift.Set<Swift.String> = [
@@ -100,7 +100,7 @@ internal final class NamingBoxClassVisitor: SyntaxVisitor {
         // primitives and similar low-level types. The rule's
         // recommended alternatives `Reference<T>` / `Owned<T>` are
         // themselves built using this pattern — within their canonical
-        // home (swift-ownership-primitives) no recommended alternative
+        // home (swift-ownership) no recommended alternative
         // exists for self-reference, and the `@usableFromInline`
         // annotation serves elsewhere as an opt-in signal of "this is
         // a known reference-wrapper backing for a value type, not an

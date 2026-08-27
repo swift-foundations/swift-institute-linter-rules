@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// No package's main target imports the Foundation module family, at any of
@@ -33,7 +33,7 @@ extension Lint.Rule {
             ),
             .init(
                 id: "foundation import unrelated module",
-                source: "import Binary_Primitives",
+                source: "import Binary",
                 path: "Sources/Foundation Core/BinaryPrimitivesImport.swift",
                 expectation: .clean
             ),
@@ -92,7 +92,7 @@ extension Lint.Rule {
 /// The directory-name suffix identifying a dedicated, opt-in Foundation
 /// Integration subtarget (`[PRIM-FOUND-001]`). The leading space mandates a
 /// non-empty brand token, so real targets — `JSON Foundation Integration`,
-/// `Structured Queries Primitives Foundation Integration` — match while a
+/// `Structured Queries Foundation Integration` — match while a
 /// core target merely NAMED with `Foundation` in it (`HTML Foundation`) does
 /// not.
 private let foundationIntegrationTargetSuffix: Swift.String = " Foundation Integration"
@@ -194,8 +194,8 @@ internal let foundationImportMessage: Swift.String =
     "[foundation import] [ARCH-LAYER-007]: no package's main target may import "
     + "the Foundation module family (`Foundation`, `FoundationEssentials`, "
     + "`FoundationNetworking`, `FoundationXML`) — at ANY of the five layers, not "
-    + "just primitives. Use institute primitives (`Time_Primitives`, "
-    + "`Binary_Primitives`, etc.) instead. Foundation-adjacent interop belongs in "
+    + "just primitives. Use institute primitives (`Time`, "
+    + "`Binary`, etc.) instead. Foundation-adjacent interop belongs in "
     + "a separately-declared `* Foundation Integration` subtarget that consumers "
     + "opt into, never the main target. (`[PRIM-FOUND-001]` is the Layer-1 "
     + "specialization of this rule; it is not a primitives-only rule.)"

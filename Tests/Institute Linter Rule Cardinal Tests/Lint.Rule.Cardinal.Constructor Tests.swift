@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -117,19 +117,19 @@ extension Lint.Rule.`zero or one literal Tests`.Unit {
   }
 
   @Test
-  func `Cardinal_Primitives-qualified Cardinal(0) is flagged`() {
+  func `Cardinal-qualified Cardinal(0) is flagged`() {
     // Mirror image of the `.init` recursion: a qualified reference to
     // the type itself, with no `.init` in between.
     let findings = Lint.Rule.`zero or one literal Tests`.findings(
-      in: "let c = Cardinal_Primitives.Cardinal(0)"
+      in: "let c = Cardinal.Cardinal(0)"
     )
     #expect(findings.count == 1)
   }
 
   @Test
-  func `Cardinal_Primitives-qualified Cardinal dot init(1) is flagged`() {
+  func `Cardinal-qualified Cardinal dot init(1) is flagged`() {
     let findings = Lint.Rule.`zero or one literal Tests`.findings(
-      in: "let c = Cardinal_Primitives.Cardinal.init(1)"
+      in: "let c = Cardinal.Cardinal.init(1)"
     )
     #expect(findings.count == 1)
   }

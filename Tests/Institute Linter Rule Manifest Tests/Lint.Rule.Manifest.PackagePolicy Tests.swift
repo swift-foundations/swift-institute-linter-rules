@@ -1,4 +1,4 @@
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import Testing
 
@@ -124,7 +124,7 @@ extension Lint.Rule.`package policy revision 1 Tests`.`Edge Case` {
       """
     let observation = Lint.Rule.`package policy revision 1 Tests`.observation(
       source,
-      file: "/workspace/swift-primitives/macro-fixture/Package.swift"
+      file: "/workspace/swift-molecules/macro-fixture/Package.swift"
     )
     #expect(observation.coverage == .measured)
     #expect(observation.findings.count == 1)

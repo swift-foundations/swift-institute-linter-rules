@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -97,9 +97,9 @@ extension Lint.Rule.`byte conforms to arithmetic protocol Tests`.Unit {
     }
 
     @Test
-    func `Byte_Primitives-qualified extension conforming to Numeric is flagged`() {
+    func `Byte-qualified extension conforming to Numeric is flagged`() {
         let source = """
-            extension Byte_Primitives.Byte: Numeric {}
+            extension Byte.Byte: Numeric {}
             """
         let result = Lint.Rule.`byte conforms to arithmetic protocol Tests`.findings(in: source)
         #expect(result.count == 1)
@@ -110,7 +110,7 @@ extension Lint.Rule.`byte conforms to arithmetic protocol Tests`.`Edge Case` {
     @Test
     func `unrelated namespace's nested Byte type is NOT flagged`() {
         // `RFC_1234.Byte` is an unrelated nested type in a consumer
-        // namespace, not `Byte_Primitives.Byte` — the rule must not accept
+        // namespace, not `Byte.Byte` — the rule must not accept
         // any qualified type whose leaf happens to be `Byte`.
         let source = """
             extension RFC_1234.Byte: AdditiveArithmetic {}

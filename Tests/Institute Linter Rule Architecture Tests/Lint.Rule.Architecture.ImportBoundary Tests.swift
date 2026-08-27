@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -37,20 +37,20 @@ extension Lint.Rule.`architecture import boundary Tests` {
 
     @Test
     func `@_exported import in an ordinary source file is flagged`() {
-        let findings = Self.findings(in: "@_exported import Binary_Primitives")
+        let findings = Self.findings(in: "@_exported import Binary")
         #expect(findings.count == 1)
     }
 
     @Test
     func `@_exported public import combined form is flagged`() {
         // Attribute AND access modifier on one line — the shape a regex loses.
-        let findings = Self.findings(in: "@_exported public import Binary_Primitives")
+        let findings = Self.findings(in: "@_exported public import Binary")
         #expect(findings.count == 1)
     }
 
     @Test
     func `a plain import is not flagged`() {
-        let findings = Self.findings(in: "public import Binary_Primitives")
+        let findings = Self.findings(in: "public import Binary")
         #expect(findings.isEmpty)
     }
 
@@ -58,7 +58,7 @@ extension Lint.Rule.`architecture import boundary Tests` {
     func `the umbrella exports file is exempt`() {
         // Both-direction fixture for the [RULE-EXEMPT-12] umbrella carve-out.
         let findings = Self.findings(
-            in: "@_exported public import Binary_Primitives",
+            in: "@_exported public import Binary",
             file: "Sources/Model Core/exports.swift"
         )
         #expect(findings.isEmpty)
@@ -72,7 +72,7 @@ extension Lint.Rule.`architecture import boundary Tests` {
             "Sources/Model Core/Model.exports.swift",
         ] {
             let findings = Self.findings(
-                in: "@_exported import Binary_Primitives",
+                in: "@_exported import Binary",
                 file: path
             )
             #expect(findings.count == 1, "expected a finding for \(path)")
@@ -84,7 +84,7 @@ extension Lint.Rule.`architecture import boundary Tests` {
         // The umbrella is a FILE; a directory segment of the same spelling is
         // not it.
         let findings = Self.findings(
-            in: "@_exported import Binary_Primitives",
+            in: "@_exported import Binary",
             file: "Sources/Model Core/exports.swift/Model.swift"
         )
         #expect(findings.count == 1)
@@ -94,7 +94,7 @@ extension Lint.Rule.`architecture import boundary Tests` {
     func `test sources are exempt`() {
         // Both-direction fixture for the non-main-target carve-out.
         let findings = Self.findings(
-            in: "@_exported import Binary_Primitives",
+            in: "@_exported import Binary",
             file: "Tests/Model Core Tests/Support.swift"
         )
         #expect(findings.isEmpty)
@@ -103,7 +103,7 @@ extension Lint.Rule.`architecture import boundary Tests` {
     @Test
     func `a space-separated MAIN target directory is not accidentally exempted`() {
         let findings = Self.findings(
-            in: "@_exported import Binary_Primitives",
+            in: "@_exported import Binary",
             file: "Sources/Products Live/Client.swift"
         )
         #expect(findings.count == 1)
@@ -112,16 +112,16 @@ extension Lint.Rule.`architecture import boundary Tests` {
     @Test
     func `an attribute that merely resembles _exported does not fire`() {
         // Near-miss on the attribute name itself.
-        let findings = Self.findings(in: "@_implementationOnly import Binary_Primitives")
+        let findings = Self.findings(in: "@_implementationOnly import Binary")
         #expect(findings.isEmpty)
     }
 
     @Test
     func `every scattered re-export in one file is reported`() {
         let source = """
-            @_exported public import Binary_Primitives
-            import Time_Primitives
-            @_exported public import Time_Primitives
+            @_exported public import Binary
+            import Time
+            @_exported public import Time
             """
         let findings = Self.findings(in: source)
         #expect(findings.count == 2)

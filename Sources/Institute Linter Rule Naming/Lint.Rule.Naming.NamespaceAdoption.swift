@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Wave 4 (mechanization-program) — `typealias X = Y.X` is the
@@ -28,7 +28,7 @@ internal import SwiftSyntax
 ///    least one additional argument (the enclosing Self-type or a concrete
 ///    type). This is how an institute consumer adopts a parameterized
 ///    capability, e.g. `extension Stack { typealias Property<Tag> =
-///    Property_Primitives.Property<Tag, Stack<Element>> }`, which sugars
+///    Property.Property<Tag, Stack<Element>> }`, which sugars
 ///    `Stack.Property<Push>` to the two-parameter underlying generic. The
 ///    self-binding distinguishes it from a bare rename bridge (no generics
 ///    / pure passthrough), which the rule still flags.
@@ -85,7 +85,7 @@ private let namingNamespaceAdoptionMessage: Swift.String =
 /// argument that is NOT a bare LHS parameter (the enclosing Self-type, a
 /// concrete type, or a nested generic). This is the institute
 /// consumer-adoption idiom — `extension Stack { typealias Property<Tag> =
-/// Property_Primitives.Property<Tag, Stack<Element>> }` — which is a partial
+/// Property.Property<Tag, Stack<Element>> }` — which is a partial
 /// application of the underlying two-parameter generic, not a rename. A bare
 /// rename bridge (`typealias Event = Kernel.Event`, no generics) and a pure
 /// passthrough (`typealias Array<T> = Swift.Array<T>`, every RHS argument is

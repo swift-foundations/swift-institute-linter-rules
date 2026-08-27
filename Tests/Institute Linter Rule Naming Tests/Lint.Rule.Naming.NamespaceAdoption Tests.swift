@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -140,7 +140,7 @@ extension Lint.Rule.`namespace adoption typealias Tests`.`Edge Case` {
     let source = """
       extension Stack {
           public typealias Property<Tag> =
-              Property_Primitives.Property<Tag, Stack<Element>>
+              Property.Property<Tag, Stack<Element>>
       }
       """
     let findings = Lint.Rule.`namespace adoption typealias Tests`.findings(in: source)
@@ -154,7 +154,7 @@ extension Lint.Rule.`namespace adoption typealias Tests`.`Edge Case` {
     let source = """
       extension Box {
           public typealias Property<Tag> =
-              Property_Primitives.Property<Tag, Int>
+              Property.Property<Tag, Int>
       }
       """
     let findings = Lint.Rule.`namespace adoption typealias Tests`.findings(in: source)

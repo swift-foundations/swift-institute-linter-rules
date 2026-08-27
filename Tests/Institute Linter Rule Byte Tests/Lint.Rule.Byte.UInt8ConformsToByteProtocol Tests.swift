@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -61,9 +61,9 @@ extension Lint.Rule.`uint8 conforms to byte protocol Tests`.Unit {
     }
 
     @Test
-    func `extension UInt8 conforming via fully-qualified Byte_Primitives is flagged`() {
+    func `extension UInt8 conforming via fully-qualified Byte is flagged`() {
         let source = """
-            extension UInt8: Byte_Primitives.Byte.`Protocol` {}
+            extension UInt8: Byte.Byte.`Protocol` {}
             """
         let result = Lint.Rule.`uint8 conforms to byte protocol Tests`.findings(in: source)
         #expect(result.count == 1)

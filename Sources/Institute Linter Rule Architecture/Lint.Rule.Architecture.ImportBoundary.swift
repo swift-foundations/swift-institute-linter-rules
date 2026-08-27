@@ -9,13 +9,13 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// An `@_exported import` outside a target's single umbrella `exports.swift`
 /// re-exports a dependency edge from an ordinary source file, where no
 /// import-based measurement looks for it. Citation: `[ARCH-FOUND-001]`
-/// (TX-A2, swift-foundations/swift-linter#44).
+/// (TX-A2, swift-compositions/swift-linter#44).
 ///
 /// The derived architecture model (Workspace.Architecture, TX-A1) measures
 /// dependency edges from imports. A re-export makes the re-exporting module's
@@ -38,19 +38,19 @@ extension Lint.Rule {
         controls: [
             .init(
                 id: "architecture import boundary ordinary reexport",
-                source: "@_exported import Binary_Primitives",
+                source: "@_exported import Binary",
                 path: "Sources/Architecture Core/OrdinaryReexport.swift",
                 expectation: .findings(1)
             ),
             .init(
                 id: "architecture import boundary plain import",
-                source: "public import Binary_Primitives",
+                source: "public import Binary",
                 path: "Sources/Architecture Core/PlainImport.swift",
                 expectation: .clean
             ),
             .init(
                 id: "architecture import boundary umbrella exemption",
-                source: "@_exported public import Binary_Primitives",
+                source: "@_exported public import Binary",
                 path: "Sources/Architecture Core/exports.swift",
                 expectation: .clean
             ),

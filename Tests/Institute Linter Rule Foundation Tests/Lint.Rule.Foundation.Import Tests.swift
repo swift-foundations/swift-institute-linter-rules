@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -88,8 +88,8 @@ extension Lint.Rule.`foundation import Tests`.`House convention soundness` {
     let source = """
       @_exported public import Foundation
       @_exported public import FoundationNetworking
-      @_exported public import Time_Primitives
-      @_exported public import Binary_Primitives
+      @_exported public import Time
+      @_exported public import Binary
       """
     let findings = Lint.Rule.`foundation import Tests`.findings(
       in: source,
@@ -117,7 +117,7 @@ extension Lint.Rule.`foundation import Tests`.`House convention soundness` {
   @Test
   func `an umbrella file mixing exempt and family imports flags only the family`() {
     let source = """
-      @_exported public import Time_Primitives
+      @_exported public import Time
       @_exported public import HTML_Foundation
       @_exported public import FoundationXML
       """
@@ -159,9 +159,9 @@ extension Lint.Rule.`foundation import Tests`.Unit {
   @Test
   func `Foundation alongside other imports flags only Foundation`() {
     let source = """
-      import Time_Primitives
+      import Time
       import Foundation
-      import Binary_Primitives
+      import Binary
       """
     let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
     #expect(findings.count == 1)
@@ -230,9 +230,9 @@ extension Lint.Rule.`foundation import Tests`.`Edge Case` {
   @Test
   func `institute primitives imports are NOT flagged`() {
     let source = """
-      import Time_Primitives
-      import Binary_Primitives
-      import Cardinal_Primitives
+      import Time
+      import Binary
+      import Cardinal
       """
     let findings = Lint.Rule.`foundation import Tests`.findings(in: source)
     #expect(findings.isEmpty)
@@ -303,8 +303,8 @@ extension Lint.Rule.`foundation import Tests`.`Edge Case` {
 // NOT fire, while every core target at every layer STILL fires. Controlled
 // in both directions — an over-skip is as bad as a never-fire. Real target
 // dir names verified 2026-07-25: swift-json `JSON Foundation Integration`,
-// swift-structured-queries-primitives
-// `Structured Queries Primitives Foundation Integration`.
+// swift-structured-queries
+// `Structured Queries Foundation Integration`.
 extension Lint.Rule.`foundation import Tests`.`Foundation Integration carve-out` {
   // MARK: - Negative controls (inside an FI target → must NOT fire)
 
@@ -328,7 +328,7 @@ extension Lint.Rule.`foundation import Tests`.`Foundation Integration carve-out`
       """
     let findings = Lint.Rule.`foundation import Tests`.findings(
       in: source,
-      file: "Sources/Structured Queries Primitives Foundation Integration/Bridge.swift"
+      file: "Sources/Structured Queries Foundation Integration/Bridge.swift"
     )
     #expect(findings.isEmpty)
   }

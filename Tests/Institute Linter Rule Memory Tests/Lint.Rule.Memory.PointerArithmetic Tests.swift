@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -71,7 +71,7 @@ extension Lint.Rule.`pointer advanced by Tests`.Unit {
 extension Lint.Rule.`pointer advanced by Tests`.`Edge Case` {
   /// THE range regression test: `Strideable.advanced(by:)` over a range's
   /// `Bound` is a safe stdlib op (no `unsafe`) and MUST NOT fire. This is
-  /// the false-positive class that swift-range-primitives' 8 findings were.
+  /// the false-positive class that swift-range' 8 findings were.
   @Test
   func `Strideable advanced by without unsafe is NOT flagged`() {
     let source = """
@@ -135,7 +135,7 @@ extension Lint.Rule.`pointer advanced by Tests`.`Edge Case` {
       """
     let findings = Lint.Rule.`pointer advanced by Tests`.findings(
       in: source,
-      file: "Tests/Memory Primitives Tests/Memory Arithmetic Tests.swift"
+      file: "Tests/Memory Tests/Memory Arithmetic Tests.swift"
     )
     #expect(findings.isEmpty)
   }

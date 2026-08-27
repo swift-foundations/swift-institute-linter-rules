@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Linter_Primitives
+internal import Linter
 internal import SwiftSyntax
 
 /// Returns true if `name` is the institute `Protocol` sentinel — a
@@ -88,7 +88,7 @@ internal func structureIsShorthandGetterAccessorBlock(_ node: Syntax) -> Swift.B
 /// `ExtensionDeclSyntax` and `IfConfigDeclSyntax` as TRANSPARENT.
 ///
 /// This is the extension-transparent sibling of
-/// `Lint.Syntax.Scope.isTopLevel(_:)` (`Linter Primitives`, #17):
+/// `Lint.Syntax.Scope.isTopLevel(_:)` (`Linter`, #17):
 /// that helper stops on `ExtensionDeclSyntax`, but under the
 /// institute `Nest.Name` convention every type is declared via
 /// `extension Parent { struct X }`, so an extension-nested type IS
