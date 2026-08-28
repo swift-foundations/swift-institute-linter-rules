@@ -117,7 +117,9 @@ extension Lint.Rule.Bundle {
             .enable(.`foundation import`),
             // Framework pack
             .enable(.`xctest import`),
-            .enable(.`suite categories`),
+            // `suite categories` is intentionally disabled: tests use the
+            // `<Domain>.Test` subdomain without mandatory Unit/Edge Case/
+            // Integration scaffolding.
             // Byte pack (Wave 1 of Post-W2 swift-linter arc, 2026-05-19)
             // — encodes the W2 UInt8/Byte discrimination rubric per
             // the L2/L3 byte-typing gap plan note § Wave 2.
@@ -134,7 +136,9 @@ extension Lint.Rule.Bundle {
             .enable(.`configuration before content`),
             .enable(.`lifecycle order`),
             .enable(.`unlabeled lifecycle closure`),
-            .enable(.`parameter position`),
+            // `parameter position` is intentionally disabled: a semantically
+            // labeled closure can read better before the value it operates over
+            // (for example `check(of:over:)`).
             // Idiom pack (Wave 3 2026-05-15)
             .enable(.`bounded index static capacity`),
             .enable(.`enumerated with subscript`),
@@ -201,7 +205,8 @@ extension Lint.Rule.Bundle {
             .enable(.`typealiased namespace bridge`),
             // Structure pack (Wave 3 2026-05-15)
             .enable(.`hoisted protocol alias`),
-            .enable(.`forbidden license header`),
+            // License-header policy is intentionally undecided; neither
+            // presence nor absence is enforced by the institute bundle.
             .enable(.`minimal type body`),
             .enable(.`raw value access`),
             .enable(.`single type per file`),
@@ -248,7 +253,10 @@ extension Lint.Rule.Bundle {
             .enable(.`existential throws`),
             .enable(.`generic throws missing never`),
             .enable(.`hoisted error in public throws`),
-            .enable(.`phantom generic error in typed throws`),
+            .enable(.`fully qualified error in typed throws`),
+            // Swift 6.4 no longer reproduces the optimizer failure which led
+            // to the `__` hoisting workaround, so the legacy phantom rule is
+            // retained for older toolchains but disabled in this bundle.
             .enable(.`lifecycle typealias review`),
             .enable(.`callback result over throws thunk`),
             .enable(.`result wrapper for rethrows shim`),

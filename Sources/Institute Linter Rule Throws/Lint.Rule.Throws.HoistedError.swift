@@ -12,7 +12,8 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
-/// Hoisted error types in public-API throws clauses. Citation: `[API-ERR-007]`.
+/// Double-underscore hoisted errors in typed-throws positions.
+/// Citation: `[API-ERR-007]`.
 extension Lint.Rule {
     public static let `hoisted error in public throws` = Lint.Rule(
         id: "hoisted error in public throws",
@@ -34,7 +35,7 @@ extension Lint.Rule {
                 id: "hoisted error in public throws internal API",
                 source: "func read() throws(__ReadError) {}",
                 path: "Sources/Throws Consumer/InternalHoistedError.swift",
-                expectation: .clean
+                expectation: .findings(1)
             ),
         ],
         observe: Lint.Rule.measured { source, severity in
@@ -51,43 +52,10 @@ extension Lint.Rule {
 
 @usableFromInline
 internal let throwsHoistedErrorMessage: Swift.String =
-    "[hoisted error in public throws] [API-ERR-007]: public-API "
-    + "`throws(T)` clauses MUST reference the canonical public path, "
-    + "never the `__`-prefixed hoisted internal type."
-
-private func hoistedIsPublicOrOpen(_ modifiers: DeclModifierListSyntax) -> Swift.Bool {
-    for modifier in modifiers {
-        switch modifier.name.tokenKind {
-        case .keyword(.public), .keyword(.open): return true
-        default: continue
-        }
-    }
-    return false
-}
-
-/// Returns true if `node`'s *effective* visibility is `public`/`open`
-/// — either it carries the modifier itself, or it declares no access
-/// modifier and is a member of a `public`/`open extension`. In
-/// Swift, a member of a `public extension` is public API without
-/// carrying the keyword; this rule is explicitly scoped to public API
-/// by its own doc/message and was silently defeated by moving the
-/// `public` keyword to the enclosing extension.
-private func hoistedIsPublicOrOpenEffective(
-    _ node: Syntax,
-    modifiers: DeclModifierListSyntax
-) -> Swift.Bool {
-    if hoistedIsPublicOrOpen(modifiers) {
-        return true
-    }
-    var current: Syntax? = node.parent
-    while let candidate = current {
-        if let ext = candidate.as(ExtensionDeclSyntax.self) {
-            return hoistedIsPublicOrOpen(ext.modifiers)
-        }
-        current = candidate.parent
-    }
-    return false
-}
+    "[hoisted error in public throws] [API-ERR-007]: typed-throws positions "
+    + "MUST reference the canonical domain path, never a `__`-prefixed "
+    + "hoisting workaround. Suppress the rule locally where an older "
+    + "toolchain still makes the workaround strictly necessary."
 
 /// `hoistedLeafIdentifier(of:)` has exactly one caller, `checkThrowsClause`,
 /// which passes a `ThrowsClauseSyntax.type` — a `throws(...)` clause type is
@@ -112,19 +80,8 @@ internal final class ThrowsHoistedErrorVisitor: SyntaxVisitor {
         super.init(viewMode: .sourceAccurate)
     }
 
-    override func visit(_ node: FunctionDeclSyntax) -> SyntaxVisitorContinueKind {
-        guard hoistedIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
-            return .visitChildren
-        }
-        checkThrowsClause(node.signature.effectSpecifiers?.throwsClause)
-        return .visitChildren
-    }
-
-    override func visit(_ node: InitializerDeclSyntax) -> SyntaxVisitorContinueKind {
-        guard hoistedIsPublicOrOpenEffective(Syntax(node), modifiers: node.modifiers) else {
-            return .visitChildren
-        }
-        checkThrowsClause(node.signature.effectSpecifiers?.throwsClause)
+    override func visit(_ node: ThrowsClauseSyntax) -> SyntaxVisitorContinueKind {
+        checkThrowsClause(node)
         return .visitChildren
     }
 

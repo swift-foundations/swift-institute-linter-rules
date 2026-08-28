@@ -76,30 +76,30 @@ extension Lint.Rule.`compound suite name Tests`.Unit {
   }
 
   @Test
-  func `Suite named Test is permitted`() {
+  func `Suite named Test in a domain is permitted`() {
     let source = """
-      @Suite struct Test {}
+      extension MemoryBuffer { @Suite struct Test {} }
       """
     let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
     #expect(findings.isEmpty)
   }
 
   @Test
-  func `Suite named Performance is permitted`() {
+  func `Suite named Performance is flagged`() {
     let source = """
       @Suite struct Performance {}
       """
     let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
-  func `Suite named Unit is permitted`() {
+  func `Suite named Unit is flagged`() {
     let source = """
       @Suite struct Unit {}
       """
     let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
@@ -112,12 +112,12 @@ extension Lint.Rule.`compound suite name Tests`.Unit {
   }
 
   @Test
-  func `Suite named Integration is permitted`() {
+  func `Suite named Integration is flagged`() {
     let source = """
       @Suite struct Integration {}
       """
     let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
@@ -130,32 +130,25 @@ extension Lint.Rule.`compound suite name Tests`.Unit {
   }
 }
 
-// MARK: - Backtick-escape exemption (added post-relocation)
+// MARK: - Non-Test suite names
 
 extension Lint.Rule.`compound suite name Tests`.`Edge Case` {
   @Test
-  func `backticked narrative Suite name is NOT flagged`() {
-    // Cohort precedent: `` @Suite struct `compound identifier Tests` ``
-    // is the canonical scaffold form for institute test suites.
-    // Backtick escape signals narrative identifier, exempt from the
-    // compound-name predicate.
+  func `backticked narrative Suite name is flagged`() {
     let source = """
       @Suite struct `compound identifier Tests` {}
       """
     let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
-  func `backticked Suite name with multi-word narrative is NOT flagged`() {
-    // Title Case multi-word backticked form — the underlying
-    // compound-suite predicate would normally fire on Title Case
-    // multi-word, but the backtick exemption applies.
+  func `backticked Suite name with multi-word narrative is flagged`() {
     let source = """
       @Suite struct `Sequence FlatMap Tests` {}
       """
     let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
@@ -166,6 +159,14 @@ extension Lint.Rule.`compound suite name Tests`.`Edge Case` {
       @Suite struct MemoryBufferTests {}
       """
     let findings = Lint.Rule.`compound suite name Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `top-level Test without a domain is flagged`() {
+    let findings = Lint.Rule.`compound suite name Tests`.findings(
+      in: "@Suite struct Test {}"
+    )
     #expect(findings.count == 1)
   }
 }

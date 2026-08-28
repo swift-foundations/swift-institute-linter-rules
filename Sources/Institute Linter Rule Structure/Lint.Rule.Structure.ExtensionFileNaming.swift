@@ -43,10 +43,13 @@ internal import SwiftSyntax
 ///    segment after ` where ` must be non-empty and the basename must
 ///    begin with `<Base> where `. The discriminator's exact text is
 ///    repository-owned and not further constrained.
-/// 4. Else (member-only extensions), the required basename is
-///    `<Base>+<Topic>.swift`: `<Base>` followed by `+` and a
-///    non-empty topic segment. The topic's wording is repository-
-///    owned; the rule checks shape, not vocabulary.
+/// 4. Else (member-only extensions), the basename is either
+///    `<Base>+<Topic>.swift` for members owned by the extended type,
+///    or `<Owner>+<Base>.swift` for a conversion initializer owned by
+///    its input domain. The latter is accepted only when an initializer
+///    parameter has the exact dotted `<Owner>` type path. This preserves
+///    names such as `Algebra.Group+Algebra.Magma.swift` for
+///    `extension Algebra.Magma { init(_: Algebra.Group<Element>) }`.
 ///
 /// The rule fires when the basename does not satisfy the classified
 /// shape.
@@ -73,6 +76,12 @@ extension Lint.Rule {
         id: "extension file naming member topic",
         source: "extension Array.Dynamic { func iterate() {} }",
         path: "Sources/Structure Core/Array.Dynamic+Iteration.swift",
+        expectation: .clean
+      ),
+      .init(
+        id: "extension file naming conversion owner",
+        source: "extension Algebra.Magma { init(_ group: Algebra.Group<Element>) {} }",
+        path: "Sources/Algebra Group/Algebra.Group+Algebra.Magma.swift",
         expectation: .clean
       ),
       .init(
@@ -220,6 +229,13 @@ private func structureExtensionFileNamingFindings(
   if basename.hasPrefix(prefix), basename.count > prefix.count {
     return []
   }
+  if structureExtensionFileNamingIsConversionOwned(
+    basename: basename,
+    extendedBase: base,
+    extensions: collector.extensions
+  ) {
+    return []
+  }
   return record(structureExtensionFileNamingTopicMessage(basename: basename, base: base))
 }
 
@@ -259,7 +275,30 @@ internal func structureExtensionFileNamingTopicMessage(
   base: Swift.String
 ) -> Swift.String {
   "[extension file naming] [API-IMPL-007]: extension file '\(basename).swift' must carry a "
-    + "'+<Topic>' segment naming the member group (e.g. '\(base)+Topic.swift')"
+    + "'+<Topic>' member group (e.g. '\(base)+Topic.swift') or, for a conversion "
+    + "initializer, use '<Owner>+\(base).swift' with a parameter of that owner type"
+}
+
+private func structureExtensionFileNamingIsConversionOwned(
+  basename: Swift.String,
+  extendedBase: Swift.String,
+  extensions: [ExtensionDeclSyntax]
+) -> Swift.Bool {
+  let suffix = "+\(extendedBase)"
+  guard basename.hasSuffix(suffix), basename.count > suffix.count else { return false }
+  let owner = Swift.String(basename.dropLast(suffix.count))
+
+  for extensionDecl in extensions {
+    for member in extensionDecl.memberBlock.members {
+      guard let initializer = member.decl.as(InitializerDeclSyntax.self) else { continue }
+      for parameter in initializer.signature.parameterClause.parameters
+      where structureDottedName(of: parameter.type) == owner
+      {
+        return true
+      }
+    }
+  }
+  return false
 }
 
 /// Walks top-level statements only, collecting every top-level

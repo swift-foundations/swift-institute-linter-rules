@@ -221,6 +221,43 @@ extension Lint.Rule.`extension file naming Tests`.Negative {
     )
     #expect(findings.isEmpty)
   }
+
+  @Test
+  func `conversion initializer may be owned by its input domain`() {
+    let source = """
+      extension Algebra.Magma {
+          init(_ group: Algebra.Group<Element>) {}
+      }
+      """
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: source,
+      file: "Sources/Algebra Group/Algebra.Group+Algebra.Magma.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `nested conversion owner path is preserved`() {
+    let source = """
+      extension Algebra.Monoid.Commutative {
+          init(_ group: Algebra.Group<Element>.Abelian) {}
+      }
+      """
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: source,
+      file: "Sources/Algebra Group/Algebra.Group.Abelian+Algebra.Monoid.Commutative.swift"
+    )
+    #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `reversed name without matching conversion input is rejected`() {
+    let findings = Lint.Rule.`extension file naming Tests`.findings(
+      in: "extension Algebra.Magma { func combine() {} }",
+      file: "Sources/Algebra Group/Algebra.Group+Algebra.Magma.swift"
+    )
+    #expect(findings.count == 1)
+  }
 }
 
 // MARK: - Edge

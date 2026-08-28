@@ -12,8 +12,8 @@
 public import Linter_Primitives
 internal import SwiftSyntax
 
-/// `@Suite` types MUST follow the extension-pattern naming, not compound
-/// names. Citation: `[SWIFT-TEST-002]`.
+/// `@Suite` types MUST occupy a `<Domain>.Test` subdomain.
+/// Citation: `[SWIFT-TEST-002]`.
 ///
 /// Relocated from `swift-linter-rules` (universal tier) to
 /// `swift-institute-linter-rules` (institute tier) 2026-05-15: the rule's
@@ -32,8 +32,8 @@ extension Lint.Rule {
                 expectation: .findings(1)
             ),
             .init(
-                id: "compound suite name leaf suite",
-                source: "@Suite struct Test {}",
+                id: "compound suite name domain test",
+                source: "extension MemoryBuffer { @Suite struct Test {} }",
                 path: "Sources/Naming Core/LeafSuite.swift",
                 expectation: .clean
             ),
@@ -41,7 +41,7 @@ extension Lint.Rule {
                 id: "compound suite name narrative suite",
                 source: "@Suite struct `Memory Buffer Tests` {}",
                 path: "Sources/Naming Core/NarrativeSuite.swift",
-                expectation: .clean
+                expectation: .findings(1)
             ),
         ],
         observe: Lint.Rule.measured { source, severity in
@@ -58,9 +58,8 @@ extension Lint.Rule {
 
 @usableFromInline
 internal let namingCompoundSuiteMessage: Swift.String =
-    "[compound suite name] [SWIFT-TEST-002]: `@Suite` types MUST use the "
-    + "extension-pattern nested name (`extension Foo { @Suite struct Test {} }`), "
-    + "not a compound name like `FooTests`."
+    "[compound suite name] [SWIFT-TEST-002]: `@Suite` types MUST occupy a "
+    + "`<Domain>.Test` subdomain (`extension Foo { @Suite struct Test {} }`)."
 
 private func compoundSuiteHasSuiteAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
     for attribute in attributes {
@@ -70,19 +69,17 @@ private func compoundSuiteHasSuiteAttribute(_ attributes: AttributeListSyntax) -
     return false
 }
 
-private func compoundSuiteIsCompound(_ name: Swift.String) -> Swift.Bool {
-    var uppercaseRuns = 0
-    var prevWasLower = false
-    for (offset, character) in name.enumerated() {
-        if offset == 0 {
-            guard character.isUppercase else { return false }
-            uppercaseRuns = 1
-            continue
-        }
-        if character.isUppercase, prevWasLower { uppercaseRuns += 1 }
-        prevWasLower = character.isLowercase
+private func compoundSuiteHasDomain(_ node: Syntax) -> Swift.Bool {
+    guard let parent = node.parent else { return false }
+    if parent.is(MemberBlockItemSyntax.self), let memberBlock = parent.parent {
+        guard let declaration = memberBlock.parent else { return false }
+        return declaration.is(ExtensionDeclSyntax.self)
+            || declaration.is(StructDeclSyntax.self)
+            || declaration.is(EnumDeclSyntax.self)
+            || declaration.is(ClassDeclSyntax.self)
+            || declaration.is(ActorDeclSyntax.self)
     }
-    return uppercaseRuns >= 2
+    return false
 }
 
 internal final class NamingCompoundSuiteVisitor: SyntaxVisitor {
@@ -98,15 +95,11 @@ internal final class NamingCompoundSuiteVisitor: SyntaxVisitor {
         super.init(viewMode: .sourceAccurate)
     }
 
-    private func checkSuite(attributes: AttributeListSyntax, name: TokenSyntax) {
+    private func checkSuite(_ node: Syntax, attributes: AttributeListSyntax, name: TokenSyntax) {
         guard compoundSuiteHasSuiteAttribute(attributes) else { return }
-        // Backtick-escape exemption: see `Naming.isBackticked` for the
-        // full rationale. The cohort uses backticked narrative names
-        // for @Suite scaffolds (`` struct `compound identifier Tests` ``,
-        // `` struct `Edge Case` ``) per [SWIFT-TEST-002] / [TEST-005] —
-        // those opt out of the compound-name convention this rule enforces.
-        if Naming.isBackticked(name) { return }
-        guard compoundSuiteIsCompound(name.text) else { return }
+        guard Lint.Syntax.Identifier.unescaped(name.text) != "Test"
+            || !compoundSuiteHasDomain(node)
+        else { return }
         let location = converter.location(for: name.positionAfterSkippingLeadingTrivia)
         matches.append(
             Diagnostic.Record(
@@ -124,22 +117,22 @@ internal final class NamingCompoundSuiteVisitor: SyntaxVisitor {
     }
 
     override func visit(_ node: StructDeclSyntax) -> SyntaxVisitorContinueKind {
-        checkSuite(attributes: node.attributes, name: node.name)
+        checkSuite(Syntax(node), attributes: node.attributes, name: node.name)
         return .visitChildren
     }
 
     override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-        checkSuite(attributes: node.attributes, name: node.name)
+        checkSuite(Syntax(node), attributes: node.attributes, name: node.name)
         return .visitChildren
     }
 
     override func visit(_ node: ActorDeclSyntax) -> SyntaxVisitorContinueKind {
-        checkSuite(attributes: node.attributes, name: node.name)
+        checkSuite(Syntax(node), attributes: node.attributes, name: node.name)
         return .visitChildren
     }
 
     override func visit(_ node: EnumDeclSyntax) -> SyntaxVisitorContinueKind {
-        checkSuite(attributes: node.attributes, name: node.name)
+        checkSuite(Syntax(node), attributes: node.attributes, name: node.name)
         return .visitChildren
     }
 }

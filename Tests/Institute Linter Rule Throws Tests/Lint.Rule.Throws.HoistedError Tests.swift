@@ -129,24 +129,24 @@ extension Lint.Rule.`hoisted error in public throws Tests`.`Edge Case` {
   }
 
   @Test
-  func `internal func with hoisted error is NOT flagged`() {
+  func `internal func with hoisted error is flagged`() {
     let source = "func op() throws(__InternalError) {}"
     let findings = Lint.Rule.`hoisted error in public throws Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
-  func `private func with hoisted error is NOT flagged`() {
+  func `private func with hoisted error is flagged`() {
     let source = "private func op() throws(__PrivateError) {}"
     let findings = Lint.Rule.`hoisted error in public throws Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
-  func `package func with hoisted error is NOT flagged`() {
+  func `package func with hoisted error is flagged`() {
     let source = "package func op() throws(__PackageError) {}"
     let findings = Lint.Rule.`hoisted error in public throws Tests`.findings(in: source)
-    #expect(findings.isEmpty)
+    #expect(findings.count == 1)
   }
 
   @Test
@@ -183,5 +183,19 @@ extension Lint.Rule.`hoisted error in public throws Tests`.`Edge Case` {
       """
     let findings = Lint.Rule.`hoisted error in public throws Tests`.findings(in: source)
     #expect(findings.isEmpty)
+  }
+
+  @Test
+  func `do throws with hoisted error is flagged`() {
+    let source = "do throws(__ReadError) {} catch {}"
+    let findings = Lint.Rule.`hoisted error in public throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
+  }
+
+  @Test
+  func `closure type with hoisted error is flagged`() {
+    let source = "let read: () throws(__ReadError) -> Void"
+    let findings = Lint.Rule.`hoisted error in public throws Tests`.findings(in: source)
+    #expect(findings.count == 1)
   }
 }

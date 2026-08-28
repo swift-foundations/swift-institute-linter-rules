@@ -74,6 +74,7 @@ private let allDeclaredRuleIDs: Swift.Set<Swift.String> = [
   "foundation import",
   "foundation integration leaf target",
   "forbidden license header",
+  "fully qualified error in typed throws",
   "generic throws missing never",
   "hoisted error in public throws",
   "hoisted protocol alias",
@@ -148,7 +149,16 @@ private let deliberateExclusions: Swift.Set<Swift.String> = [
   // `.timed()` trait, which isn't production-ready yet. See the
   // re-enable condition documented at the `.enable` call site's comment
   // in Lint.Rule.Bundle.institute.swift.
-  "benchmark timed required"
+  "benchmark timed required",
+  // TEST-005's mandatory category scaffold is obsolete. The active suite
+  // naming rule now enforces only the `<Domain>.Test` subdomain.
+  "suite categories",
+  // License-header policy is intentionally undecided.
+  "forbidden license header",
+  // Semantic argument order can be clearer than trailing-closure order.
+  "parameter position",
+  // Swift 6.4 accepts and optimizes nested generic-owner Error types.
+  "phantom generic error in typed throws",
 ]
 
 @Suite
@@ -202,7 +212,7 @@ extension `Lint Rule Bundle institute Tests`.`Composition` {
   }
 
   @Test
-  func `the one deliberate exclusion is absent from the enabled bundle`() {
+  func `deliberate exclusions are absent from the enabled bundle`() {
     let enabledIDs = instituteContributedEnabledIDs()
     for excluded in deliberateExclusions {
       #expect(
