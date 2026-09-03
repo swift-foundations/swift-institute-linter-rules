@@ -46,12 +46,12 @@ internal import SwiftSyntax
 ///    `` `Protocol` `` (both spellings signal the hoisted-protocol
 ///    pattern per [API-IMPL-009] / [PKG-NAME-001]).
 ///
-/// Reference NON-firing shape (`swift-storage-primitives`,
-/// `Store` vs `Storage<Allocation>`): `Store` is a bare, non-generic
+/// Reference NON-firing shape (`swift-storage`,
+/// `Store` vs `Storage::Storage<Allocation>`): `Store` is a bare, non-generic
 /// enum namespace with its own directly-nested `` `Protocol` ``
 /// member — there is no separate generic front-door typealias
 /// pointing AT `Store`, so member lookup on `Store.\`Protocol\``
-/// resolves normally and this rule does not fire. `Storage<Allocation>`
+/// resolves normally and this rule does not fire. `Storage::Storage<Allocation>`
 /// is a real generic struct (not a typealias target) that deliberately
 /// carries NO nested `Protocol` sentinel at all — Allocation-independent
 /// capability surfaces are hoisted to non-generic homes instead,
@@ -109,7 +109,7 @@ private let structureProtocolSentinelUnderGenericFrontDoorMessage: Swift.String 
     + "reach this member — ruled unsupported in "
     + "swift-institute/.github#122 (disposition c). Hoist the protocol "
     + "to a non-generic top-level name instead (the `Store`/"
-    + "`Storage<Allocation>` precedent in swift-storage-primitives), "
+    + "`Storage::Storage<Allocation>` precedent in swift-storage), "
     + "retaining a non-generic compatibility alias if needed."
 
 internal final class StructureProtocolSentinelUnderGenericFrontDoorVisitor: SyntaxVisitor {

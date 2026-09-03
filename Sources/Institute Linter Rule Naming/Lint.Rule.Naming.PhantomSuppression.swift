@@ -28,7 +28,7 @@ internal import SwiftSyntax
 ///      `consuming`/`borrowing`/`inout P`) AND never bound into a
 ///      value-storing container through a same-type `where`-clause
 ///      requirement on another generic parameter (e.g. `where S ==
-///      Buffer<Storage<Allocator<Resource>>.Contiguous<P>>.Linear` — `P`
+///      Buffer<Storage::Storage<Allocator<Resource>>.Contiguous<P>>.Linear` — `P`
 ///      reaches the storage type as a nested generic argument of the
 ///      requirement's concrete type, not through a `: P` text position).
 ///      Same-signature column-generic L1 shape; see [API-NAME-010b]
@@ -322,7 +322,7 @@ private func usedAtStructurallyEscapablePosition(
 
 /// True when `name` is bound into a value-storing container through a
 /// same-type `where`-clause requirement on a DIFFERENT generic parameter —
-/// e.g. `where S == Buffer<Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear`
+/// e.g. `where S == Buffer<Storage::Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear`
 /// binds `E` as a nested generic argument of `Contiguous`, which stores
 /// values of `E`. Citation: [API-NAME-010b] outcome record,
 /// swift-array-primitives#9 adjudication (comment 5134794606, 2026-07-30).
@@ -359,7 +359,7 @@ private func usedAsWhereClauseContainerBinding(
 /// True when `name` occurs as a nested generic type-argument anywhere
 /// inside `type` — never as `type`'s own bare leaf name, only inside one
 /// of its (or an ancestor member segment's) generic-argument list. Detects
-/// container bindings like `Storage<Memory.Allocator<Resource>>.Contiguous<E>`,
+/// container bindings like `Storage::Storage<Memory.Allocator<Resource>>.Contiguous<E>`,
 /// where `E` is the sole generic argument of the `.Contiguous` member
 /// segment, nested two levels below the requirement's top-level type.
 private func usedAsGenericArgument(_ name: Swift.String, in type: TypeSyntax) -> Swift.Bool {

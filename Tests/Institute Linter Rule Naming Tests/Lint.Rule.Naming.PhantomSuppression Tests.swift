@@ -229,7 +229,7 @@ extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
     let source = """
       struct Container<S: ~Copyable> {
           init<E: ~Copyable, Resource: ~Copyable>(initialCapacity: Index<E>.Count)
-          where S == Buffer<Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear {
+          where S == Buffer<Storage::Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear {
               fatalError()
           }
       }
@@ -248,7 +248,7 @@ extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
           init<E: ~Copyable, Tag: ~Copyable, Resource: ~Copyable>(
               initialCapacity: Index<E>.Count, x: Tagged<Tag, Ordinal>
           )
-          where S == Buffer<Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear {
+          where S == Buffer<Storage::Storage<Memory.Allocator<Resource>>.Contiguous<E>>.Linear {
               fatalError()
           }
       }

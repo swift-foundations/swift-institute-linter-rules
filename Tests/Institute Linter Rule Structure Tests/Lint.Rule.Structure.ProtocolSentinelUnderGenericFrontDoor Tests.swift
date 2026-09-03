@@ -179,7 +179,7 @@ extension Lint.Rule.`protocol sentinel under generic front door Tests`.Negative 
   func
     `generic carrier struct with no nested Protocol sentinel is NOT flagged - Storage precedent`()
   {
-    // Reference non-firing shape: `Storage<Allocation>` is a real
+    // Reference non-firing shape: `Storage::Storage<Allocation>` is a real
     // generic struct with no nested `Protocol` sentinel at all —
     // Allocation-independent capability surfaces are hoisted to
     // non-generic homes instead, exactly to avoid this failure mode.
