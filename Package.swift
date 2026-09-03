@@ -123,13 +123,15 @@ let package = Package(
       url: "https://github.com/swift-primitives/swift-cardinal-primitives.git", branch: "main"),
     .package(url: "https://github.com/swift-primitives/swift-byte-primitives.git", branch: "main"),
     .package(url: "https://github.com/swift-foundations/swift-linter-rules.git", branch: "main"),
-    .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-syntax.git", "603.0.2"..<"604.0.0"),
   ],
   targets: [
     // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
     .target(
       name: "Institute Linter Rule Architecture",
       dependencies: [
+        .package(url: "https://github.com/swift-atoms/swift-byte.git", branch: "main"),
+        .package(url: "https://github.com/swift-atoms/swift-cursor.git", branch: "main"),
         .product(name: "Linter Primitives", package: "swift-linter-primitives"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
