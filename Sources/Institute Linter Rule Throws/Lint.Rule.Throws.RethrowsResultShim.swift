@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// `try` inside stdlib `rethrows` higher-order methods MUST be adapted via

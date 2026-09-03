@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Non-platform-stack sources MUST NOT import platform-specific L2-spec or
@@ -120,11 +120,11 @@ internal let platformLayerImportForbiddenModules: [Swift.String: Swift.String] =
 /// directory segment belongs to the platform stack and is exempt.
 internal let platformLayerImportPlatformStackPackages: Swift.Set<Swift.String> = [
     // L1 platform-aware primitives
-    "swift-kernel-primitives",
-    "swift-cpu-primitives",
-    "swift-darwin-primitives",
-    "swift-linux-primitives",
-    "swift-windows-primitives",
+    "swift-kernel",
+    "swift-cpu",
+    "swift-darwin",
+    "swift-linux",
+    "swift-windows",
     // L2 spec
     "swift-iso-9945",
     "swift-darwin-standard",

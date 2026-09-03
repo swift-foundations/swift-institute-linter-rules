@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -220,8 +220,8 @@ extension Lint.Rule.`platform layer import Tests`.`Platform-stack carve-out` {
   func `every registry package is exempt`() {
     for package in [
       // L1 platform-aware primitives
-      "swift-kernel-primitives", "swift-cpu-primitives", "swift-darwin-primitives",
-      "swift-linux-primitives", "swift-windows-primitives",
+      "swift-kernel", "swift-cpu", "swift-darwin",
+      "swift-linux", "swift-windows",
       // L2 spec (including the historical swift-windows-standard name)
       "swift-iso-9945", "swift-darwin-standard", "swift-linux-standard",
       "swift-windows-32", "swift-windows-standard",
@@ -246,7 +246,7 @@ extension Lint.Rule.`platform layer import Tests`.`Platform-stack carve-out` {
     let findings = Lint.Rule.`platform layer import Tests`.findings(
       in: "import POSIX_Kernel",
       file:
-        "checkouts/swift-institute/swift-foundations/swift-kernel/Sources/Kernel/File.swift"
+        "checkouts/swift-institute/swift-compositions/swift-kernel/Sources/Kernel/File.swift"
     )
     #expect(findings.isEmpty)
   }

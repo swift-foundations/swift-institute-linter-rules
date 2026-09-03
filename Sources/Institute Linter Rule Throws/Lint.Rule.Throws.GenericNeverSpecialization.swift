@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Public generic APIs throwing a generic-parameter-typed error should

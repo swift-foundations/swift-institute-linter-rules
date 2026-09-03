@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Linter_Primitives
+internal import Linter
 internal import SwiftSyntax
 
 /// The canonical fix for `[IMPL-033]`: climb the range loop to
@@ -108,7 +108,7 @@ internal func idiomIterationIntentIsFixable(_ loop: ForStmtSyntax) -> Swift.Bool
 /// activation frame that declares it. The `forEach` translation moves the
 /// loop's own statements into a closure — a distinct activation frame — and
 /// referencing the parameter there does not compile: witnessed at
-/// swift-affine-geometry-primitives PR #5, `error: 'rhs' is borrowed and
+/// swift-affine-geometry PR #5, `error: 'rhs' is borrowed and
 /// cannot be consumed` on exactly this rewrite. This shape parses cleanly
 /// and fails only at type checking, so the structural repair must refuse it.
 ///

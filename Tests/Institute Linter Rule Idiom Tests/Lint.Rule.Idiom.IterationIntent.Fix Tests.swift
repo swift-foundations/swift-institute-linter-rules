@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rule_Testing
 import Linter_Rules_Test_Support
 import SwiftParser
@@ -485,7 +485,7 @@ extension Lint.Rule.`counter loop iteration fix Tests`.`Round Trip` {
 }
 
 extension Lint.Rule.`counter loop iteration fix Tests`.`Not Fixable` {
-  /// #49 witness reproduction (swift-affine-geometry-primitives PR #5,
+  /// #49 witness reproduction (swift-affine-geometry PR #5,
   /// head 499186f): a `borrowing` parameter referenced inside the loop
   /// body. The `forEach` translation would move the reference into a
   /// closure — a distinct activation frame a `borrowing` parameter is

@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Wave 1 (mechanization-program) — `Swift.<Protocol>` qualification for
@@ -131,7 +131,7 @@ internal let platformSwiftQualificationMessage: Swift.String =
     + "protocol reference is unqualified. Use `Swift.<Protocol>` form "
     + "(e.g., `some Swift.Sequence<UInt8>` not `some Sequence<UInt8>`; "
     + "`<E: Swift.Error>` not `<E: Error>`). Shadowing namespaces "
-    + "(`swift-sequence-primitives.Sequence`, per-package `Module.Error`) "
+    + "(`swift-sequence.Sequence`, per-package `Module.Error`) "
     + "make the bare name resolve to the institute namespace, not the "
     + "stdlib protocol."
 

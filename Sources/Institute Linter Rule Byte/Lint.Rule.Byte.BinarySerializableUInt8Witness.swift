@@ -9,14 +9,14 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// `Binary.Serializable` / `Binary.Parseable` (and sibling-family
 /// protocols like `Binary.ASCII.Serializable`) witness implementations
 /// MUST use `Buffer.Element == Byte` (or `Source.Element == Byte`),
 /// NOT `== UInt8`. The protocol surface was retyped to `Byte` at
-/// `swift-binary-primitives@b121c0e` (Wave 2 of the broader L2/L3 byte-
+/// `swift-binary@b121c0e` (Wave 2 of the broader L2/L3 byte-
 /// typing gap arc). The only legitimate `Buffer.Element == UInt8` shapes
 /// are the explicit `@_disfavoredOverload` stdlib-interop forwarders
 /// allowlisted in the W2 6-forwarder set; consumer-side witnesses MUST
@@ -65,7 +65,7 @@ internal let byteBinarySerializableUInt8WitnessMessage: Swift.String =
     "[binary serializable uint8 witness] [API-BYTE-003]: `Binary."
     + "Serializable` / `Binary.Parseable` witness uses `Buffer.Element == "
     + "UInt8` (or `Source.Element == UInt8`). The protocol surface is now "
-    + "Byte-typed (Wave 2, swift-binary-primitives@b121c0e). Retype the "
+    + "Byte-typed (Wave 2, swift-binary@b121c0e). Retype the "
     + "where-clause to `== Byte`. If this is a stdlib-interop forwarder, "
     + "add `@_disfavoredOverload` per [API-BYTE-006]."
 

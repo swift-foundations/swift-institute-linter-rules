@@ -80,7 +80,7 @@ extension Naming {
   /// qualified spelling on its leaf. Mirrors `testingHasAttribute` in the
   /// Testing pack; the Naming pack keeps its own copy rather than taking a
   /// cross-pack target dependency for one predicate, since the rule packs
-  /// are deliberately flat siblings over `Linter Primitives`.
+  /// are deliberately flat siblings over `Linter`.
   internal static func hasAttribute(
     _ attributes: AttributeListSyntax,
     named name: Swift.String
@@ -120,7 +120,7 @@ extension Naming {
   /// **This is deliberately not a `Tests/` path scope**, and the reason is
   /// load-bearing rather than stylistic. Test-support targets live under
   /// `Tests/` but ship as `.library` products imported across packages
-  /// (`Binary_Base_Primitives_Test_Support` is imported by the very suites
+  /// (`Binary_Base_Test_Support` is imported by the very suites
   /// above) — they *are* consumer API and must stay covered. A path gate
   /// would silence them. It also fails in the wrong direction: an attribute
   /// gate that misses a case still fires and an author complains, whereas a

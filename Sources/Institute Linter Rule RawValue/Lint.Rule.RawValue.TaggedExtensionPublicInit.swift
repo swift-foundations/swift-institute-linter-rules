@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Wave 2b finalization (2026-05-10) — extensions on `Tagged` MUST NOT
@@ -155,7 +155,7 @@ internal final class RawValueTaggedExtensionPublicInitVisitor: SyntaxVisitor {
     super.init(viewMode: .sourceAccurate)
   }
 
-  /// Matches `Tagged`, `Tagged<...>`, `Tagged_Primitives.Tagged`, or any
+  /// Matches `Tagged`, `Tagged<...>`, `Tagged.Tagged`, or any
   /// qualified path ending in `.Tagged`, structurally — walking
   /// `IdentifierTypeSyntax` / `MemberTypeSyntax` rather than splitting
   /// the trimmed description on `.`. A textual split misidentifies

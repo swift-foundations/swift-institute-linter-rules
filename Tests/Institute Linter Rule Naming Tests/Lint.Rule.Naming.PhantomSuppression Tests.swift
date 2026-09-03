@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -182,7 +182,7 @@ extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
   func `stored Underlying requirement in Tagged extension is NOT flagged`() {
     // Underlying is Tagged's STORED value parameter, not the phantom —
     // `~Copyable`-only is the correct bound there. FP class surfaced on
-    // swift-tagged-primitives' own surface (Tagged.swift map/retag
+    // swift-tagged' own surface (Tagged.swift map/retag
     // extensions, 2026-07-07).
     let source = """
       extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
@@ -219,7 +219,7 @@ extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
 
   @Test
   func `same-signature where-clause container binding is NOT flagged`() {
-    // #33 regression fixture — the swift-array-primitives#9 shape
+    // #33 regression fixture — the swift-array#9 shape
     // (adjudication comment 5134794606, 2026-07-30): `E` looks like an
     // `Index<E>` phantom discriminator by the text heuristic, but the
     // init's own `where` clause binds the ENCLOSING type's `S` parameter
@@ -265,7 +265,7 @@ extension Lint.Rule.`phantom suppression Tests`.`Edge Case` {
 
 // Prescribed-fix-does-not-compile defect — ruled
 // swift-institute/.github#90 comment 5150641576 item 1 (batch-1 backlog,
-// comment 5150595934: "ordinal-primitives: phantom-suppression prescribed
+// comment 5150595934: "ordinal: phantom-suppression prescribed
 // fix doesn't compile (UnsafeMutablePointer Pointee structurally
 // Escapable)"). `UnsafeMutablePointer.Pointee` has no `~Escapable`
 // suppression, so `<P: ~Copyable & ~Escapable>` is rejected by the

@@ -9,8 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Byte_Primitives
-import Linter_Primitives
+import Byte
+import Linter
 import SwiftParser
 import SwiftSyntax
 import Testing

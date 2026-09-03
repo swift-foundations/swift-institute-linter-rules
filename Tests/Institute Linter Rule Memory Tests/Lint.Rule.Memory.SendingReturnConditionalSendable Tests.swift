@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -42,7 +42,7 @@ extension Lint.Rule.`sending return conditional sendable state Tests` {
 extension Lint.Rule.`sending return conditional sendable state Tests`.Unit {
   @Test
   func `sending Base optional return on unchecked-Sendable-conditional-on-Base type is flagged`() {
-    // The reproduction shape from swift-property-primitives#7: `State`
+    // The reproduction shape from swift-property#7: `State`
     // is `@unchecked Sendable` conditional on `Base: Sendable`, and
     // `borrow()` returns `sending Base?` instead of the required plain
     // `Base?`.

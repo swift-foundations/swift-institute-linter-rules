@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -44,7 +44,7 @@ extension Lint.Rule.`typealiased namespace bridge Tests`.Unit {
   func `cross-module typealias keeping leaf name is flagged`() {
     let source = """
       extension ISO_9945 {
-          public typealias Kernel = Kernel_Primitives_Core.Kernel
+          public typealias Kernel = Kernel_Core.Kernel
       }
       """
     let rule = Lint.Rule.`typealiased namespace bridge`
@@ -126,8 +126,8 @@ extension Lint.Rule.`typealiased namespace bridge Tests`.`Edge Case` {
   func `multiple typealiases in same extension each evaluated`() {
     let source = """
       extension POSIX {
-          typealias Kernel = Kernel_Primitives.Kernel
-          typealias Socket = Net_Primitives.Socket
+          typealias Kernel = Kernel.Kernel
+          typealias Socket = Net.Socket
           typealias Mode = Other.Different
       }
       """

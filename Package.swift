@@ -23,7 +23,7 @@ let package = Package(
     .visionOS("27"),
   ],
   products: [
-    // Architecture pack (TX-A2, swift-foundations/swift-linter#44) —
+    // Architecture pack (TX-A2, swift-compositions/swift-linter#44) —
     // AST-local architecture predicates; derived-model enforcement
     // binds at TX-A4, not here.
     .library(
@@ -118,71 +118,69 @@ let package = Package(
   ],
   dependencies: [
     .package(
-      url: "https://github.com/swift-primitives/swift-linter-primitives.git", branch: "main"),
+      url: "https://github.com/swift-molecules/swift-linter.git", branch: "main"),
     .package(
-      url: "https://github.com/swift-primitives/swift-cardinal-primitives.git", branch: "main"),
-    .package(url: "https://github.com/swift-primitives/swift-byte-primitives.git", branch: "main"),
-    .package(url: "https://github.com/swift-foundations/swift-linter-rules.git", branch: "main"),
-    .package(url: "https://github.com/swiftlang/swift-syntax.git", "603.0.2"..<"604.0.0"),
+      url: "https://github.com/swift-molecules/swift-cardinal.git", branch: "main"),
+    .package(url: "https://github.com/swift-molecules/swift-byte.git", branch: "main"),
+    .package(url: "https://github.com/swift-compositions/swift-linter-rules.git", branch: "main"),
+    .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
   ],
   targets: [
-    // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
+    // Architecture pack (TX-A2, swift-compositions/swift-linter#44).
     .target(
       name: "Institute Linter Rule Architecture",
       dependencies: [
-        .package(url: "https://github.com/swift-atoms/swift-byte.git", branch: "main"),
-        .package(url: "https://github.com/swift-atoms/swift-cursor.git", branch: "main"),
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Naming",
       dependencies: [
-        .product(name: "Byte Primitives", package: "swift-byte-primitives"),
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Byte", package: "swift-byte"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Foundation",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Framework",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Byte",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Conformance",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Closure",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Idiom",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
@@ -190,58 +188,58 @@ let package = Package(
     .target(
       name: "Institute Linter Rule Manifest",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Memory",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Platform",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Structure",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "Linter Rule Structure", package: "swift-linter-rules"),
-        .product(name: "Cardinal Primitives", package: "swift-cardinal-primitives"),
+        .product(name: "Cardinal", package: "swift-cardinal"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Testing",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Throws",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Try",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Unchecked",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
@@ -249,14 +247,14 @@ let package = Package(
     .target(
       name: "Institute Linter Rule RawValue",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]
     ),
     .target(
       name: "Institute Linter Rule Cardinal",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+        .product(name: "Linter", package: "swift-linter"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftOperators", package: "swift-syntax"),
       ]
@@ -264,8 +262,8 @@ let package = Package(
     .target(
       name: "Linter Institute Rules",
       dependencies: [
-        .product(name: "Linter Primitives", package: "swift-linter-primitives"),
-        // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
+        .product(name: "Linter", package: "swift-linter"),
+        // Architecture pack (TX-A2, swift-compositions/swift-linter#44).
         .target(name: "Institute Linter Rule Architecture"),
         .target(name: "Institute Linter Rule Naming"),
         .target(name: "Institute Linter Rule Foundation"),
@@ -289,7 +287,7 @@ let package = Package(
         .product(name: "Linter Rules", package: "swift-linter-rules"),
       ]
     ),
-    // Architecture pack (TX-A2, swift-foundations/swift-linter#44).
+    // Architecture pack (TX-A2, swift-compositions/swift-linter#44).
     .testTarget(
       name: "Institute Linter Rule Architecture Tests",
       dependencies: [
@@ -413,7 +411,7 @@ let package = Package(
       name: "Institute Linter Rule Try Tests",
       dependencies: [
         .target(name: "Institute Linter Rule Try"),
-        .product(name: "Byte Primitives", package: "swift-byte-primitives"),
+        .product(name: "Byte", package: "swift-byte"),
         .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
         .product(name: "SwiftParser", package: "swift-syntax"),
       ]

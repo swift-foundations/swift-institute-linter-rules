@@ -27,7 +27,7 @@ public import Institute_Linter_Rule_Testing
 public import Institute_Linter_Rule_Throws
 public import Institute_Linter_Rule_Try
 public import Institute_Linter_Rule_Unchecked
-public import Linter_Primitives
+public import Linter
 public import Linter_Rules
 
 /// Institute-tier rule bundle.
@@ -80,7 +80,7 @@ public import Linter_Rules
 extension Lint.Rule.Bundle {
     public static let institute: [Lint.Rule.Configuration] =
         Lint.Rule.Bundle.universal + [
-            // Architecture pack (TX-A2, swift-foundations/swift-linter#44) —
+            // Architecture pack (TX-A2, swift-compositions/swift-linter#44) —
             // AST-local architecture predicates supplied for the derived-model
             // programme; advisory at introduction per this bundle's severity-tier
             // policy, and fleet enforcement binds at TX-A4 (.github#85 amendment
@@ -169,7 +169,7 @@ extension Lint.Rule.Bundle {
             // Advisory at introduction; error only after the standing
             // graduation gate.
             .enable(.`path name grammar`),
-            // [swift-structured-queries-primitives#2 ruling, 2026-07-30] —
+            // [swift-structured-queries#2 ruling, 2026-07-30] —
             // implemented per swift-institute-linter-rules#31. Advisory at
             // introduction; error only after the standing graduation gate.
             .enable(.`foundation integration leaf target`),
@@ -183,7 +183,7 @@ extension Lint.Rule.Bundle {
             .enable(.`sendable struct with class member`),
             .enable(.`unchecked sendable revalidation anchor`),
             .enable(.`unsafe assignment granularity`),
-            // [swift-property-primitives#7 adjudication] — implemented per
+            // [swift-property#7 adjudication] — implemented per
             // swift-institute-linter-rules#29. Advisory at introduction;
             // error only after the standing graduation gate.
             .enable(.`sending return conditional sendable state`),
@@ -278,7 +278,7 @@ extension Lint.Rule.Bundle {
             .enable(.`chained rawvalue access`),
             .enable(.`tagged extension public init`),
             // [CONV-015] — promoted 2026-07-07 (principal ruling, option a)
-            // from swift-tagged-primitives' nested Lint/ PoC
+            // from swift-tagged' nested Lint/ PoC
             // (Lint.Rule.TaggedDomainAudit); map/retag/@Test exemptions
             // preserved. NOTE: the validation receipt this promotion cites is
             // not committed to Research/ in this repository (see issue #16) —

@@ -1,4 +1,4 @@
-internal import Linter_Primitives
+internal import Linter
 internal import SwiftSyntax
 
 /// Collects the expression supplied by each manifest-local property accessor on

@@ -1,4 +1,4 @@
-internal import Linter_Primitives
+internal import Linter
 internal import SwiftSyntax
 
 /// Collects top-level extensions and primary nominal declarations.

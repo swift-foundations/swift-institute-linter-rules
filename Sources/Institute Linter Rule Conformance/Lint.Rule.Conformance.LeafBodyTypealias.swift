@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Leaf conformers to `Parser.Protocol` / `Serializer.Protocol` /
@@ -225,7 +225,7 @@ private let leafBodyProtocolPairs: [(host: Swift.String, name: Swift.String)] = 
 /// Returns true when any inherited type in `clause` matches one of the
 /// leaf-body-protocol pairs. Matching tolerates arbitrary leading
 /// module / namespace qualification (e.g.,
-/// `Parser_Primitives_Core.Parser.\`Protocol\``) by inspecting only the
+/// `Parser_Core.Parser.\`Protocol\``) by inspecting only the
 /// trailing two path segments.
 private func inheritanceContainsLeafBodyProtocol(_ clause: InheritanceClauseSyntax) -> Swift.Bool {
     for inherited in clause.inheritedTypes {

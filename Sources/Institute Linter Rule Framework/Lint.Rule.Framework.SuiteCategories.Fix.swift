@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Linter_Primitives
+internal import Linter
 internal import SwiftSyntax
 
 /// The canonical fix for `[TEST-005]`: append the missing canonical
@@ -21,7 +21,7 @@ internal import SwiftSyntax
 /// - **Refuse when the member block holds any `#if` conditional-compilation
 ///   block.** ``Lint.Rule.Framework.SuiteCategories``'s own predicate does
 ///   NOT splice `#if` when counting declared categories
-///   ([#47](https://github.com/swift-foundations/swift-institute-linter-rules/issues/47)),
+///   ([#47](https://github.com/swift-compositions/swift-institute-linter-rules/issues/47)),
 ///   so a category satisfying the missing set may already exist inside a
 ///   conditional arm this fix cannot see. Inserting one unconditionally in
 ///   that case is a redeclaration error in whichever arm the `#if` is

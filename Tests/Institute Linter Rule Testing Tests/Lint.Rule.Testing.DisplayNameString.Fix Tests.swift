@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rule_Testing
 import Linter_Rules_Test_Support
 import SwiftParser

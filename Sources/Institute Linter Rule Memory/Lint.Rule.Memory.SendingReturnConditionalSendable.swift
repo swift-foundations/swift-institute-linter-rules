@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Prohibits a `sending`-typed return position on a public/package
@@ -17,7 +17,7 @@ internal import SwiftSyntax
 /// conditional on one of its own generic parameters
 /// (`extension State: @unchecked Sendable where Base: Sendable {}`).
 ///
-/// Adjudication: `swift-primitives/swift-property-primitives#7`
+/// Adjudication: `swift-molecules/swift-property#7`
 /// (recommendation, 2026-07-30) — `Property.Consume.State`'s
 /// `@unchecked Sendable where Base: Sendable` conformance is sound only
 /// as the conjunction of three facts, one of which cannot be expressed
@@ -54,7 +54,7 @@ internal import SwiftSyntax
 /// (issue #11) — promote to `.error` only after fleet validation finds
 /// no false positives.
 extension Lint.Rule {
-    /// Flags a `sending`-typed return on a public/package member of a type whose `@unchecked Sendable` conformance is conditional on the mentioned generic parameter ([swift-property-primitives#7]).
+    /// Flags a `sending`-typed return on a public/package member of a type whose `@unchecked Sendable` conformance is conditional on the mentioned generic parameter ([swift-property#7]).
     public static let `sending return conditional sendable state` = Lint.Rule(
         id: "sending return conditional sendable state",
         default: .warning,
@@ -100,7 +100,7 @@ private let memorySendingReturnConditionalSendableMessage: Swift.String =
     + "original region — the exact race the conditional-Sendable gate "
     + "exists to prevent. Adding `sending` here is source-compatible with "
     + "every existing caller, so no test observes the regression; keep the "
-    + "return type plain (per swift-property-primitives#7)."
+    + "return type plain (per swift-property#7)."
 
 internal final class MemorySendingReturnConditionalSendableVisitor: SyntaxVisitor {
     let source: Source.File

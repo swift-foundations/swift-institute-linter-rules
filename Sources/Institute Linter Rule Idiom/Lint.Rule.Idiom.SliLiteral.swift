@@ -9,12 +9,12 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Compile-time-constant `Index`/`Tagged` construction of the form
 /// `Index<…>(Ordinal(UInt(<literal>)))` MUST be written as the bare integer
-/// literal — the tagged-primitives SLI carve-out
+/// literal — the tagged SLI carve-out
 /// (`Tagged: ExpressibleByIntegerLiteral`) makes literals infer. Runtime
 /// bindings keep the explicit construction. Citation: `[IDX-019]`.
 extension Lint.Rule {
@@ -57,7 +57,7 @@ extension Lint.Rule {
 internal let idiomSliLiteralMessage: Swift.String =
     "[sli literal] [IDX-019]: verbose compile-time-constant "
     + "`Index`/`Tagged` construction wraps an integer literal in "
-    + "`Ordinal(UInt(…))`. The tagged-primitives SLI carve-out "
+    + "`Ordinal(UInt(…))`. The tagged SLI carve-out "
     + "(`Tagged: ExpressibleByIntegerLiteral`) makes literals infer — "
     + "write the bare integer literal (e.g. `slab[0]`). Keep the explicit "
     + "`Index<Element>(Ordinal(UInt(x)))` construction only for runtime "

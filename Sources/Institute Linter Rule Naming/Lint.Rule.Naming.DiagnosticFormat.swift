@@ -9,8 +9,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
-internal import Byte_Primitives
-public import Linter_Primitives
+internal import Byte
+public import Linter
 internal import SwiftSyntax
 
 /// Diagnostic-emitting rules' message strings MUST follow the educational-

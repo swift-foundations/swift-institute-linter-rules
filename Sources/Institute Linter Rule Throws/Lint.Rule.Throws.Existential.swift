@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 // swiftlint:disable no_existential_throws
@@ -151,7 +151,7 @@ internal final class ThrowsExistentialVisitor: SyntaxVisitor {
   /// contract, not chosen by the author.
   ///
   /// Citation: feedback_no_existential_throws (rule's primary statement);
-  /// 2026-05-21 binary-primitives lint remediation — dead-end documented
+  /// 2026-05-21 binary lint remediation — dead-end documented
   /// in HANDOFF.md (typed-throws form `throws(ExpectationFailedError)`
   /// doesn't compile against swift-testing's public surface).
   private func isInsideRequireMacroFunction(_ node: Syntax) -> Swift.Bool {

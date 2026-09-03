@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// Stdlib-interop `@_disfavoredOverload` UInt8 forwarders DECLARED AS
@@ -314,7 +314,7 @@ private func byteStdlibForwarderTypeMentionsUInt8(_ type: TypeSyntax) -> Swift.B
 /// matches one of these (or the extended type is explicitly
 /// `Swift.<X>`).
 ///
-/// Note on `Array`: included even though `Array_Primitives.Array` shadows
+/// Note on `Array`: included even though `Array.Array` shadows
 /// `Swift.Array` in the institute. The institute convention is to write
 /// `extension Swift.Array` when the stdlib type is intended; bare
 /// `extension Array` in a file that resolves `Array` to institute is

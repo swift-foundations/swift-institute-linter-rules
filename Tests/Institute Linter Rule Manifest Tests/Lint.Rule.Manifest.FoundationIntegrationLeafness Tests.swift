@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -47,33 +47,33 @@ extension Lint.Rule.`foundation integration leaf target Tests` {
 extension Lint.Rule.`foundation integration leaf target Tests`.Negative {
   @Test
   func `sanctioned shape - own leaf product, no incoming edge - is NOT flagged`() {
-    // Reference sanctioned shape: swift-structured-queries-primitives'
-    // `Structured Queries Primitives Foundation Integration` — its own
+    // Reference sanctioned shape: swift-structured-queries'
+    // `Structured Queries Foundation Integration` — its own
     // `.library` product, and no other target lists it as a
     // dependency (it may depend OUTWARD on the core target; that's
     // fine — only incoming edges are checked).
     let source = """
       let package = Package(
-        name: "swift-structured-queries-primitives",
+        name: "swift-structured-queries",
         products: [
           .library(
-            name: "Structured Queries Primitives",
-            targets: ["Structured Queries Primitives"]
+            name: "Structured Queries",
+            targets: ["Structured Queries"]
           ),
           .library(
-            name: "Structured Queries Primitives Foundation Integration",
-            targets: ["Structured Queries Primitives Foundation Integration"]
+            name: "Structured Queries Foundation Integration",
+            targets: ["Structured Queries Foundation Integration"]
           ),
         ],
         targets: [
           .target(
-            name: "Structured Queries Primitives",
+            name: "Structured Queries",
             dependencies: []
           ),
           .target(
-            name: "Structured Queries Primitives Foundation Integration",
+            name: "Structured Queries Foundation Integration",
             dependencies: [
-              "Structured Queries Primitives",
+              "Structured Queries",
             ]
           ),
         ]

@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// R2 — `Cardinal(0)` / `Cardinal(1)` constructor calls.
@@ -136,7 +136,7 @@ internal final class CardinalConstructorVisitor: SyntaxVisitor {
                 return calleeTypeName(base)
             }
             // A qualified reference to the type itself — e.g.
-            // `Cardinal_Primitives.Cardinal(0)` / `Numerics.Cardinal(1)` —
+            // `Cardinal.Cardinal(0)` / `Numerics.Cardinal(1)` —
             // is a `MemberAccessExprSyntax` whose `declName` IS the type
             // name, with no `.init` in between. Recognize it directly
             // rather than falling through to `nil`, which left every

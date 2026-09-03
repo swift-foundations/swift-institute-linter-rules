@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// `UInt8` MUST NOT conform to `Byte.\`Protocol\``. The stdlib arithmetic
@@ -123,7 +123,7 @@ internal func extensionIsOnUInt8(_ type: TypeSyntax) -> Swift.Bool {
 }
 
 /// Returns true when any inherited type matches `Byte.\`Protocol\`` —
-/// `Byte_Primitives.Byte.\`Protocol\`` variants tolerated by inspecting
+/// `Byte.Byte.\`Protocol\`` variants tolerated by inspecting
 /// trailing two path segments.
 private func inheritanceContainsByteProtocol(_ clause: InheritanceClauseSyntax) -> Swift.Bool {
     for inherited in clause.inheritedTypes {

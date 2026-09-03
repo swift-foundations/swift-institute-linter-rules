@@ -9,14 +9,14 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Linter_Primitives
+public import Linter
 internal import SwiftSyntax
 
 /// A caseless `enum` is the institute's namespace shape: it is uninhabited,
 /// so it can never have an instance. An *instance* member declared directly
 /// inside one — an instance method, computed property, subscript, or an
 /// initializer — is unreachable API surface: no call site can ever exist.
-/// Citation: `[ARCH-FOUND-001]` (TX-A2, swift-foundations/swift-linter#44).
+/// Citation: `[ARCH-FOUND-001]` (TX-A2, swift-compositions/swift-linter#44).
 ///
 /// The shape violation is always one of two intents gone wrong:
 ///

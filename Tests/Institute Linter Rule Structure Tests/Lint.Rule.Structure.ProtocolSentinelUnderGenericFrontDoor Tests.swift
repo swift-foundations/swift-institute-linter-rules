@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Linter_Primitives
+import Linter
 import Linter_Rules_Test_Support
 import SwiftParser
 import SwiftSyntax
@@ -42,7 +42,7 @@ extension Lint.Rule.`protocol sentinel under generic front door Tests` {
 extension Lint.Rule.`protocol sentinel under generic front door Tests`.Unit {
   @Test
   func `backtick Protocol sentinel nested under a generic front-door carrier is flagged`() {
-    // The retired swift-set-primitives shape: a public generic front
+    // The retired swift-set shape: a public generic front
     // door (`Set<Element>`) fronting an underscored carrier (`__Set`),
     // with the Protocol sentinel nested via an extension of the
     // CARRIER, not the alias.
