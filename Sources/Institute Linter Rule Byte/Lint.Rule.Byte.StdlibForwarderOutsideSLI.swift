@@ -16,7 +16,7 @@ internal import SwiftSyntax
 /// extensions ON stdlib types (Array, ContiguousArray, ArraySlice, Span,
 /// UnsafeBufferPointer, …) MUST live in `* Standard Library Integration`
 /// modules, NOT in byte-domain primary modules. Extensions on INSTITUTE
-/// types (Byte.Input, RFC_*.*, …) that happen to take UInt8 as a
+/// types (ArraySlice<Byte>, RFC_*.*, …) that happen to take UInt8 as a
 /// stdlib-bridge convenience belong in the primary module and DO NOT
 /// fire this rule.
 /// Citation: `[API-BYTE-007]`.
@@ -39,7 +39,7 @@ extension Lint.Rule {
             ),
             .init(
                 id: "stdlib forwarder outside sli institute type",
-                source: "extension Byte.Input { @_disfavoredOverload public func append(_ value: UInt8) {} }",
+                source: "extension ArraySlice<Byte> { @_disfavoredOverload public func append(_ value: UInt8) {} }",
                 path: "Sources/Binary Core/ByteInputForwarder.swift",
                 expectation: .clean
             ),
@@ -398,7 +398,7 @@ private func byteStdlibForwarderTypeIsStdlibType(_ type: TypeSyntax) -> Swift.Bo
         {
             return true
         }
-        // Multi-segment nested type (e.g., `Byte.Input`, `RFC_4122.UUID`):
+        // Multi-segment nested type (e.g., `ArraySlice<Byte>`, `RFC_4122.UUID`):
         // an institute / domain-nested type. Not stdlib.
         return false
     }

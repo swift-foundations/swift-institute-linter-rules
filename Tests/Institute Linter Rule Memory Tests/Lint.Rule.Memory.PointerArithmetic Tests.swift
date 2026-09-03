@@ -91,7 +91,7 @@ extension Lint.Rule.`pointer advanced by Tests`.`Edge Case` {
   func `unrelated method named advance is NOT flagged`() {
     let source = """
       func op(_ x: Foo) {
-          let next = x.advance(by: 1)
+          let next = x.removeFirst(1)
           use(next)
       }
       """

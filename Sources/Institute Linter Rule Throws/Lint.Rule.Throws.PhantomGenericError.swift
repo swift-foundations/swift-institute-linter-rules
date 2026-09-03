@@ -222,8 +222,8 @@ private func throwsPhantomBaseGenericArguments(_ type: TypeSyntax) -> [Swift.Str
 /// A base spelled with *concrete* arguments is a fully-specialized type: no type
 /// parameter reaches the `@error` SIL result, so there is nothing to trip the
 /// optimizer. `W3C_XML.Parser.swift`'s
-/// `public static func fragment(_:) throws(Parser<Byte.Input>.Error)` is exactly
-/// this — `Byte.Input` is a concrete type and `Parser.Error` is already a
+/// `public static func fragment(_:) throws(Parser<ArraySlice<Byte>>.Error)` is exactly
+/// this — `ArraySlice<Byte>` is a concrete type and `Parser.Error` is already a
 /// typealias onto a non-generic enum. Firing there is a false positive, and an
 /// unfixable one: it is a public throws clause, so naming the hoisted
 /// `__W3CXMLParserError` directly would violate [API-ERR-007]. The current
@@ -233,7 +233,7 @@ private func throwsPhantomArgumentsAreInScopeParameters(
     inScope: Set<Swift.String>
 ) -> Swift.Bool {
     // Exact match on the whole spelling: a bare `Input` names the parameter, while
-    // a qualified `Byte.Input` is a concrete type that merely ends in the same
+    // a qualified `ArraySlice<Byte>` is a concrete type that merely ends in the same
     // word. Matching on the leaf would silently re-admit the false positive.
     for argument in arguments where inScope.contains(argument) { return true }
     return false

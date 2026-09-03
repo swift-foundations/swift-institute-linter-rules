@@ -305,7 +305,7 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.`Edge Case` {
 
     @Test
     func `concrete generic argument at a use site is NOT flagged`() {
-        // `Byte.Input` is a concrete type, not an in-scope generic parameter, so the
+        // `ArraySlice<Byte>` is a concrete type, not an in-scope generic parameter, so the
         // base is fully specialized and no type parameter reaches the `@error` SIL
         // result. Measured false positive at
         // swift-w3c-xml/Sources/W3C XML/W3C_XML.Parser.swift:409 — and an unfixable
@@ -314,7 +314,7 @@ extension Lint.Rule.`phantom generic error in typed throws Tests`.`Edge Case` {
         let source = """
             extension W3C_XML {
                 public struct Parser<Input>: ~Copyable {}
-                public static func fragment(_ string: String) throws(Parser<Byte.Input>.Error) -> Element {
+                public static func fragment(_ string: String) throws(Parser<ArraySlice<Byte>>.Error) -> Element {
                     fatalError()
                 }
             }

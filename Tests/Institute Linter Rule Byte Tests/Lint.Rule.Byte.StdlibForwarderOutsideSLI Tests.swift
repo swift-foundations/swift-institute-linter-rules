@@ -206,10 +206,10 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.`Edge Case` {
     @Test
     func `extension on institute type Byte Input with disfavored UInt8 init is NOT flagged`() {
         // [API-BYTE-007] scope: only extensions on STDLIB types belong in SLI.
-        // Extensions on institute types (Byte.Input here) that take UInt8 as
+        // Extensions on institute types (ArraySlice<Byte> here) that take UInt8 as
         // a stdlib-bridge convenience legitimately live in the primary module.
         let source = """
-            extension Byte.Input {
+            extension ArraySlice<Byte> {
                 @_disfavoredOverload
                 public init<Bytes: Swift.Collection>(_ bytes: Bytes) where Bytes.Element == UInt8 {
                     self.init(Swift.Array(bytes))
@@ -330,7 +330,7 @@ extension Lint.Rule.`stdlib forwarder outside sli Tests`.Integration {
     func `mixed institute and stdlib extensions in same file fire selectively`() {
         // [API-BYTE-007] scope discrimination: only the stdlib-type extension fires.
         let source = """
-            extension Byte.Input {
+            extension ArraySlice<Byte> {
                 @_disfavoredOverload
                 public init(_ bytes: ArraySlice<UInt8>) {}
             }
